@@ -9,7 +9,10 @@ function HomeMapContent() {
 
     return (
         <div className="relative h-full">
-            <WindyMap mapOnlyMode={!state.isWeatherStatsVisible} />
+            <WindyMap
+                mapOnlyMode={!state.isWeatherStatsVisible}
+                overlay={state.overlay}
+            />
             <Tools />
         </div>
     );

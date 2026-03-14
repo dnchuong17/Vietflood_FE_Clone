@@ -9,16 +9,24 @@ import {
     useReducer,
 } from "react";
 
+export type MapOverlay = "rain" | "wind" | "temp" | "clouds" | "pressure" | "rh";
+
+const OVERLAY_SEQUENCE: MapOverlay[] = ["rain", "wind", "temp", "rh", "clouds", "pressure"];
+
 type HomeDisplayState = {
     isWeatherStatsVisible: boolean;
+    overlay: MapOverlay;
 };
 
 type HomeDisplayAction =
     | { type: "toggleWeatherStatsVisibility" }
-    | { type: "setWeatherStatsVisibility"; payload: boolean };
+    | { type: "setWeatherStatsVisibility"; payload: boolean }
+    | { type: "cycleOverlay" }
+    | { type: "setOverlay"; payload: MapOverlay };
 
 const initialHomeDisplayState: HomeDisplayState = {
     isWeatherStatsVisible: false,
+    overlay: "rain",
 };
 
 function homeDisplayReducer(
@@ -33,6 +41,17 @@ function homeDisplayReducer(
             };
         case "setWeatherStatsVisibility":
             return { ...state, isWeatherStatsVisible: action.payload };
+        case "cycleOverlay": {
+            const currentIndex = OVERLAY_SEQUENCE.indexOf(state.overlay);
+            const nextIndex = (currentIndex + 1) % OVERLAY_SEQUENCE.length;
+
+            return {
+                ...state,
+                overlay: OVERLAY_SEQUENCE[nextIndex],
+            };
+        }
+        case "setOverlay":
+            return { ...state, overlay: action.payload };
         default:
             return state;
     }
