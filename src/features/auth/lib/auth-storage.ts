@@ -15,6 +15,9 @@ export type AuthIdentity = {
   initials: string;
 };
 
+let cachedIdentityToken: string | null = null;
+let cachedIdentity: AuthIdentity | null = null;
+
 export function persistAuthTokens(tokens: SignInResponse): void {
   if (typeof window === "undefined") {
     return;
@@ -73,11 +76,19 @@ function createInitials(displayName: string): string {
 export function getAuthIdentity(): AuthIdentity | null {
   const token = getAccessToken();
   if (!token) {
+    cachedIdentityToken = null;
+    cachedIdentity = null;
     return null;
+  }
+
+  if (cachedIdentityToken === token) {
+    return cachedIdentity;
   }
 
   const payload = decodeTokenPayload(token);
   if (!payload?.username) {
+    cachedIdentityToken = token;
+    cachedIdentity = null;
     return null;
   }
 
@@ -85,9 +96,12 @@ export function getAuthIdentity(): AuthIdentity | null {
     `${payload.first_name ?? ""} ${payload.last_name ?? ""}`.trim();
   const displayName = fullName.length > 0 ? fullName : payload.username;
 
-  return {
+  cachedIdentityToken = token;
+  cachedIdentity = {
     username: payload.username,
     displayName,
     initials: createInitials(displayName),
   };
+
+  return cachedIdentity;
 }
