@@ -5,5 +5,5 @@ export type SignInPayload = {
 
 export type SignInResponse = {
   accessToken: string;
-  refresh_token: string;
+  refresh_token?: string;
 };

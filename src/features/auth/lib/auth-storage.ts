@@ -1,7 +1,7 @@
 import type { SignInResponse } from "@/features/auth/types/auth";
 
 const ACCESS_TOKEN_KEY = "vietflood_access_token";
-const REFRESH_TOKEN_KEY = "vietflood_refresh_token";
+const ACCESS_TOKEN_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24; // 1 day
 
 type TokenPayload = {
   username?: string;
@@ -18,13 +18,40 @@ export type AuthIdentity = {
 let cachedIdentityToken: string | null = null;
 let cachedIdentity: AuthIdentity | null = null;
 
+function setCookie(name: string, value: string, maxAgeSeconds: number): void {
+  document.cookie = `${encodeURIComponent(name)}=${encodeURIComponent(value)}; Max-Age=${maxAgeSeconds}; Path=/; SameSite=Lax`;
+}
+
+function getCookie(name: string): string | null {
+  const encodedName = `${encodeURIComponent(name)}=`;
+  const cookies = document.cookie ? document.cookie.split(";") : [];
+
+  for (const cookie of cookies) {
+    const trimmed = cookie.trim();
+    if (trimmed.startsWith(encodedName)) {
+      return decodeURIComponent(trimmed.slice(encodedName.length));
+    }
+  }
+
+  return null;
+}
+
+function clearCookie(name: string): void {
+  document.cookie = `${encodeURIComponent(name)}=; Max-Age=0; Path=/; SameSite=Lax`;
+}
+
 export function persistAuthTokens(tokens: SignInResponse): void {
   if (typeof window === "undefined") {
     return;
   }
 
+  setCookie(
+    ACCESS_TOKEN_KEY,
+    tokens.accessToken,
+    ACCESS_TOKEN_COOKIE_MAX_AGE_SECONDS,
+  );
+  // Backward-compatible fallback for old sessions.
   window.localStorage.setItem(ACCESS_TOKEN_KEY, tokens.accessToken);
-  window.localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refresh_token);
 }
 
 export function clearAuthTokens(): void {
@@ -32,8 +59,10 @@ export function clearAuthTokens(): void {
     return;
   }
 
+  clearCookie(ACCESS_TOKEN_KEY);
   window.localStorage.removeItem(ACCESS_TOKEN_KEY);
-  window.localStorage.removeItem(REFRESH_TOKEN_KEY);
+  // Remove legacy refresh token storage if it exists from older builds.
+  window.localStorage.removeItem("vietflood_refresh_token");
 }
 
 export function getAccessToken(): string | null {
@@ -41,7 +70,9 @@ export function getAccessToken(): string | null {
     return null;
   }
 
-  return window.localStorage.getItem(ACCESS_TOKEN_KEY);
+  return (
+    getCookie(ACCESS_TOKEN_KEY) ?? window.localStorage.getItem(ACCESS_TOKEN_KEY)
+  );
 }
 
 function decodeTokenPayload(token: string): TokenPayload | null {

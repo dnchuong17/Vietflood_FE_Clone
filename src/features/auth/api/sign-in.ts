@@ -19,6 +19,7 @@ function extractErrorMessage(data: unknown): string {
 export async function signIn(payload: SignInPayload): Promise<SignInResponse> {
   const response = await fetch(`${AUTH_API_BASE_URL}/auth/sign_in`, {
     method: "POST",
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
     },
@@ -31,12 +32,7 @@ export async function signIn(payload: SignInPayload): Promise<SignInResponse> {
     throw new Error(extractErrorMessage(data));
   }
 
-  if (
-    typeof data !== "object" ||
-    data === null ||
-    !("accessToken" in data) ||
-    !("refresh_token" in data)
-  ) {
+  if (typeof data !== "object" || data === null || !("accessToken" in data)) {
     throw new Error("Phản hồi đăng nhập không hợp lệ từ máy chủ.");
   }
 
