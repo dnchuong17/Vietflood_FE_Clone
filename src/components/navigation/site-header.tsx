@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 
 import { clearAuthTokens, getAuthIdentity, type AuthIdentity } from "@/features/auth/lib/auth-storage";
 import { siteConfig } from "@/lib/site-config";
@@ -14,11 +15,23 @@ function subscribeToStorage(callback: () => void) {
 
 export function SiteHeader() {
     const router = useRouter();
+    const pathname = usePathname();
     const identity = useSyncExternalStore<AuthIdentity | null>(
         subscribeToStorage,
         getAuthIdentity,
         () => null,
     );
+
+    const navItems = [
+        {
+            label: "Trang chủ",
+            href: "/trang-chu",
+        },
+        {
+            label: "Tổng quan",
+            href: "/tong-quan",
+        },
+    ];
 
     function handleAuthAction() {
         if (identity) {
@@ -43,13 +56,36 @@ export function SiteHeader() {
                     <span>{siteConfig.name}</span>
                 </Link>
 
-                <button
-                    type="button"
-                    className={"rounded-full my-1 mx-3 text-[0.95rem] font-semibold"}
-                    onClick={handleAuthAction}
-                >
-                    {identity ? "Đăng xuất" : "Đăng nhập"}
-                </button>
+                <div className="my-1 mx-3 flex items-center gap-4">
+                    {identity ? (
+                        <nav className="flex items-center gap-4" aria-label="Điều hướng chính">
+                            {navItems.map((item) => {
+                                const isActive = pathname === item.href;
+
+                                return (
+                                    <Link
+                                        key={item.href}
+                                        href={item.href}
+                                        className={`text-[0.95rem] font-semibold transition ${isActive
+                                            ? "text-teal-700"
+                                            : "text-slate-700 hover:text-teal-700"
+                                            }`}
+                                        aria-current={isActive ? "page" : undefined}
+                                    >
+                                        {item.label}
+                                    </Link>
+                                );
+                            })}
+                        </nav>
+                    ) : null}
+                    <button
+                        type="button"
+                        className={"rounded-full text-[0.95rem] font-semibold"}
+                        onClick={handleAuthAction}
+                    >
+                        {identity ? "Đăng xuất" : "Đăng nhập"}
+                    </button>
+                </div>
             </div>
         </header>
     );
