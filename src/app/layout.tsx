@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Be_Vietnam_Pro, Merriweather } from "next/font/google";
+import { GlobalAlertProvider } from "@/components/feedback/global-alert-provider";
 import "./globals.css";
 
 const beVietnamPro = Be_Vietnam_Pro({
@@ -33,7 +34,7 @@ export default function RootLayout({
       <body
         className={`${beVietnamPro.variable} ${merriweather.variable} min-h-screen bg-slate-100 [font-family:var(--font-body)] text-slate-900 antialiased`}
       >
-        {children}
+        <GlobalAlertProvider>{children}</GlobalAlertProvider>
       </body>
     </html>
   );

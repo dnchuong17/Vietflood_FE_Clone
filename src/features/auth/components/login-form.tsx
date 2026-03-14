@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { useGlobalAlert } from "@/components/feedback/global-alert-provider";
 import { signIn } from "@/features/auth/api/sign-in";
 import { persistAuthTokens } from "@/features/auth/lib/auth-storage";
 
@@ -45,23 +46,40 @@ function EyeOffIcon() {
 
 export function LoginForm() {
     const router = useRouter();
+    const { showAlert } = useGlobalAlert();
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+    function toDisplayErrorMessage(error: unknown): string {
+        if (error instanceof Error) {
+            const normalized = error.message.trim().toLowerCase();
+
+            if (normalized === "failed to fetch") {
+                return "Không thể kết nối đến server";
+            }
+
+            return error.message;
+        }
+
+        return "Đăng nhập thất bại. Vui lòng thử lại.";
+    }
 
     async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
 
         if (!username.trim() || !password.trim()) {
-            setErrorMessage("Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu.");
+            showAlert({
+                title: "Thiếu thông tin",
+                description: "Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu.",
+                variant: "error",
+            });
             return;
         }
 
         try {
             setIsSubmitting(true);
-            setErrorMessage(null);
 
             const tokens = await signIn({
                 username: username.trim(),
@@ -69,15 +87,21 @@ export function LoginForm() {
             });
 
             persistAuthTokens(tokens);
+            showAlert({
+                title: "Đăng nhập thành công",
+                description: "Chào mừng bạn quay lại hệ thống.",
+                variant: "success",
+            });
             router.replace("/trang-chu");
             router.refresh();
         } catch (error) {
-            const message =
-                error instanceof Error
-                    ? error.message
-                    : "Đăng nhập thất bại. Vui lòng thử lại.";
+            const message = toDisplayErrorMessage(error);
 
-            setErrorMessage(message);
+            showAlert({
+                title: "Đăng nhập thất bại",
+                description: message,
+                variant: "error",
+            });
         } finally {
             setIsSubmitting(false);
         }
@@ -117,7 +141,7 @@ export function LoginForm() {
                 />
                 <button
                     type="button"
-                    className="absolute right-2 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-sky-700 transition hover:bg-sky-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-500/50"
+                    className="absolute right-2 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-sky-700 transition hover:bg-sky-100 focus-visible:outline-2 focus-visible:outline-teal-500/50"
                     onClick={() => setShowPassword((prev) => !prev)}
                     aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
                     aria-pressed={showPassword}
@@ -127,15 +151,9 @@ export function LoginForm() {
                 </button>
             </div>
 
-            {errorMessage ? (
-                <p className="m-0 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800">
-                    {errorMessage}
-                </p>
-            ) : null}
-
             <button
                 type="submit"
-                className="mt-1 rounded-xl bg-gradient-to-r from-sky-600 to-teal-600 px-4 py-2.5 font-bold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-75"
+                className="mt-1 rounded-xl bg-linear-to-r from-sky-600 to-teal-600 px-4 py-2.5 font-bold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-75"
                 disabled={isSubmitting}
             >
                 {isSubmitting ? "Đang đăng nhập..." : "Đăng nhập"}

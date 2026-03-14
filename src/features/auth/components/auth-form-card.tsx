@@ -9,9 +9,9 @@ type AuthFormCardProps = {
 
 export function AuthFormCard({ title, description, note, children }: AuthFormCardProps) {
     return (
-        <main className="mx-auto w-[min(1120px,92vw)] py-10">
+        <main className="mx-auto grid min-h-screen w-[min(1120px,92vw)] place-items-center py-6">
             <section
-                className="mx-auto w-full max-w-[520px] rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_14px_35px_rgba(4,20,47,0.08)]"
+                className="mx-auto w-full max-w-130 rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_14px_35px_rgba(4,20,47,0.08)]"
                 aria-label={title}
             >
                 <header className="grid justify-items-center gap-1 text-center">
@@ -19,7 +19,9 @@ export function AuthFormCard({ title, description, note, children }: AuthFormCar
                         {title}
                     </h1>
                 </header>
-                <p className="m-0 text-slate-700">{description}</p>
+                <p className="m-0 text-slate-700 text-center">
+                    {description}
+                </p>
 
                 {children}
 
