@@ -7,12 +7,14 @@ type TokenPayload = {
   username?: string;
   first_name?: string;
   last_name?: string;
+  role?: string;
 };
 
 export type AuthIdentity = {
   username: string;
   displayName: string;
   initials: string;
+  role?: string;
 };
 
 let cachedIdentityToken: string | null = null;
@@ -132,6 +134,7 @@ export function getAuthIdentity(): AuthIdentity | null {
     username: payload.username,
     displayName,
     initials: createInitials(displayName),
+    role: payload.role,
   };
 
   return cachedIdentity;

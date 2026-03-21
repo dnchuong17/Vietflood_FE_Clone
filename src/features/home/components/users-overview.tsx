@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import { useGlobalAlert } from "@/components/feedback/global-alert-provider";
 import { getAccessToken, getAuthIdentity } from "@/features/auth/lib/auth-storage";
 
 const DEFAULT_AUTH_API_BASE_URL = "http://localhost:8081";
@@ -118,6 +119,7 @@ function formatRole(role?: string): string {
 }
 
 export function UsersOverview() {
+    const { showAlert } = useGlobalAlert();
     const [users, setUsers] = useState<User[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [activeColumnMenu, setActiveColumnMenu] = useState<SortKey | null>(null);
@@ -142,8 +144,7 @@ export function UsersOverview() {
     const [isEditing, setIsEditing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
-    const [saveMessage, setSaveMessage] = useState<string | null>(null);
-    const [saveError, setSaveError] = useState<string | null>(null);
+    const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
     const [editForm, setEditForm] = useState({
         phone: "",
         province: "",
@@ -284,10 +285,10 @@ export function UsersOverview() {
     const pageStartRecord = filteredAndSortedUsers.length === 0 ? 0 : (currentPage - 1) * USERS_PER_PAGE + 1;
     const pageEndRecord = Math.min(currentPage * USERS_PER_PAGE, filteredAndSortedUsers.length);
     const authIdentity = getAuthIdentity();
+    const isAdmin = authIdentity?.role?.toLowerCase() === "admin";
     const canEditSelectedUser =
         !!selectedUser &&
-        !!authIdentity?.username &&
-        selectedUser.username === authIdentity.username;
+        ((!!authIdentity?.username && selectedUser.username === authIdentity.username) || isAdmin);
 
     useEffect(() => {
         if (!selectedUser) {
@@ -296,19 +297,25 @@ export function UsersOverview() {
 
         function handleEscape(event: KeyboardEvent) {
             if (event.key === "Escape") {
-                setSelectedUser(null);
+                if (isDeleteConfirmOpen && !isDeleting) {
+                    setIsDeleteConfirmOpen(false);
+                    return;
+                }
+
+                if (!isSaving && !isDeleting) {
+                    setSelectedUser(null);
+                }
             }
         }
 
         window.addEventListener("keydown", handleEscape);
         return () => window.removeEventListener("keydown", handleEscape);
-    }, [selectedUser]);
+    }, [isDeleteConfirmOpen, isDeleting, isSaving, selectedUser]);
 
     useEffect(() => {
         if (!selectedUser) {
             setIsEditing(false);
-            setSaveMessage(null);
-            setSaveError(null);
+            setIsDeleteConfirmOpen(false);
             return;
         }
 
@@ -320,8 +327,6 @@ export function UsersOverview() {
             password: "",
         });
         setIsEditing(false);
-        setSaveMessage(null);
-        setSaveError(null);
     }, [selectedUser]);
 
     useEffect(() => {
@@ -348,10 +353,17 @@ export function UsersOverview() {
             return;
         }
 
+        if (!canEditSelectedUser) {
+            showAlert({
+                title: "Không có quyền cập nhật",
+                description: "Bạn không có quyền cập nhật tài khoản này.",
+                variant: "error",
+            });
+            return;
+        }
+
         try {
             setIsSaving(true);
-            setSaveMessage(null);
-            setSaveError(null);
 
             const accessToken = getAccessToken();
             if (!accessToken) {
@@ -369,7 +381,16 @@ export function UsersOverview() {
                 payload.password = editForm.password.trim();
             }
 
-            const response = await fetch(`${AUTH_API_BASE_URL}/auth/update`, {
+            if (isAdmin && !selectedUser.id) {
+                throw new Error("Không tìm thấy ID người dùng để cập nhật.");
+            }
+
+            const updateEndpoint =
+                isAdmin && selectedUser.id
+                    ? `${AUTH_API_BASE_URL}/auth/update/user/${selectedUser.id}`
+                    : `${AUTH_API_BASE_URL}/auth/update`;
+
+            const response = await fetch(updateEndpoint, {
                 method: "POST",
                 credentials: "include",
                 headers: {
@@ -417,11 +438,21 @@ export function UsersOverview() {
             );
             setEditForm((prev) => ({ ...prev, password: "" }));
             setIsEditing(false);
-            setSaveMessage("Cập nhật thông tin người dùng thành công.");
+            setIsDeleteConfirmOpen(false);
+            showAlert({
+                title: "Cập nhật thành công",
+                description: "Thông tin người dùng đã được cập nhật.",
+                variant: "success",
+            });
         } catch (error) {
-            setSaveError(
-                error instanceof Error ? error.message : "Cập nhật người dùng thất bại.",
-            );
+            const updateErrorMessage =
+                error instanceof Error ? error.message : "Cập nhật người dùng thất bại.";
+
+            showAlert({
+                title: "Cập nhật thất bại",
+                description: updateErrorMessage,
+                variant: "error",
+            });
         } finally {
             setIsSaving(false);
         }
@@ -429,18 +460,19 @@ export function UsersOverview() {
 
     async function handleDeleteUser() {
         if (!selectedUser?.id) {
-            setSaveError("Không tìm thấy ID người dùng để xóa.");
+            showAlert({
+                title: "Xóa người dùng thất bại",
+                description: "Không tìm thấy ID người dùng để xóa.",
+                variant: "error",
+            });
             return;
         }
 
-        if (!window.confirm("Bạn có chắc chắn muốn xóa người dùng này?")) {
-            return;
-        }
+        const deletedUserName = formatFullName(selectedUser);
 
         try {
             setIsDeleting(true);
-            setSaveMessage(null);
-            setSaveError(null);
+            setIsDeleteConfirmOpen(false);
 
             const accessToken = getAccessToken();
             if (!accessToken) {
@@ -472,10 +504,20 @@ export function UsersOverview() {
 
             setUsers((prevUsers) => prevUsers.filter((user) => user.id !== selectedUser.id));
             setSelectedUser(null);
+            showAlert({
+                title: "Xóa thành công",
+                description: `Đã xóa người dùng ${deletedUserName}.`,
+                variant: "success",
+            });
         } catch (error) {
-            setSaveError(
-                error instanceof Error ? error.message : "Xóa người dùng thất bại.",
-            );
+            const deleteErrorMessage =
+                error instanceof Error ? error.message : "Xóa người dùng thất bại.";
+
+            showAlert({
+                title: "Xóa người dùng thất bại",
+                description: deleteErrorMessage,
+                variant: "error",
+            });
         } finally {
             setIsDeleting(false);
         }
@@ -761,8 +803,6 @@ export function UsersOverview() {
                                             className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-teal-200 bg-teal-50 text-teal-700 transition hover:bg-teal-100 disabled:cursor-not-allowed disabled:opacity-60"
                                             onClick={() => {
                                                 setIsEditing(true);
-                                                setSaveMessage(null);
-                                                setSaveError(null);
                                             }}
                                             disabled={!canEditSelectedUser || isDeleting}
                                             aria-label="Chỉnh sửa"
@@ -778,7 +818,7 @@ export function UsersOverview() {
                                         <button
                                             type="button"
                                             className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
-                                            onClick={() => void handleDeleteUser()}
+                                            onClick={() => setIsDeleteConfirmOpen(true)}
                                             disabled={isSaving || isDeleting}
                                             aria-label="Delete"
                                             title="Delete"
@@ -795,7 +835,14 @@ export function UsersOverview() {
                                     <button
                                         type="button"
                                         className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
-                                        onClick={() => setSelectedUser(null)}
+                                        onClick={() => {
+                                            if (isDeleteConfirmOpen) {
+                                                setIsDeleteConfirmOpen(false);
+                                                return;
+                                            }
+
+                                            setSelectedUser(null);
+                                        }}
                                         disabled={isSaving || isDeleting}
                                         aria-label="Đóng"
                                         title="Đóng"
@@ -810,19 +857,7 @@ export function UsersOverview() {
 
                             {!canEditSelectedUser ? (
                                 <div className="mx-5 mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-                                    API auth/update chỉ cho phép cập nhật tài khoản đang đăng nhập.
-                                </div>
-                            ) : null}
-
-                            {saveMessage ? (
-                                <div className="mx-5 mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-                                    {saveMessage}
-                                </div>
-                            ) : null}
-
-                            {saveError ? (
-                                <div className="mx-5 mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
-                                    {saveError}
+                                    Bạn không có quyền chỉnh sửa tài khoản này.
                                 </div>
                             ) : null}
 
@@ -959,8 +994,6 @@ export function UsersOverview() {
                                         className="rounded-lg border border-slate-300 px-3.5 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
                                         onClick={() => {
                                             setIsEditing(false);
-                                            setSaveError(null);
-                                            setSaveMessage(null);
                                             setEditForm({
                                                 phone: selectedUser.phone ?? "",
                                                 province: selectedUser.province ?? "",
@@ -983,6 +1016,54 @@ export function UsersOverview() {
                                     </button>
                                 </div>
                             ) : null}
+                        </div>
+                    </div>
+                ) : null}
+
+                {selectedUser && isDeleteConfirmOpen ? (
+                    <div
+                        className="fixed inset-0 z-60 flex items-center justify-center bg-slate-950/55 px-4"
+                        onClick={() => {
+                            if (!isDeleting) {
+                                setIsDeleteConfirmOpen(false);
+                            }
+                        }}
+                    >
+                        <div
+                            className="w-full max-w-md rounded-2xl border border-rose-200 bg-white p-5 shadow-2xl"
+                            role="alertdialog"
+                            aria-modal="true"
+                            aria-label="Xác nhận xóa người dùng"
+                            onClick={(event) => event.stopPropagation()}
+                        >
+                            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-rose-700">
+                                Xác nhận hành động
+                            </p>
+                            <h3 className="mt-1 text-lg font-bold text-slate-900">Xóa người dùng</h3>
+                            <p className="mt-2 text-sm text-slate-600">
+                                Bạn có chắc chắn muốn xóa tài khoản
+                                <span className="font-semibold text-slate-900"> {formatFullName(selectedUser)}</span>
+                                ? Hành động này không thể hoàn tác.
+                            </p>
+
+                            <div className="mt-5 flex items-center justify-end gap-2">
+                                <button
+                                    type="button"
+                                    className="rounded-lg border border-slate-300 px-3.5 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+                                    onClick={() => setIsDeleteConfirmOpen(false)}
+                                    disabled={isDeleting}
+                                >
+                                    Hủy
+                                </button>
+                                <button
+                                    type="button"
+                                    className="rounded-lg bg-rose-600 px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                    onClick={() => void handleDeleteUser()}
+                                    disabled={isDeleting}
+                                >
+                                    {isDeleting ? "Đang xóa..." : "Xác nhận xóa"}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 ) : null}

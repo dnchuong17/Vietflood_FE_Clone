@@ -85,12 +85,15 @@ export function GlobalAlertProvider({ children }: { children: React.ReactNode })
             {children}
 
             {alert ? (
-                <div className="pointer-events-none fixed right-4 top-4 z-1000 w-[min(92vw,360px)]">
+                <div
+                    className="pointer-events-none fixed right-4 z-60 w-[min(26rem,calc(100%-2rem))]"
+                    style={{ top: "max(1rem, env(safe-area-inset-top))" }}
+                >
                     <div
                         key={alert.id}
                         role="status"
                         aria-live="polite"
-                        className={`pointer-events-auto rounded-2xl border px-4 py-3 shadow-lg backdrop-blur-sm animate-in slide-in-from-top-3 fade-in duration-300 ${getVariantClasses(alert.variant)}`}
+                        className={`pointer-events-auto w-full rounded-2xl border px-4 py-3 shadow-2xl backdrop-blur-sm animate-in slide-in-from-top-2 fade-in duration-200 ${getVariantClasses(alert.variant)}`}
                     >
                         <div className="flex items-start justify-between gap-3">
                             <div className="space-y-0.5">
