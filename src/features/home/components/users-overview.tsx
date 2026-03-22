@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import { ConfirmDialog } from "@/components/feedback/confirm-dialog";
 import { useGlobalAlert } from "@/components/feedback/global-alert-provider";
 import { getAuthIdentity } from "@/features/auth/lib/auth-storage";
 import { apiRequest } from "@/features/auth/lib/api-client";
@@ -145,6 +146,7 @@ export function UsersOverview() {
     const [isEditing, setIsEditing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [isSaveConfirmOpen, setIsSaveConfirmOpen] = useState(false);
     const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
     const [editForm, setEditForm] = useState({
         phone: "",
@@ -288,6 +290,11 @@ export function UsersOverview() {
 
         function handleEscape(event: KeyboardEvent) {
             if (event.key === "Escape") {
+                if (isSaveConfirmOpen && !isSaving) {
+                    setIsSaveConfirmOpen(false);
+                    return;
+                }
+
                 if (isDeleteConfirmOpen && !isDeleting) {
                     setIsDeleteConfirmOpen(false);
                     return;
@@ -301,11 +308,12 @@ export function UsersOverview() {
 
         window.addEventListener("keydown", handleEscape);
         return () => window.removeEventListener("keydown", handleEscape);
-    }, [isDeleteConfirmOpen, isDeleting, isSaving, selectedUser]);
+    }, [isDeleteConfirmOpen, isDeleting, isSaveConfirmOpen, isSaving, selectedUser]);
 
     useEffect(() => {
         if (!selectedUser) {
             setIsEditing(false);
+            setIsSaveConfirmOpen(false);
             setIsDeleteConfirmOpen(false);
             return;
         }
@@ -354,6 +362,7 @@ export function UsersOverview() {
         }
 
         try {
+            setIsSaveConfirmOpen(false);
             setIsSaving(true);
 
             const payload: Record<string, string> = {
@@ -377,7 +386,7 @@ export function UsersOverview() {
                     : `${AUTH_API_BASE_URL}/auth/update`;
 
             const response = await apiRequest(updateEndpoint, {
-                method: "POST",
+                method: "PUT",
                 credentials: "include",
                 headers: {
                     "Content-Type": "application/json",
@@ -423,6 +432,7 @@ export function UsersOverview() {
             );
             setEditForm((prev) => ({ ...prev, password: "" }));
             setIsEditing(false);
+            setIsSaveConfirmOpen(false);
             setIsDeleteConfirmOpen(false);
             showAlert({
                 title: "Cập nhật thành công",
@@ -986,8 +996,8 @@ export function UsersOverview() {
                                     <button
                                         type="button"
                                         className="rounded-lg bg-teal-600 px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
-                                        onClick={() => void handleSaveUserDetail()}
-                                        disabled={isSaving}
+                                        onClick={() => setIsSaveConfirmOpen(true)}
+                                        disabled={isSaving || isDeleting}
                                     >
                                         {isSaving ? "Đang lưu..." : "Lưu thay đổi"}
                                     </button>
@@ -997,53 +1007,38 @@ export function UsersOverview() {
                     </div>
                 ) : null}
 
-                {selectedUser && isDeleteConfirmOpen ? (
-                    <div
-                        className="fixed inset-0 z-60 flex items-center justify-center bg-slate-950/55 px-4"
-                        onClick={() => {
-                            if (!isDeleting) {
-                                setIsDeleteConfirmOpen(false);
-                            }
-                        }}
-                    >
-                        <div
-                            className="w-full max-w-md rounded-2xl border border-rose-200 bg-white p-5 shadow-2xl"
-                            role="alertdialog"
-                            aria-modal="true"
-                            aria-label="Xác nhận xóa người dùng"
-                            onClick={(event) => event.stopPropagation()}
-                        >
-                            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-rose-700">
-                                Xác nhận hành động
-                            </p>
-                            <h3 className="mt-1 text-lg font-bold text-slate-900">Xóa người dùng</h3>
-                            <p className="mt-2 text-sm text-slate-600">
-                                Bạn có chắc chắn muốn xóa tài khoản
-                                <span className="font-semibold text-slate-900"> {formatFullName(selectedUser)}</span>
-                                ? Hành động này không thể hoàn tác.
-                            </p>
+                <ConfirmDialog
+                    isOpen={!!selectedUser && isSaveConfirmOpen}
+                    title="Lưu thay đổi"
+                    description={
+                        <>
+                            Bạn có chắc chắn muốn lưu các thay đổi cho tài khoản
+                            <span className="font-semibold text-slate-900"> {selectedUser ? formatFullName(selectedUser) : ""}</span>
+                            ?
+                        </>
+                    }
+                    confirmLabel="Xác nhận lưu"
+                    onCancel={() => setIsSaveConfirmOpen(false)}
+                    onConfirm={() => void handleSaveUserDetail()}
+                    isConfirming={isSaving}
+                />
 
-                            <div className="mt-5 flex items-center justify-end gap-2">
-                                <button
-                                    type="button"
-                                    className="rounded-lg border border-slate-300 px-3.5 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
-                                    onClick={() => setIsDeleteConfirmOpen(false)}
-                                    disabled={isDeleting}
-                                >
-                                    Hủy
-                                </button>
-                                <button
-                                    type="button"
-                                    className="rounded-lg bg-rose-600 px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
-                                    onClick={() => void handleDeleteUser()}
-                                    disabled={isDeleting}
-                                >
-                                    {isDeleting ? "Đang xóa..." : "Xác nhận xóa"}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                ) : null}
+                <ConfirmDialog
+                    isOpen={!!selectedUser && isDeleteConfirmOpen}
+                    title="Xóa người dùng"
+                    description={
+                        <>
+                            Bạn có chắc chắn muốn xóa tài khoản
+                            <span className="font-semibold text-slate-900"> {selectedUser ? formatFullName(selectedUser) : ""}</span>
+                            ? Hành động này không thể hoàn tác.
+                        </>
+                    }
+                    confirmLabel="Xác nhận xóa"
+                    onCancel={() => setIsDeleteConfirmOpen(false)}
+                    onConfirm={() => void handleDeleteUser()}
+                    isConfirming={isDeleting}
+                    danger
+                />
             </div>
         </section>
     );
