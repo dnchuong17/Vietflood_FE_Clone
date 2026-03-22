@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { useGlobalAlert } from "@/components/feedback/global-alert-provider";
-import { getAccessToken, getAuthIdentity } from "@/features/auth/lib/auth-storage";
+import { getAuthIdentity } from "@/features/auth/lib/auth-storage";
+import { apiRequest } from "@/features/auth/lib/api-client";
 
 const DEFAULT_AUTH_API_BASE_URL = "http://localhost:8081";
 
@@ -159,19 +160,9 @@ export function UsersOverview() {
                 setIsLoading(true);
                 setErrorMessage(null);
 
-                const accessToken = getAccessToken();
-                if (!accessToken) {
-                    setErrorMessage("Bạn chưa đăng nhập hoặc phiên đăng nhập đã hết hạn.");
-                    setUsers([]);
-                    return;
-                }
-
-                const response = await fetch(`${AUTH_API_BASE_URL}/auth/all`, {
+                const response = await apiRequest(`${AUTH_API_BASE_URL}/auth/all`, {
                     method: "GET",
                     credentials: "include",
-                    headers: {
-                        Authorization: `Bearer ${accessToken}`,
-                    },
                     cache: "no-store",
                 });
 
@@ -365,11 +356,6 @@ export function UsersOverview() {
         try {
             setIsSaving(true);
 
-            const accessToken = getAccessToken();
-            if (!accessToken) {
-                throw new Error("Bạn chưa đăng nhập hoặc phiên đăng nhập đã hết hạn.");
-            }
-
             const payload: Record<string, string> = {
                 phone: editForm.phone.trim(),
                 province: editForm.province.trim(),
@@ -390,12 +376,11 @@ export function UsersOverview() {
                     ? `${AUTH_API_BASE_URL}/auth/update/user/${selectedUser.id}`
                     : `${AUTH_API_BASE_URL}/auth/update`;
 
-            const response = await fetch(updateEndpoint, {
+            const response = await apiRequest(updateEndpoint, {
                 method: "POST",
                 credentials: "include",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: `Bearer ${accessToken}`,
                 },
                 body: JSON.stringify(payload),
             });
@@ -474,19 +459,11 @@ export function UsersOverview() {
             setIsDeleting(true);
             setIsDeleteConfirmOpen(false);
 
-            const accessToken = getAccessToken();
-            if (!accessToken) {
-                throw new Error("Bạn chưa đăng nhập hoặc phiên đăng nhập đã hết hạn.");
-            }
-
-            const response = await fetch(
+            const response = await apiRequest(
                 `${AUTH_API_BASE_URL}/auth/delete/${selectedUser.id}`,
                 {
                     method: "DELETE",
                     credentials: "include",
-                    headers: {
-                        Authorization: `Bearer ${accessToken}`,
-                    },
                 },
             );
 

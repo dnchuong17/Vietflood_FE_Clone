@@ -1,6 +1,7 @@
 import type { SignInResponse } from "@/features/auth/types/auth";
 
 const ACCESS_TOKEN_KEY = "vietflood_access_token";
+const REFRESH_TOKEN_KEY = "vietflood_refresh_token";
 const ACCESS_TOKEN_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24; // 1 day
 
 type TokenPayload = {
@@ -8,6 +9,7 @@ type TokenPayload = {
   first_name?: string;
   last_name?: string;
   role?: string;
+  exp?: number;
 };
 
 export type AuthIdentity = {
@@ -54,6 +56,11 @@ export function persistAuthTokens(tokens: SignInResponse): void {
   );
   // Backward-compatible fallback for old sessions.
   window.localStorage.setItem(ACCESS_TOKEN_KEY, tokens.accessToken);
+
+  // Store refresh token if provided
+  if (tokens.refresh_token) {
+    window.localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refresh_token);
+  }
 }
 
 export function clearAuthTokens(): void {
@@ -63,6 +70,7 @@ export function clearAuthTokens(): void {
 
   clearCookie(ACCESS_TOKEN_KEY);
   window.localStorage.removeItem(ACCESS_TOKEN_KEY);
+  window.localStorage.removeItem(REFRESH_TOKEN_KEY);
   // Remove legacy refresh token storage if it exists from older builds.
   window.localStorage.removeItem("vietflood_refresh_token");
 }
@@ -75,6 +83,31 @@ export function getAccessToken(): string | null {
   return (
     getCookie(ACCESS_TOKEN_KEY) ?? window.localStorage.getItem(ACCESS_TOKEN_KEY)
   );
+}
+
+export function getRefreshToken(): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return window.localStorage.getItem(REFRESH_TOKEN_KEY);
+}
+
+export function updateAccessToken(accessToken: string): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  setCookie(ACCESS_TOKEN_KEY, accessToken, ACCESS_TOKEN_COOKIE_MAX_AGE_SECONDS);
+  window.localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+}
+
+export function updateRefreshToken(refreshToken: string): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
 }
 
 function decodeTokenPayload(token: string): TokenPayload | null {
@@ -138,4 +171,41 @@ export function getAuthIdentity(): AuthIdentity | null {
   };
 
   return cachedIdentity;
+}
+
+/**
+ * Check if the access token has already expired
+ */
+export function isAccessTokenExpired(): boolean {
+  const token = getAccessToken();
+  if (!token) {
+    return true;
+  }
+
+  const payload = decodeTokenPayload(token);
+  if (!payload?.exp) {
+    return false; // Can't determine, assume valid
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  return payload.exp <= now;
+}
+
+/**
+ * Check if the access token is expiring soon (within 60 seconds)
+ * Returns true if expired or expiring within 60 seconds
+ */
+export function isAccessTokenExpiringSoon(bufferSeconds: number = 60): boolean {
+  const token = getAccessToken();
+  if (!token) {
+    return true;
+  }
+
+  const payload = decodeTokenPayload(token);
+  if (!payload?.exp) {
+    return false; // Can't determine, assume valid
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  return payload.exp <= now + bufferSeconds;
 }
