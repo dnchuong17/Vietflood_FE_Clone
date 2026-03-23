@@ -61,7 +61,6 @@ type User = {
     middle_name?: string | null;
     last_name?: string;
     province?: string;
-    district?: string;
     ward?: string;
     created_at?: string;
 };
