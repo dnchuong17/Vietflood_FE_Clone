@@ -15,9 +15,18 @@ type ReportEvidence = {
     url?: string;
 };
 
+type ReportUser = {
+    id?: number;
+    username?: string;
+    name?: string;
+    phone?: string;
+};
+
 type Report = {
     id?: number;
     userId?: number;
+    user?: ReportUser | null;
+    createdBy?: string;
     category?: string[];
     description?: string;
     province?: string;
@@ -50,6 +59,13 @@ function formatDate(value?: string): string {
         hour: "2-digit",
         minute: "2-digit",
     }).format(date);
+}
+
+function formatReporterPhone(phone?: string): string {
+    if (typeof phone !== "string" || phone.trim().length === 0) {
+        return "Chưa cập nhật";
+    }
+    return phone.trim();
 }
 
 function formatCategory(category?: string[]): string {
@@ -135,6 +151,41 @@ function getThumbnail(report: Report): string | null {
     return image ?? null;
 }
 
+function getReporterName(report: Report): string {
+    const user = report.user;
+
+    if (user && typeof user.name === "string" && user.name.trim().length > 0) {
+        return user.name.trim();
+    }
+
+    if (user && typeof user.username === "string" && user.username.trim().length > 0) {
+        return user.username.trim();
+    }
+
+    if (typeof report.createdBy === "string" && report.createdBy.trim().length > 0) {
+        return report.createdBy.trim();
+    }
+
+    return `User #${report.userId ?? "-"}`;
+}
+
+function getReporterAccountName(report: Report): string {
+    const user = report.user;
+    if (user && typeof user.username === "string" && user.username.trim().length > 0) {
+        return user.username.trim();
+    }
+
+    if (typeof report.createdBy === "string" && report.createdBy.trim().length > 0) {
+        return report.createdBy.trim();
+    }
+
+    return "Chưa cập nhật";
+}
+
+function formatReporterAccountLabel(accountName: string): string {
+    return accountName === "Chưa cập nhật" ? accountName : `@${accountName}`;
+}
+
 export function ReportsOverview() {
     const [reports, setReports] = useState<Report[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -216,6 +267,9 @@ export function ReportsOverview() {
                     report.addressLine ?? "",
                     formatCategory(report.category),
                     formatStatus(report.status),
+                    getReporterName(report),
+                    report.user?.username ?? "",
+                    report.user?.name ?? "",
                 ]
                     .join(" ")
                     .toLowerCase();
@@ -332,6 +386,9 @@ export function ReportsOverview() {
                             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                                 {filteredReports.map((report) => {
                                     const thumbnail = getThumbnail(report);
+                                    const reporterName = getReporterName(report);
+                                    const reporterAccountName = getReporterAccountName(report);
+                                    const reporterPhone = formatReporterPhone(report.user?.phone);
 
                                     return (
                                         <article
@@ -386,8 +443,16 @@ export function ReportsOverview() {
                                                         <dd>{typeof report.severity === "number" ? report.severity : 0}/5</dd>
                                                     </div>
                                                     <div className="flex items-start gap-2">
-                                                        <dt className="min-w-20 font-semibold text-slate-500">Người gửi</dt>
-                                                        <dd>#{report.userId ?? "-"}</dd>
+                                                        <dt className="min-w-20 font-semibold text-slate-500">Tên</dt>
+                                                        <dd>{reporterName}</dd>
+                                                    </div>
+                                                    <div className="flex items-start gap-2">
+                                                        <dt className="min-w-20 font-semibold text-slate-500">Tài khoản</dt>
+                                                        <dd>{formatReporterAccountLabel(reporterAccountName)}</dd>
+                                                    </div>
+                                                    <div className="flex items-start gap-2">
+                                                        <dt className="min-w-20 font-semibold text-slate-500">Điện thoại</dt>
+                                                        <dd>{formatReporterPhone(reporterPhone)}</dd>
                                                     </div>
                                                     <div className="flex items-start gap-2">
                                                         <dt className="min-w-20 font-semibold text-slate-500">Thời gian</dt>
