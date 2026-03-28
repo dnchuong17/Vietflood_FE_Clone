@@ -154,6 +154,8 @@ export function UsersOverview() {
         address_line: "",
         password: "",
     });
+    const [searchTerm, setSearchTerm] = useState("");
+    const [roleFilter, setRoleFilter] = useState<"all" | "admin" | "operator" | "citizen">("all");
 
     useEffect(() => {
         async function loadUsers() {
@@ -205,7 +207,16 @@ export function UsersOverview() {
         () => users.filter((user) => user.role?.toLowerCase() === "admin").length,
         [users],
     );
+    const operatorCount = useMemo(
+        () => users.filter((user) => user.role?.toLowerCase() === "operator").length,
+        [users],
+    );
+    const citizenCount = useMemo(
+        () => users.filter((user) => user.role?.toLowerCase() === "citizen").length,
+        [users],
+    );
     const filteredAndSortedUsers = useMemo(() => {
+        const keyword = searchTerm.trim().toLowerCase();
         const nextUsers = users.filter((user) => {
             const fullName = formatFullName(user).toLowerCase();
             const username = (user.username ?? "").toLowerCase();
@@ -213,6 +224,24 @@ export function UsersOverview() {
             const role = formatRole(user.role).toLowerCase();
             const createdAt = formatDate(user.created_at).toLowerCase();
             const id = String(user.id ?? "").toLowerCase();
+            const rawRole = (user.role ?? "").trim().toLowerCase();
+
+            const matchesQuickRole = roleFilter === "all" || rawRole === roleFilter;
+            const matchesQuickSearch =
+                !keyword ||
+                [
+                    id,
+                    fullName,
+                    username,
+                    email,
+                    role,
+                    user.province ?? "",
+                    user.ward ?? "",
+                    user.address_line ?? "",
+                ]
+                    .join(" ")
+                    .toLowerCase()
+                    .includes(keyword);
 
             return (
                 id.includes(filters.id.trim().toLowerCase()) &&
@@ -220,7 +249,9 @@ export function UsersOverview() {
                 username.includes(filters.username.trim().toLowerCase()) &&
                 email.includes(filters.email.trim().toLowerCase()) &&
                 role.includes(filters.role.trim().toLowerCase()) &&
-                createdAt.includes(filters.created_at.trim().toLowerCase())
+                createdAt.includes(filters.created_at.trim().toLowerCase()) &&
+                matchesQuickRole &&
+                matchesQuickSearch
             );
         });
 
@@ -268,7 +299,7 @@ export function UsersOverview() {
         });
 
         return sortedUsers;
-    }, [filters, sortConfig, users]);
+    }, [filters, roleFilter, searchTerm, sortConfig, users]);
     const totalPages = Math.max(1, Math.ceil(filteredAndSortedUsers.length / USERS_PER_PAGE));
     const paginatedUsers = useMemo(() => {
         const startIndex = (currentPage - 1) * USERS_PER_PAGE;
@@ -542,28 +573,76 @@ export function UsersOverview() {
     }
 
     return (
-        <section className="h-full overflow-auto px-4 py-6 sm:px-6 lg:px-8">
-            <div className="mx-auto max-w-7xl">
-                <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <section className="relative h-full overflow-y-auto bg-[radial-gradient(circle_at_top_left,rgba(14,165,233,0.18),transparent_45%),radial-gradient(circle_at_bottom_right,rgba(14,116,144,0.16),transparent_42%),linear-gradient(180deg,#f8fdff_0%,#f4f9fc_100%)] px-4 pb-10 pt-[calc(var(--navbar-height)+1.6rem)]">
+            <div className="mx-auto w-full max-w-7xl space-y-3">
+                <header className="rounded-3xl border border-sky-100/80 bg-white/90 p-4 shadow-[0_24px_48px_-32px_rgba(8,47,73,0.35)] backdrop-blur-sm">
                     <div>
-                        <h1 className="mt-6 [font-family:var(--font-heading)] text-3xl font-black text-slate-900 sm:text-4xl">
-                            Danh sách người dùng
+                        <h1 className="text-2xl font-black text-slate-900 md:text-[1.9rem]">
+                            Tổng quan tài khoản hệ thống
                         </h1>
-                        <p className="mt-2 max-w-3xl text-slate-600">
-                            Dữ liệu được lấy tất cả người dùng trong hệ thống
+                        <p className="mt-0.5 text-sm text-slate-600">
+                            Theo dõi nhanh số lượng người dùng theo vai trò và quản lý danh sách chi tiết ngay bên dưới.
                         </p>
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
-                        <article className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-                            <p className="text-xs uppercase tracking-wide text-slate-500">Tổng số user</p>
-                            <p className="mt-1 text-2xl font-bold text-slate-900">{totalUsers}</p>
+
+                    <div className="mt-2 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <article className="rounded-2xl border border-sky-100 bg-sky-50/70 px-4 py-3">
+                            <p className="text-xs uppercase tracking-wide text-sky-700">Tổng tài khoản</p>
+                            <p className="mt-1 text-2xl font-bold text-sky-900">{totalUsers}</p>
                         </article>
-                        <article className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-                            <p className="text-xs uppercase tracking-wide text-slate-500">Admin</p>
-                            <p className="mt-1 text-2xl font-bold text-teal-700">{adminCount}</p>
+                        <article className="rounded-2xl border border-teal-100 bg-teal-50/70 px-4 py-3">
+                            <p className="text-xs uppercase tracking-wide text-teal-700">Quản trị viên</p>
+                            <p className="mt-1 text-2xl font-bold text-teal-900">{adminCount}</p>
+                        </article>
+                        <article className="rounded-2xl border border-indigo-100 bg-indigo-50/70 px-4 py-3">
+                            <p className="text-xs uppercase tracking-wide text-indigo-700">Điều phối viên</p>
+                            <p className="mt-1 text-2xl font-bold text-indigo-900">{operatorCount}</p>
+                        </article>
+                        <article className="rounded-2xl border border-emerald-100 bg-emerald-50/70 px-4 py-3">
+                            <p className="text-xs uppercase tracking-wide text-emerald-700">Người dân</p>
+                            <p className="mt-1 text-2xl font-bold text-emerald-900">{citizenCount}</p>
                         </article>
                     </div>
                 </header>
+
+                <div className="rounded-3xl border border-slate-200/80 bg-white/90 p-4 shadow-sm backdrop-blur-sm">
+                    <div className="flex flex-col gap-3 md:flex-row md:items-center">
+                        <label className="flex-1">
+                            <span className="mb-1 block text-xs font-semibold uppercase tracking-widest text-slate-500">
+                                Tìm kiếm nhanh
+                            </span>
+                            <input
+                                type="text"
+                                value={searchTerm}
+                                onChange={(event) => {
+                                    setSearchTerm(event.target.value);
+                                    setCurrentPage(1);
+                                }}
+                                placeholder="ID, tên, username, email, địa chỉ..."
+                                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-transparent focus:ring-2 focus:ring-sky-500/35"
+                            />
+                        </label>
+
+                        <label className="w-full md:w-60">
+                            <span className="mb-1 block text-xs font-semibold uppercase tracking-widest text-slate-500">
+                                Vai trò
+                            </span>
+                            <select
+                                value={roleFilter}
+                                onChange={(event) => {
+                                    setRoleFilter(event.target.value as "all" | "admin" | "operator" | "citizen");
+                                    setCurrentPage(1);
+                                }}
+                                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-transparent focus:ring-2 focus:ring-sky-500/35"
+                            >
+                                <option value="all">Tất cả vai trò</option>
+                                <option value="admin">Quản trị viên</option>
+                                <option value="operator">Điều phối viên</option>
+                                <option value="citizen">Người dân</option>
+                            </select>
+                        </label>
+                    </div>
+                </div>
 
                 {isLoading ? (
                     <div className="rounded-2xl border border-slate-200 bg-white p-6 text-slate-600 shadow-sm">

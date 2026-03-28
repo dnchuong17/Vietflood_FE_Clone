@@ -1,4 +1,4 @@
-import { UsersOverview } from "@/features/home/components/users-overview";
+import { OverviewDashboard } from "@/features/home/components/overview-dashboard";
 
 export const metadata = {
     title: "Tổng quan | VietFlood Insight",
@@ -6,6 +6,6 @@ export const metadata = {
 
 export default function OverviewPage() {
     return (
-        <UsersOverview />
+        <OverviewDashboard />
     );
 }
