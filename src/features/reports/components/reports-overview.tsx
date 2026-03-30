@@ -42,6 +42,13 @@ type Report = {
     images?: string[];
 };
 
+const REPORT_STATUS_OPTIONS: Array<{ value: ReportStatus; label: string }> = [
+    { value: "pending", label: "Đang chờ" },
+    { value: "verified", label: "Đã xác minh" },
+    { value: "resolved", label: "Đã xử lý" },
+    { value: "rejected", label: "Đã từ chối" },
+];
+
 function formatDate(value?: string): string {
     if (!value) {
         return "-";
@@ -186,12 +193,105 @@ function formatReporterAccountLabel(accountName: string): string {
     return accountName === "Chưa cập nhật" ? accountName : `@${accountName}`;
 }
 
+function normalizeStatus(status?: string): ReportStatus {
+    const normalized = status?.trim().toLowerCase();
+
+    if (
+        normalized === "pending" ||
+        normalized === "verified" ||
+        normalized === "resolved" ||
+        normalized === "rejected"
+    ) {
+        return normalized;
+    }
+
+    return "pending";
+}
+
 export function ReportsOverview() {
     const [reports, setReports] = useState<Report[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState<"all" | ReportStatus>("all");
+    const [updatingStatusIds, setUpdatingStatusIds] = useState<Record<number, boolean>>({});
+    const [statusUpdateErrors, setStatusUpdateErrors] = useState<Record<number, string>>({});
+
+    async function handleStatusChange(report: Report, nextStatus: ReportStatus) {
+        if (!report.id) {
+            return;
+        }
+
+        const reportId = report.id;
+        const normalizedCurrentStatus = normalizeStatus(report.status);
+
+        if (normalizedCurrentStatus === nextStatus) {
+            return;
+        }
+
+        const ownerUserId = report.userId ?? report.user?.id;
+
+        if (!ownerUserId) {
+            setStatusUpdateErrors((prev) => ({
+                ...prev,
+                [reportId]: "Không tìm thấy userId của báo cáo để cập nhật trạng thái.",
+            }));
+            return;
+        }
+
+        setUpdatingStatusIds((prev) => ({ ...prev, [reportId]: true }));
+        setStatusUpdateErrors((prev) => {
+            if (!prev[reportId]) {
+                return prev;
+            }
+
+            const nextErrors = { ...prev };
+            delete nextErrors[reportId];
+            return nextErrors;
+        });
+
+        try {
+            const response = await apiRequest(
+                `${API_BASE_URL}/reports/update/${reportId}/admin/${ownerUserId}`,
+                {
+                    method: "PUT",
+                    credentials: "include",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ status: nextStatus }),
+                },
+            );
+
+            const data: unknown = await response.json().catch(() => null);
+
+            if (!response.ok) {
+                throw new Error(
+                    extractErrorMessage(data, "Không thể cập nhật trạng thái báo cáo."),
+                );
+            }
+
+            setReports((prev) =>
+                prev.map((item) =>
+                    item.id === reportId ? { ...item, status: nextStatus } : item,
+                ),
+            );
+        } catch (error) {
+            setStatusUpdateErrors((prev) => ({
+                ...prev,
+                [reportId]:
+                    error instanceof Error
+                        ? error.message
+                        : "Không thể cập nhật trạng thái báo cáo.",
+            }));
+        } finally {
+            setUpdatingStatusIds((prev) => {
+                const next = { ...prev };
+                delete next[reportId];
+                return next;
+            });
+        }
+    }
 
     useEffect(() => {
         let isMounted = true;
@@ -289,7 +389,9 @@ export function ReportsOverview() {
             total: reports.length,
             urgent: reports.filter((item) => item.isUrgent).length,
             pending: reports.filter((item) => item.status?.toLowerCase() === "pending").length,
+            verified: reports.filter((item) => item.status?.toLowerCase() === "verified").length,
             resolved: reports.filter((item) => item.status?.toLowerCase() === "resolved").length,
+            rejected: reports.filter((item) => item.status?.toLowerCase() === "rejected").length,
         };
     }, [reports]);
 
@@ -308,22 +410,26 @@ export function ReportsOverview() {
                         </div>
                     </div>
 
-                    <div className="mt-2 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="mt-2 grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-5">
                         <article className="rounded-2xl border border-sky-100 bg-sky-50/70 px-4 py-3">
                             <p className="text-xs uppercase tracking-wide text-sky-700">Tổng số</p>
                             <p className="mt-1 text-2xl font-bold text-sky-900">{stats.total}</p>
-                        </article>
-                        <article className="rounded-2xl border border-rose-100 bg-rose-50/70 px-4 py-3">
-                            <p className="text-xs uppercase tracking-wide text-rose-700">Khẩn cấp</p>
-                            <p className="mt-1 text-2xl font-bold text-rose-900">{stats.urgent}</p>
                         </article>
                         <article className="rounded-2xl border border-amber-100 bg-amber-50/70 px-4 py-3">
                             <p className="text-xs uppercase tracking-wide text-amber-700">Đang chờ</p>
                             <p className="mt-1 text-2xl font-bold text-amber-900">{stats.pending}</p>
                         </article>
+                        <article className="rounded-2xl border border-sky-100 bg-sky-50/70 px-4 py-3">
+                            <p className="text-xs uppercase tracking-wide text-sky-700">Đã xác minh</p>
+                            <p className="mt-1 text-2xl font-bold text-sky-900">{stats.verified}</p>
+                        </article>
                         <article className="rounded-2xl border border-emerald-100 bg-emerald-50/70 px-4 py-3">
                             <p className="text-xs uppercase tracking-wide text-emerald-700">Đã xử lý</p>
                             <p className="mt-1 text-2xl font-bold text-emerald-900">{stats.resolved}</p>
+                        </article>
+                        <article className="rounded-2xl border border-rose-100 bg-rose-50/70 px-4 py-3">
+                            <p className="text-xs uppercase tracking-wide text-rose-700">Đã từ chối</p>
+                            <p className="mt-1 text-2xl font-bold text-rose-900">{stats.rejected}</p>
                         </article>
                     </div>
                 </header>
@@ -389,6 +495,15 @@ export function ReportsOverview() {
                                     const reporterName = getReporterName(report);
                                     const reporterAccountName = getReporterAccountName(report);
                                     const reporterPhone = formatReporterPhone(report.user?.phone);
+                                    const currentStatus = normalizeStatus(report.status);
+                                    const isUpdatingStatus =
+                                        report.id !== undefined
+                                            ? Boolean(updatingStatusIds[report.id])
+                                            : false;
+                                    const statusError =
+                                        report.id !== undefined
+                                            ? statusUpdateErrors[report.id]
+                                            : undefined;
 
                                     return (
                                         <article
@@ -459,6 +574,38 @@ export function ReportsOverview() {
                                                         <dd>{formatDate(report.createdAt)}</dd>
                                                     </div>
                                                 </dl>
+
+                                                <div className="space-y-2 rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
+                                                    <label className="block text-xs font-semibold uppercase tracking-widest text-slate-500">
+                                                        Cập nhật trạng thái
+                                                    </label>
+                                                    <select
+                                                        value={currentStatus}
+                                                        onChange={(event) =>
+                                                            void handleStatusChange(
+                                                                report,
+                                                                event.target
+                                                                    .value as ReportStatus,
+                                                            )
+                                                        }
+                                                        disabled={isUpdatingStatus}
+                                                        className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-transparent focus:ring-2 focus:ring-sky-500/35 disabled:cursor-not-allowed disabled:bg-slate-100"
+                                                    >
+                                                        {REPORT_STATUS_OPTIONS.map((option) => (
+                                                            <option key={option.value} value={option.value}>
+                                                                {option.label}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                    {isUpdatingStatus ? (
+                                                        <p className="text-xs text-slate-500">
+                                                            Đang cập nhật trạng thái...
+                                                        </p>
+                                                    ) : null}
+                                                    {statusError ? (
+                                                        <p className="text-xs text-rose-700">{statusError}</p>
+                                                    ) : null}
+                                                </div>
                                             </div>
                                         </article>
                                     );
