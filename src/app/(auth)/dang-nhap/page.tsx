@@ -7,12 +7,14 @@ export const metadata = {
 
 export default function LoginPage() {
     return (
-        <AuthFormCard
-            title="Đăng nhập hệ thống"
-            description="Truy cập bảng điều hành cảnh báo lũ lụt và dữ liệu phân tích theo khu vực."
-            note="Đây là tính năng dành riêng cho quản trị viên"
-        >
-            <LoginForm />
-        </AuthFormCard>
+        <div className="flex h-screen items-center justify-center">
+            <AuthFormCard
+                title="Đăng nhập hệ thống"
+                description="Truy cập bảng điều hành cảnh báo lũ lụt và dữ liệu phân tích theo khu vực."
+                note="Đây là tính năng dành riêng cho quản trị viên"
+            >
+                <LoginForm />
+            </AuthFormCard>
+        </div>
     );
 }

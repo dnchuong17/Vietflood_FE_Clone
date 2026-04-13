@@ -315,7 +315,12 @@ export function ReportsOverview() {
                     );
                 }
 
-                const nextReports = Array.isArray(data) ? (data as Report[]) : [];
+                const nextReports = Array.isArray(data)
+                    ? (data as Array<{ report: any; user: any }>).map((item) => ({
+                        ...item.report,
+                        user: item.user,
+                    }))
+                    : [];
                 if (isMounted) {
                     setReports(nextReports);
                 }
@@ -490,7 +495,7 @@ export function ReportsOverview() {
                             </div>
                         ) : (
                             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                                {filteredReports.map((report) => {
+                                {filteredReports.map((report, index) => {
                                     const thumbnail = getThumbnail(report);
                                     const reporterName = getReporterName(report);
                                     const reporterAccountName = getReporterAccountName(report);
@@ -507,7 +512,7 @@ export function ReportsOverview() {
 
                                     return (
                                         <article
-                                            key={report.id ?? `${report.userId ?? "unknown"}-${report.createdAt ?? "report"}`}
+                                            key={report.id ?? `report-${index}`}
                                             className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                                         >
                                             {thumbnail ? (
