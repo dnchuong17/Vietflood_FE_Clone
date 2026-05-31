@@ -7,6 +7,7 @@ import {
 } from "@/features/auth/lib/api-client";
 import type { UserRole } from "@/features/auth/lib/roles";
 import { canManageReports } from "@/features/auth/lib/roles";
+import { buildReportStatusPatchPayload } from "@/features/reports/lib/status";
 
 export type ReportStatus = "pending" | "verified" | "resolved" | "rejected";
 
@@ -191,7 +192,7 @@ export async function updateReportStatus(
   status: ReportStatus,
 ): Promise<void> {
   const response = await apiPatch(apiPath(`/reports/${reportId}/status`), {
-    status,
+    ...buildReportStatusPatchPayload(status),
   });
   await parseJsonResponse<unknown>(response, "Could not update report status.");
 }

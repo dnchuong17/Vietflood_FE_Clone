@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { RefreshCw, Save, Trash2 } from "lucide-react";
+import { useEffect, useMemo } from "react";
+import { RefreshCw, Save, ShieldCheck, Trash2 } from "lucide-react";
 
 import { useGlobalAlert } from "@/components/feedback/global-alert-provider";
 import { APP_ROLES, canDeleteUsers, normalizeRole } from "@/features/auth/lib/roles";
@@ -13,6 +13,11 @@ import {
   type ManagedUser,
   type UserUpdateValues,
 } from "@/features/users/api/users";
+import {
+  buildUserProfileUpdatePayload,
+  buildUserRoleAssignmentPayload,
+} from "@/features/users/lib/rbac";
+import { useUsersStore } from "@/features/users/store/users-store";
 
 function displayName(user: ManagedUser): string {
   const name = [user.first_name, user.middle_name, user.last_name]
@@ -22,22 +27,35 @@ function displayName(user: ManagedUser): string {
   return name || user.username || `User #${user.id ?? "-"}`;
 }
 
+function isSameUser(user: ManagedUser, username?: string): boolean {
+  return Boolean(user.username && username && user.username === username);
+}
+
 export function UserManagement() {
   const { showAlert } = useGlobalAlert();
   const identity = useAuthIdentity();
   const role = normalizeRole(identity?.role);
   const canDelete = canDeleteUsers(role);
-  const [users, setUsers] = useState<ManagedUser[]>([]);
-  const [query, setQuery] = useState("");
-  const [roleFilter, setRoleFilter] = useState<"all" | string>("all");
-  const [selectedUser, setSelectedUser] = useState<ManagedUser | null>(null);
-  const [form, setForm] = useState<UserUpdateValues>({});
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
+  const users = useUsersStore((state) => state.users);
+  const query = useUsersStore((state) => state.query);
+  const roleFilter = useUsersStore((state) => state.roleFilter);
+  const selectedUser = useUsersStore((state) => state.selectedUser);
+  const form = useUsersStore((state) => state.form);
+  const isLoading = useUsersStore((state) => state.isLoading);
+  const isSaving = useUsersStore((state) => state.isSaving);
+  const isSavingRole = useUsersStore((state) => state.isSavingRole);
+  const setUsers = useUsersStore((state) => state.setUsers);
+  const setQuery = useUsersStore((state) => state.setQuery);
+  const setRoleFilter = useUsersStore((state) => state.setRoleFilter);
+  const selectUser = useUsersStore((state) => state.selectUser);
+  const setField = useUsersStore((state) => state.setField);
+  const setLoading = useUsersStore((state) => state.setLoading);
+  const setSaving = useUsersStore((state) => state.setSaving);
+  const setSavingRole = useUsersStore((state) => state.setSavingRole);
 
   async function loadUsers() {
     try {
-      setIsLoading(true);
+      setLoading(true);
       setUsers(await listUsers());
     } catch (error) {
       showAlert({
@@ -48,7 +66,7 @@ export function UserManagement() {
       });
       setUsers([]);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   }
 
@@ -56,25 +74,6 @@ export function UserManagement() {
     void loadUsers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  useEffect(() => {
-    if (!selectedUser) {
-      setForm({});
-      return;
-    }
-
-    setForm({
-      first_name: selectedUser.first_name ?? "",
-      middle_name: selectedUser.middle_name ?? "",
-      last_name: selectedUser.last_name ?? "",
-      email: selectedUser.email ?? "",
-      phone: selectedUser.phone ?? "",
-      province: selectedUser.province ?? "",
-      ward: selectedUser.ward ?? "",
-      address_line: selectedUser.address_line ?? "",
-      role: normalizeRole(selectedUser.role) ?? "citizen",
-    });
-  }, [selectedUser]);
 
   const filteredUsers = useMemo(() => {
     const keyword = query.trim().toLowerCase();
@@ -106,7 +105,7 @@ export function UserManagement() {
     field: T,
     value: UserUpdateValues[T],
   ) {
-    setForm((prev) => ({ ...prev, [field]: value }));
+    setField(field, value);
   }
 
   async function handleSave() {
@@ -115,18 +114,15 @@ export function UserManagement() {
     }
 
     try {
-      setIsSaving(true);
-      const payload = { ...form };
-      if (role !== "admin") {
-        delete payload.role;
-      }
+      setSaving(true);
+      const payload = buildUserProfileUpdatePayload(form);
       await updateUser(selectedUser.id, payload);
       showAlert({
         title: "User updated",
         description: "User profile changes were saved.",
         variant: "success",
       });
-      setSelectedUser(null);
+      selectUser(null);
       await loadUsers();
     } catch (error) {
       showAlert({
@@ -136,7 +132,52 @@ export function UserManagement() {
         variant: "error",
       });
     } finally {
-      setIsSaving(false);
+      setSaving(false);
+    }
+  }
+
+  async function handleAssignRole() {
+    if (!selectedUser?.id) {
+      return;
+    }
+
+    const payload = buildUserRoleAssignmentPayload({
+      actorRole: role,
+      currentUserId: isSameUser(selectedUser, identity?.username)
+        ? selectedUser.id
+        : undefined,
+      targetUserId: selectedUser.id,
+      nextRole: form.role,
+    });
+
+    if (!payload) {
+      showAlert({
+        title: "Role unchanged",
+        description: "Only admins can assign another user's role.",
+        variant: "info",
+      });
+      return;
+    }
+
+    try {
+      setSavingRole(true);
+      await updateUser(selectedUser.id, payload);
+      showAlert({
+        title: "Role assigned",
+        description: `User role was updated to ${payload.role}.`,
+        variant: "success",
+      });
+      await loadUsers();
+      selectUser({ ...selectedUser, role: payload.role });
+    } catch (error) {
+      showAlert({
+        title: "Role update failed",
+        description:
+          error instanceof Error ? error.message : "Could not update user role.",
+        variant: "error",
+      });
+    } finally {
+      setSavingRole(false);
     }
   }
 
@@ -152,7 +193,7 @@ export function UserManagement() {
         description: "The account was removed.",
         variant: "success",
       });
-      setSelectedUser(null);
+      selectUser(null);
       await loadUsers();
     } catch (error) {
       showAlert({
@@ -219,7 +260,7 @@ export function UserManagement() {
                 <button
                   key={user.id ?? user.username}
                   type="button"
-                  onClick={() => setSelectedUser(user)}
+                  onClick={() => selectUser(user)}
                   className={`grid w-full grid-cols-[4rem_1fr_8rem] gap-2 border-b border-slate-100 px-3 py-3 text-left text-sm transition last:border-b-0 hover:bg-sky-50 md:grid-cols-[4rem_1fr_1fr_8rem] ${
                     selectedUser?.id === user.id ? "bg-sky-50" : ""
                   }`}
@@ -286,23 +327,60 @@ export function UserManagement() {
             ))}
 
             {role === "admin" ? (
-              <label className="grid gap-1 text-sm font-semibold text-slate-700">
-                Role
-                <select
-                  value={form.role ?? "citizen"}
-                  onChange={(event) =>
-                    updateField("role", normalizeRole(event.target.value) ?? "citizen")
-                  }
-                  className="rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
+              <div className="rounded-lg border border-sky-100 bg-sky-50/60 p-3">
+                <div className="mb-3 flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-sky-700" aria-hidden="true" />
+                  <div>
+                    <p className="text-sm font-bold text-slate-950">RBAC</p>
+                    <p className="text-xs text-slate-600">
+                      Assign one backend role: citizen, relief, or admin.
+                    </p>
+                  </div>
+                </div>
+
+                <label className="grid gap-1 text-sm font-semibold text-slate-700">
+                  Assigned role
+                  <select
+                    value={form.role ?? "citizen"}
+                    disabled={isSameUser(selectedUser, identity?.username) || isSavingRole}
+                    onChange={(event) =>
+                      updateField("role", normalizeRole(event.target.value) ?? "citizen")
+                    }
+                    className="rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
+                  >
+                    {APP_ROLES.map((item) => (
+                      <option key={item} value={item}>
+                        {item}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                {isSameUser(selectedUser, identity?.username) ? (
+                  <p className="mt-2 text-xs text-amber-700">
+                    You cannot change your own admin role from this screen.
+                  </p>
+                ) : null}
+
+                <button
+                  type="button"
+                  onClick={() => void handleAssignRole()}
+                  disabled={isSameUser(selectedUser, identity?.username) || isSavingRole}
+                  className="mt-3 inline-flex items-center gap-2 rounded-lg bg-sky-600 px-3 py-2 text-sm font-bold text-white hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  {APP_ROLES.map((item) => (
-                    <option key={item} value={item}>
-                      {item}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ) : null}
+                  <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+                  {isSavingRole ? "Assigning..." : "Assign role"}
+                </button>
+              </div>
+            ) : (
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+                Current role:{" "}
+                <span className="font-bold text-slate-900">
+                  {normalizeRole(selectedUser.role) ?? "citizen"}
+                </span>
+                . Role assignment is available to admin users only.
+              </div>
+            )}
 
             <div className="flex flex-wrap gap-2 pt-2">
               <button

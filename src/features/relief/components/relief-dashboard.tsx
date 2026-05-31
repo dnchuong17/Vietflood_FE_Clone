@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { ArrowRight, ClipboardCheck, RefreshCw } from "lucide-react";
 
 import { useGlobalAlert } from "@/components/feedback/global-alert-provider";
@@ -13,18 +13,17 @@ import {
   type FloodReport,
   type ReportStatus,
 } from "@/features/reports/api/reports";
+import {
+  REPORT_STATUS_OPTIONS,
+  getReportStatusLabel,
+} from "@/features/reports/lib/status";
+import { useReportsStore } from "@/features/reports/store/reports-store";
 
 function statusOf(report: FloodReport): ReportStatus {
   const status = String(report.status ?? "pending").toLowerCase();
-  if (
-    status === "verified" ||
-    status === "resolved" ||
-    status === "rejected" ||
-    status === "pending"
-  ) {
-    return status;
-  }
-  return "pending";
+  return REPORT_STATUS_OPTIONS.includes(status as ReportStatus)
+    ? (status as ReportStatus)
+    : "pending";
 }
 
 function locationOf(report: FloodReport): string {
@@ -37,12 +36,26 @@ export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: b
   const { showAlert } = useGlobalAlert();
   const identity = useAuthIdentity();
   const role = normalizeRole(identity?.role) ?? "relief";
-  const [reports, setReports] = useState<FloodReport[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const reports = useReportsStore((state) => state.reports);
+  const isLoading = useReportsStore((state) => state.isLoading);
+  const savingStatusByReportId = useReportsStore(
+    (state) => state.savingStatusByReportId,
+  );
+  const setReports = useReportsStore((state) => state.setReports);
+  const setLoading = useReportsStore((state) => state.setLoading);
+  const startReportStatusSave = useReportsStore(
+    (state) => state.startReportStatusSave,
+  );
+  const rollbackReportStatus = useReportsStore(
+    (state) => state.rollbackReportStatus,
+  );
+  const finishReportStatusSave = useReportsStore(
+    (state) => state.finishReportStatusSave,
+  );
 
   async function loadReports() {
     try {
-      setIsLoading(true);
+      setLoading(true);
       setReports(await listReports(role));
     } catch (error) {
       showAlert({
@@ -53,7 +66,7 @@ export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: b
       });
       setReports([]);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   }
 
@@ -94,13 +107,11 @@ export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: b
       return;
     }
 
+    const previousStatus = statusOf(report);
     try {
+      startReportStatusSave(report.id, status);
       await updateReportStatus(report.id, status);
-      setReports((prev) =>
-        prev.map((item) =>
-          item.id === report.id ? { ...item, status } : item,
-        ),
-      );
+      await loadReports();
     } catch (error) {
       showAlert({
         title: "Status update failed",
@@ -110,6 +121,9 @@ export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: b
             : "Could not update report status.",
         variant: "error",
       });
+      rollbackReportStatus(report.id, previousStatus);
+    } finally {
+      finishReportStatusSave(report.id);
     }
   }
 
@@ -185,7 +199,7 @@ export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: b
                   #{report.id ?? "-"}
                 </span>
                 <span className="rounded-md bg-sky-50 px-2 py-1 text-xs font-bold text-sky-700">
-                  {statusOf(report)}
+                  {getReportStatusLabel(statusOf(report))}
                 </span>
                 {report.isUrgent ? (
                   <span className="rounded-md bg-rose-50 px-2 py-1 text-xs font-bold text-rose-700">
@@ -202,22 +216,34 @@ export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: b
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => void setStatus(report, "verified")}
-                className="inline-flex items-center gap-2 rounded-lg border border-sky-200 px-3 py-2 text-sm font-semibold text-sky-700 hover:bg-sky-50"
-              >
-                <ClipboardCheck className="h-4 w-4" aria-hidden="true" />
-                Verify
-              </button>
-              <button
-                type="button"
-                onClick={() => void setStatus(report, "resolved")}
-                className="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-bold text-white hover:bg-emerald-700"
-              >
-                Resolve
-              </button>
+            <div className="flex max-w-xl flex-wrap gap-1.5 lg:justify-end">
+              {REPORT_STATUS_OPTIONS.map((status) => {
+                const currentStatus = statusOf(report);
+                const reportId = report.id ?? -1;
+                const savingStatus = savingStatusByReportId[reportId];
+                const isActive = currentStatus === status;
+                const isSaving = savingStatus === status;
+                const isDisabled = Boolean(savingStatus) || isActive;
+
+                return (
+                  <button
+                    key={status}
+                    type="button"
+                    onClick={() => void setStatus(report, status)}
+                    disabled={isDisabled}
+                    className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-70 ${
+                      isActive
+                        ? "border-sky-200 bg-sky-50 text-sky-800"
+                        : "border-slate-200 text-slate-700 hover:bg-slate-50"
+                    }`}
+                  >
+                    {status === "verified" ? (
+                      <ClipboardCheck className="h-4 w-4" aria-hidden="true" />
+                    ) : null}
+                    {isSaving ? "Saving..." : getReportStatusLabel(status)}
+                  </button>
+                );
+              })}
             </div>
           </article>
         ))}

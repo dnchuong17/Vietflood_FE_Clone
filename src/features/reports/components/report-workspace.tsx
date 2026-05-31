@@ -15,19 +15,17 @@ import {
   type ReportFormValues,
   type ReportStatus,
 } from "@/features/reports/api/reports";
+import {
+  REPORT_STATUS_OPTIONS,
+  getReportStatusLabel,
+} from "@/features/reports/lib/status";
+import { useReportsStore } from "@/features/reports/store/reports-store";
 
 const CATEGORY_OPTIONS = [
   { value: "flood", label: "Flood" },
   { value: "rescue", label: "Rescue" },
   { value: "infrastructure", label: "Infrastructure" },
   { value: "incident", label: "Incident" },
-];
-
-const STATUS_OPTIONS: ReportStatus[] = [
-  "pending",
-  "verified",
-  "resolved",
-  "rejected",
 ];
 
 const EMPTY_FORM: ReportFormValues = {
@@ -56,6 +54,13 @@ function addressText(report: FloodReport): string {
   return [report.addressLine, report.ward, report.province]
     .filter(Boolean)
     .join(", ");
+}
+
+function statusOf(report: FloodReport): ReportStatus {
+  const status = String(report.status ?? "pending").toLowerCase();
+  return REPORT_STATUS_OPTIONS.includes(status as ReportStatus)
+    ? (status as ReportStatus)
+    : "pending";
 }
 
 function toFormValues(report: FloodReport): ReportFormValues {
@@ -298,16 +303,34 @@ export function ReportWorkspace() {
   const identity = useAuthIdentity();
   const role = normalizeRole(identity?.role) ?? "citizen";
   const canManage = canManageReports(role);
-  const [reports, setReports] = useState<FloodReport[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [filter, setFilter] = useState<"all" | ReportStatus>("all");
-  const [query, setQuery] = useState("");
-  const [isCreating, setIsCreating] = useState(false);
-  const [editingReport, setEditingReport] = useState<FloodReport | null>(null);
+  const reports = useReportsStore((state) => state.reports);
+  const isLoading = useReportsStore((state) => state.isLoading);
+  const filter = useReportsStore((state) => state.filter);
+  const query = useReportsStore((state) => state.query);
+  const isCreating = useReportsStore((state) => state.isCreating);
+  const editingReport = useReportsStore((state) => state.editingReport);
+  const savingStatusByReportId = useReportsStore(
+    (state) => state.savingStatusByReportId,
+  );
+  const setReports = useReportsStore((state) => state.setReports);
+  const setLoading = useReportsStore((state) => state.setLoading);
+  const setFilter = useReportsStore((state) => state.setFilter);
+  const setQuery = useReportsStore((state) => state.setQuery);
+  const setCreating = useReportsStore((state) => state.setCreating);
+  const setEditingReport = useReportsStore((state) => state.setEditingReport);
+  const startReportStatusSave = useReportsStore(
+    (state) => state.startReportStatusSave,
+  );
+  const rollbackReportStatus = useReportsStore(
+    (state) => state.rollbackReportStatus,
+  );
+  const finishReportStatusSave = useReportsStore(
+    (state) => state.finishReportStatusSave,
+  );
 
   async function loadReports() {
     try {
-      setIsLoading(true);
+      setLoading(true);
       setReports(await listReports(role));
     } catch (error) {
       showAlert({
@@ -318,7 +341,7 @@ export function ReportWorkspace() {
       });
       setReports([]);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   }
 
@@ -331,7 +354,7 @@ export function ReportWorkspace() {
     const keyword = query.trim().toLowerCase();
     return reports
       .filter((report) => {
-        if (filter !== "all" && report.status !== filter) {
+        if (filter !== "all" && statusOf(report) !== filter) {
           return false;
         }
         if (!keyword) {
@@ -360,7 +383,7 @@ export function ReportWorkspace() {
   async function handleCreate(values: ReportFormValues) {
     try {
       await createReport(values);
-      setIsCreating(false);
+      setCreating(false);
       showAlert({
         title: "Report created",
         description: "Your field report was submitted.",
@@ -406,13 +429,11 @@ export function ReportWorkspace() {
       return;
     }
 
+    const previousStatus = statusOf(report);
     try {
+      startReportStatusSave(report.id, status);
       await updateReportStatus(report.id, status);
-      setReports((prev) =>
-        prev.map((item) =>
-          item.id === report.id ? { ...item, status } : item,
-        ),
-      );
+      await loadReports();
     } catch (error) {
       showAlert({
         title: "Status update failed",
@@ -422,6 +443,9 @@ export function ReportWorkspace() {
             : "Could not update report status.",
         variant: "error",
       });
+      rollbackReportStatus(report.id, previousStatus);
+    } finally {
+      finishReportStatusSave(report.id);
     }
   }
 
@@ -447,9 +471,9 @@ export function ReportWorkspace() {
             className="rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
           >
             <option value="all">All</option>
-            {STATUS_OPTIONS.map((status) => (
+            {REPORT_STATUS_OPTIONS.map((status) => (
               <option key={status} value={status}>
-                {status}
+                {getReportStatusLabel(status)}
               </option>
             ))}
           </select>
@@ -468,7 +492,7 @@ export function ReportWorkspace() {
               type="button"
               onClick={() => {
                 setEditingReport(null);
-                setIsCreating(true);
+                setCreating(true);
               }}
               className="inline-flex items-center gap-2 rounded-lg bg-sky-600 px-3 py-2 text-sm font-bold text-white hover:bg-sky-700"
             >
@@ -484,7 +508,7 @@ export function ReportWorkspace() {
           initialValues={EMPTY_FORM}
           submitLabel="Submit report"
           onSubmit={handleCreate}
-          onCancel={() => setIsCreating(false)}
+          onCancel={() => setCreating(false)}
         />
       ) : null}
 
@@ -525,7 +549,7 @@ export function ReportWorkspace() {
                 </h2>
               </div>
               <span className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-700">
-                {report.status ?? "pending"}
+                {getReportStatusLabel(statusOf(report))}
               </span>
             </div>
 
@@ -553,7 +577,7 @@ export function ReportWorkspace() {
               <button
                 type="button"
                 onClick={() => {
-                  setIsCreating(false);
+                  setCreating(false);
                   setEditingReport(report);
                 }}
                 className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
@@ -563,22 +587,32 @@ export function ReportWorkspace() {
               </button>
 
               {canManage ? (
-                <select
-                  value={(report.status as ReportStatus) ?? "pending"}
-                  onChange={(event) =>
-                    void handleStatusChange(
-                      report,
-                      event.target.value as ReportStatus,
-                    )
-                  }
-                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700"
-                >
-                  {STATUS_OPTIONS.map((status) => (
-                    <option key={status} value={status}>
-                      {status}
-                    </option>
-                  ))}
-                </select>
+                <div className="flex flex-wrap gap-1.5">
+                  {REPORT_STATUS_OPTIONS.map((status) => {
+                    const currentStatus = statusOf(report);
+                    const reportId = report.id ?? -1;
+                    const savingStatus = savingStatusByReportId[reportId];
+                    const isActive = currentStatus === status;
+                    const isSaving = savingStatus === status;
+                    const isDisabled = Boolean(savingStatus) || isActive;
+
+                    return (
+                      <button
+                        key={status}
+                        type="button"
+                        onClick={() => void handleStatusChange(report, status)}
+                        disabled={isDisabled}
+                        className={`rounded-lg border px-3 py-2 text-xs font-bold transition disabled:cursor-not-allowed disabled:opacity-70 ${
+                          isActive
+                            ? "border-sky-200 bg-sky-50 text-sky-800"
+                            : "border-slate-200 text-slate-700 hover:bg-slate-50"
+                        }`}
+                      >
+                        {isSaving ? "Saving..." : getReportStatusLabel(status)}
+                      </button>
+                    );
+                  })}
+                </div>
               ) : null}
             </div>
           </article>
