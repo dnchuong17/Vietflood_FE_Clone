@@ -12,6 +12,7 @@ import {
   isAccessTokenExpiringSoon,
 } from "./auth-storage";
 import { refreshAccessToken } from "../api/sign-in";
+import { apiUrl } from "@/lib/api-config";
 
 type RequestOptions = RequestInit & {
   skipAuthRefresh?: boolean;
@@ -129,6 +130,10 @@ export async function apiRequest(
   return response;
 }
 
+export function apiPath(path: string): string {
+  return apiUrl(path);
+}
+
 /**
  * Convenience function for GET requests with auth
  */
@@ -139,6 +144,42 @@ export async function apiGet(
   return apiRequest(url, {
     ...options,
     method: "GET",
+  });
+}
+
+export async function parseJsonResponse<T>(
+  response: Response,
+  fallbackMessage: string,
+): Promise<T> {
+  const data: unknown = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    if (typeof data === "object" && data !== null && "message" in data) {
+      const message = (data as { message?: unknown }).message;
+      if (typeof message === "string" && message.trim().length > 0) {
+        throw new Error(message);
+      }
+    }
+
+    throw new Error(fallbackMessage);
+  }
+
+  return data as T;
+}
+
+export async function apiPatch(
+  url: string,
+  body?: unknown,
+  options: RequestOptions = {},
+): Promise<Response> {
+  return apiRequest(url, {
+    ...options,
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...(options.headers || {}),
+    },
+    body: body ? JSON.stringify(body) : undefined,
   });
 }
 

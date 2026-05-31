@@ -1,11 +1,14 @@
+import { AppShell } from "@/features/app-shell/components/app-shell";
 import { OverviewDashboard } from "@/features/home/components/overview-dashboard";
 
 export const metadata = {
-    title: "Tổng quan | VietFlood Insight",
+  title: "Overview | VietFlood Insight",
 };
 
 export default function OverviewPage() {
-    return (
-        <OverviewDashboard />
-    );
+  return (
+    <AppShell title="Overview" allowedRoles={["relief", "admin"]}>
+      <OverviewDashboard />
+    </AppShell>
+  );
 }

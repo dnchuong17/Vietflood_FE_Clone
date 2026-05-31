@@ -1,4 +1,5 @@
 import type { SignInResponse } from "@/features/auth/types/auth";
+import { normalizeRole, type UserRole } from "@/features/auth/lib/roles";
 
 const ACCESS_TOKEN_KEY = "vietflood_access_token";
 const REFRESH_TOKEN_KEY = "vietflood_refresh_token";
@@ -16,7 +17,7 @@ export type AuthIdentity = {
   username: string;
   displayName: string;
   initials: string;
-  role?: string;
+  role?: UserRole;
 };
 
 let cachedIdentityToken: string | null = null;
@@ -44,6 +45,10 @@ function clearCookie(name: string): void {
   document.cookie = `${encodeURIComponent(name)}=; Max-Age=0; Path=/; SameSite=Lax`;
 }
 
+function emitAuthChange(): void {
+  window.dispatchEvent(new Event("vietflood-auth-change"));
+}
+
 export function persistAuthTokens(tokens: SignInResponse): void {
   if (typeof window === "undefined") {
     return;
@@ -61,6 +66,8 @@ export function persistAuthTokens(tokens: SignInResponse): void {
   if (tokens.refresh_token) {
     window.localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refresh_token);
   }
+
+  emitAuthChange();
 }
 
 export function clearAuthTokens(): void {
@@ -73,6 +80,7 @@ export function clearAuthTokens(): void {
   window.localStorage.removeItem(REFRESH_TOKEN_KEY);
   // Remove legacy refresh token storage if it exists from older builds.
   window.localStorage.removeItem("vietflood_refresh_token");
+  emitAuthChange();
 }
 
 export function getAccessToken(): string | null {
@@ -100,6 +108,7 @@ export function updateAccessToken(accessToken: string): void {
 
   setCookie(ACCESS_TOKEN_KEY, accessToken, ACCESS_TOKEN_COOKIE_MAX_AGE_SECONDS);
   window.localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+  emitAuthChange();
 }
 
 export function updateRefreshToken(refreshToken: string): void {
@@ -108,6 +117,7 @@ export function updateRefreshToken(refreshToken: string): void {
   }
 
   window.localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+  emitAuthChange();
 }
 
 function decodeTokenPayload(token: string): TokenPayload | null {
@@ -167,7 +177,7 @@ export function getAuthIdentity(): AuthIdentity | null {
     username: payload.username,
     displayName,
     initials: createInitials(displayName),
-    role: payload.role,
+    role: normalizeRole(payload.role) ?? undefined,
   };
 
   return cachedIdentity;

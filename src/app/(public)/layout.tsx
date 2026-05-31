@@ -12,7 +12,7 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
             <div className="absolute inset-x-0 top-0 z-40">
                 <SiteHeader />
             </div>
-            <main className="h-full">{children}</main>
+            <main className="h-full overflow-y-auto">{children}</main>
         </div>
     );
 }

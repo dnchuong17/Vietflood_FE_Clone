@@ -1,163 +1,110 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 import { useGlobalAlert } from "@/components/feedback/global-alert-provider";
 import { signIn } from "@/features/auth/api/sign-in";
-import { persistAuthTokens } from "@/features/auth/lib/auth-storage";
-
-function EyeIcon() {
-    return (
-        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" className="h-[1.15rem] w-[1.15rem]">
-            <path
-                d="M2 12s3.8-6 10-6 10 6 10 6-3.8 6-10 6-10-6-10-6Z"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.7"
-            />
-            <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" strokeWidth="1.7" />
-        </svg>
-    );
-}
-
-function EyeOffIcon() {
-    return (
-        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" className="h-[1.15rem] w-[1.15rem]">
-            <path
-                d="M3 3l18 18M10.6 6.5a9.8 9.8 0 0 1 1.4-.1c6.2 0 10 5.6 10 5.6a18 18 0 0 1-4.2 4.4M6.2 8.1A18.9 18.9 0 0 0 2 12s3.8 6 10 6c.5 0 1 0 1.4-.1"
-                fill="none"
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="1.7"
-            />
-            <path
-                d="M9.9 9.9a3 3 0 0 0 4.2 4.2"
-                fill="none"
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="1.7"
-            />
-        </svg>
-    );
-}
+import {
+  getAuthIdentity,
+  persistAuthTokens,
+} from "@/features/auth/lib/auth-storage";
+import { normalizeRole } from "@/features/auth/lib/roles";
+import { getDefaultRouteForRole } from "@/features/app-shell/lib/tabs";
 
 export function LoginForm() {
-    const router = useRouter();
-    const { showAlert } = useGlobalAlert();
-    const [username, setUsername] = useState("");
-    const [password, setPassword] = useState("");
-    const [showPassword, setShowPassword] = useState(false);
-    const [isSubmitting, setIsSubmitting] = useState(false);
+  const router = useRouter();
+  const { showAlert } = useGlobalAlert();
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-    function toDisplayErrorMessage(error: unknown): string {
-        if (error instanceof Error) {
-            const normalized = error.message.trim().toLowerCase();
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
 
-            if (normalized === "failed to fetch") {
-                return "Không thể kết nối đến server";
-            }
-
-            return error.message;
-        }
-
-        return "Đăng nhập thất bại. Vui lòng thử lại.";
+    if (!username.trim() || !password.trim()) {
+      showAlert({
+        title: "Missing information",
+        description: "Enter both username and password.",
+        variant: "error",
+      });
+      return;
     }
 
-    async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-        event.preventDefault();
+    try {
+      setIsSubmitting(true);
+      const tokens = await signIn({
+        username: username.trim(),
+        password,
+      });
 
-        if (!username.trim() || !password.trim()) {
-            showAlert({
-                title: "Thiếu thông tin",
-                description: "Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu.",
-                variant: "error",
-            });
-            return;
-        }
+      persistAuthTokens(tokens);
+      const role = normalizeRole(getAuthIdentity()?.role) ?? "citizen";
 
-        try {
-            setIsSubmitting(true);
-
-            const tokens = await signIn({
-                username: username.trim(),
-                password,
-            });
-
-            persistAuthTokens(tokens);
-            showAlert({
-                title: "Đăng nhập thành công",
-                description: "Chào mừng bạn quay lại hệ thống.",
-                variant: "success",
-            });
-            router.replace("/trang-chu");
-            router.refresh();
-        } catch (error) {
-            const message = toDisplayErrorMessage(error);
-
-            showAlert({
-                title: "Đăng nhập thất bại",
-                description: message,
-                variant: "error",
-            });
-        } finally {
-            setIsSubmitting(false);
-        }
+      showAlert({
+        title: "Signed in",
+        description: "Welcome back to VietFlood.",
+        variant: "success",
+      });
+      router.replace(getDefaultRouteForRole(role));
+      router.refresh();
+    } catch (error) {
+      showAlert({
+        title: "Login failed",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Could not sign in. Please try again.",
+        variant: "error",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
+  }
 
-    return (
-        <form className="mt-4 grid gap-3" onSubmit={handleSubmit}>
-            <label htmlFor="username" className="text-[0.95rem] font-semibold">
-                Tên đăng nhập
-            </label>
-            <input
-                id="username"
-                name="username"
-                type="text"
-                placeholder="Nhập tên đăng nhập"
-                autoComplete="username"
-                value={username}
-                onChange={(event) => setUsername(event.target.value)}
-                className="rounded-xl border border-slate-300 bg-slate-50 px-3 py-2.5 outline-none focus:border-transparent focus:ring-2 focus:ring-teal-500/40"
-                required
-            />
+  return (
+    <form className="mt-5 grid gap-3" onSubmit={handleSubmit}>
+      <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
+        Username
+        <input
+          name="username"
+          type="text"
+          autoComplete="username"
+          value={username}
+          onChange={(event) => setUsername(event.target.value)}
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-slate-950 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
+          required
+        />
+      </label>
 
-            <label htmlFor="password" className="text-[0.95rem] font-semibold">
-                Mật khẩu
-            </label>
-            <div className="relative">
-                <input
-                    id="password"
-                    name="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Nhập mật khẩu"
-                    autoComplete="current-password"
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2.5 pr-12 outline-none focus:border-transparent focus:ring-2 focus:ring-teal-500/40"
-                    required
-                />
-                <button
-                    type="button"
-                    className="absolute right-2 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-sky-700 transition hover:bg-sky-100 focus-visible:outline-2 focus-visible:outline-teal-500/50"
-                    onClick={() => setShowPassword((prev) => !prev)}
-                    aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
-                    aria-pressed={showPassword}
-                >
-                    <span className="sr-only">{showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}</span>
-                    {showPassword ? <EyeOffIcon /> : <EyeIcon />}
-                </button>
-            </div>
+      <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
+        Password
+        <input
+          name="password"
+          type="password"
+          autoComplete="current-password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-slate-950 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
+          required
+        />
+      </label>
 
-            <button
-                type="submit"
-                className="mt-1 rounded-xl bg-linear-to-r from-sky-600 to-teal-600 px-4 py-2.5 font-bold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-75"
-                disabled={isSubmitting}
-            >
-                {isSubmitting ? "Đang đăng nhập..." : "Đăng nhập"}
-            </button>
-        </form>
-    );
+      <button
+        type="submit"
+        className="mt-1 rounded-lg bg-sky-600 px-4 py-2.5 font-bold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-70"
+        disabled={isSubmitting}
+      >
+        {isSubmitting ? "Signing in..." : "Sign in"}
+      </button>
+
+      <p className="text-center text-sm text-slate-600">
+        Need a citizen account?{" "}
+        <Link href="/dang-ky" className="font-semibold text-sky-700">
+          Register
+        </Link>
+      </p>
+    </form>
+  );
 }
