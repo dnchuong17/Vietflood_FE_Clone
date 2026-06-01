@@ -1,9 +1,26 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
-import { LocateFixed, Map, Navigation, RadioTower, RefreshCw, Square } from "lucide-react";
+import {
+  LocateFixed,
+  Map,
+  Navigation,
+  RadioTower,
+  RefreshCw,
+  Square,
+} from "lucide-react";
 import { io, type Socket } from "socket.io-client";
 
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { useGlobalAlert } from "@/components/feedback/global-alert-provider";
 import { apiGet, apiPath, parseJsonResponse } from "@/features/auth/lib/api-client";
 import { getAccessToken } from "@/features/auth/lib/auth-storage";
@@ -31,7 +48,9 @@ const GEOLOCATION_OPTIONS: PositionOptions = {
 };
 
 function formatCoordinate(value: number | undefined, digits = 6): string {
-  return typeof value === "number" && Number.isFinite(value) ? value.toFixed(digits) : "-";
+  return typeof value === "number" && Number.isFinite(value)
+    ? value.toFixed(digits)
+    : "-";
 }
 
 function formatLocationAge(location: TrackedLocation): string {
@@ -39,20 +58,20 @@ function formatLocationAge(location: TrackedLocation): string {
     ? new Date(location.updatedAt).getTime()
     : location.timestamp;
   if (!timestamp || Number.isNaN(timestamp)) {
-    return "just now";
+    return "vừa xong";
   }
 
   const diffSeconds = Math.max(0, Math.floor((Date.now() - timestamp) / 1000));
   if (diffSeconds < 60) {
-    return `${diffSeconds}s ago`;
+    return `${diffSeconds} giây trước`;
   }
 
   const diffMinutes = Math.floor(diffSeconds / 60);
   if (diffMinutes < 60) {
-    return `${diffMinutes}m ago`;
+    return `${diffMinutes} phút trước`;
   }
 
-  return `${Math.floor(diffMinutes / 60)}h ago`;
+  return `${Math.floor(diffMinutes / 60)} giờ trước`;
 }
 
 function getDisplayName(location: TrackedLocation, fallback: string): string {
@@ -113,36 +132,36 @@ export function LiveTrackingPanel() {
         });
         const payload = await parseJsonResponse<unknown>(
           response,
-          "Tracking snapshot endpoint is unavailable.",
+          "Endpoint ảnh chụp theo dõi hiện không khả dụng.",
         );
         const hasSnapshot = applyTrackingSnapshot(payload);
         setSnapshotHint(
           hasSnapshot
             ? null
-            : "Snapshot returned no active shared locations. Waiting for live updates.",
+            : "Ảnh chụp không có vị trí đang chia sẻ. Đang chờ cập nhật trực tiếp.",
         );
 
         if (showFeedback) {
           showAlert({
-            title: "Tracking refreshed",
+            title: "Đã làm mới theo dõi",
             description: hasSnapshot
-              ? "Latest shared locations were loaded."
-              : "No active shared locations were returned.",
+              ? "Đã tải các vị trí chia sẻ mới nhất."
+              : "Không có vị trí đang chia sẻ.",
             variant: "info",
           });
         }
       } catch (error) {
         setSnapshotHint(
-          "Snapshot API is unavailable in this backend runtime. This view will still show future live socket updates.",
+          "Dịch vụ ảnh chụp chưa khả dụng trên máy chủ hiện tại. Màn hình này vẫn hiển thị các cập nhật trực tiếp mới.",
         );
 
         if (showFeedback) {
           showAlert({
-            title: "Snapshot unavailable",
+            title: "Không thể tải ảnh chụp",
             description:
               error instanceof Error
                 ? error.message
-                : "Waiting for live socket location events.",
+                : "Đang chờ sự kiện vị trí trực tiếp.",
             variant: "info",
           });
         }
@@ -186,7 +205,7 @@ export function LiveTrackingPanel() {
     socket.on("disconnect", () => setConnected(false));
     socket.on("connect_error", (error) => {
       setConnected(false);
-      setSocketHint(error.message || "Tracking socket connection failed.");
+      setSocketHint(error.message || "Kết nối theo dõi trực tiếp thất bại.");
     });
     socket.on("receive-location", (payload: unknown) => {
       const [location] = normalizeTrackingLocations(payload);
@@ -214,11 +233,11 @@ export function LiveTrackingPanel() {
     });
     socket.on("location-error", (payload: { message?: string } | string) => {
       showAlert({
-        title: "Tracking error",
+        title: "Lỗi theo dõi",
         description:
           typeof payload === "string"
             ? payload
-            : payload.message ?? "Location update was rejected.",
+            : payload.message ?? "Cập nhật vị trí đã bị từ chối.",
         variant: "error",
       });
     });
@@ -260,8 +279,8 @@ export function LiveTrackingPanel() {
   function startSharing() {
     if (!navigator.geolocation) {
       showAlert({
-        title: "Location unavailable",
-        description: "This browser does not support geolocation.",
+        title: "Không có vị trí",
+        description: "Trình duyệt này không hỗ trợ định vị.",
         variant: "error",
       });
       return;
@@ -271,8 +290,8 @@ export function LiveTrackingPanel() {
       emitPosition,
       () => {
         showAlert({
-          title: "Location blocked",
-          description: "Allow browser location permission to share live tracking.",
+          title: "Vị trí bị chặn",
+          description: "Hãy cho phép trình duyệt truy cập vị trí để chia sẻ theo dõi trực tiếp.",
           variant: "error",
         });
       },
@@ -283,8 +302,8 @@ export function LiveTrackingPanel() {
       emitPosition,
       () => {
         showAlert({
-          title: "Location blocked",
-          description: "Allow browser location permission to share live tracking.",
+          title: "Vị trí bị chặn",
+          description: "Hãy cho phép trình duyệt truy cập vị trí để chia sẻ theo dõi trực tiếp.",
           variant: "error",
         });
       },
@@ -330,8 +349,8 @@ export function LiveTrackingPanel() {
     if (!navigator.geolocation) {
       openDirectionsWithFallback(destination);
       showAlert({
-        title: "Using destination only",
-        description: "This browser cannot provide your current location for route origin.",
+        title: "Chỉ dùng điểm đến",
+        description: "Trình duyệt này không thể cung cấp vị trí hiện tại làm điểm xuất phát.",
         variant: "info",
       });
       setRoutingLocationId(null);
@@ -349,8 +368,8 @@ export function LiveTrackingPanel() {
       () => {
         openDirectionsWithFallback(destination);
         showAlert({
-          title: "Using destination only",
-          description: "Allow browser location permission to route from your current position.",
+          title: "Chỉ dùng điểm đến",
+          description: "Hãy cho phép truy cập vị trí để dẫn đường từ vị trí hiện tại của bạn.",
           variant: "info",
         });
         setRoutingLocationId(null);
@@ -361,120 +380,125 @@ export function LiveTrackingPanel() {
 
   return (
     <div className="grid gap-4 lg:grid-cols-[22rem_1fr]">
-      <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="flex items-center gap-2">
-          <RadioTower className="h-5 w-5 text-sky-700" aria-hidden="true" />
-          <h2 className="text-lg font-bold text-slate-950">Share location</h2>
-        </div>
-        <p className="mt-2 text-sm text-slate-600">
-          Send browser GPS updates through the VietFlood tracking socket.
-        </p>
-        <dl className="mt-4 grid gap-2 text-sm text-slate-600">
-          <div className="flex justify-between gap-3">
-            <dt>Socket</dt>
-            <dd className={isConnected ? "text-emerald-700" : "text-rose-700"}>
-              {isConnected ? "connected" : "disconnected"}
-            </dd>
+      <Card>
+        <CardHeader>
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <RadioTower className="text-primary" aria-hidden="true" />
+              <CardTitle>Chia sẻ vị trí</CardTitle>
+            </div>
+            <Badge variant={isConnected ? "success" : "critical"}>
+              {isConnected ? "Đang kết nối" : "Mất kết nối"}
+            </Badge>
           </div>
-          <div className="flex justify-between gap-3">
-            <dt>Sharing</dt>
-            <dd>{isSharing ? "active" : "off"}</dd>
+          <CardDescription>
+            Gửi cập nhật GPS của trình duyệt qua kênh theo dõi VietFlood.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <dl className="grid gap-2 text-sm text-muted-foreground">
+            <div className="flex justify-between gap-3">
+              <dt>Kết nối</dt>
+              <dd className="font-semibold text-foreground">
+                {isConnected ? "đã kết nối" : "mất kết nối"}
+              </dd>
+            </div>
+            <div className="flex justify-between gap-3">
+              <dt>Chia sẻ</dt>
+              <dd>{isSharing ? "đang bật" : "đã tắt"}</dd>
+            </div>
+            <div className="flex justify-between gap-3">
+              <dt>Kênh truyền</dt>
+              <dd>Tự động</dd>
+            </div>
+            <div className="flex justify-between gap-3">
+              <dt>GPS gần nhất</dt>
+              <dd>
+                {lastShared
+                  ? `${formatCoordinate(getLat(lastShared), 5)}, ${formatCoordinate(getLng(lastShared), 5)}`
+                  : "-"}
+              </dd>
+            </div>
+          </dl>
+          {socketHint ? (
+            <Alert className="mt-3 border-warning/25 bg-warning/15 text-warning-foreground">
+              <AlertDescription>{socketHint}</AlertDescription>
+            </Alert>
+          ) : null}
+          <div className="mt-4 flex gap-2">
+            {!isSharing ? (
+              <Button type="button" onClick={startSharing}>
+                <LocateFixed data-icon="inline-start" aria-hidden="true" />
+                Bắt đầu
+              </Button>
+            ) : (
+              <Button type="button" onClick={stopSharing} variant="outline">
+                <Square data-icon="inline-start" aria-hidden="true" />
+                Dừng
+              </Button>
+            )}
           </div>
-          <div className="flex justify-between gap-3">
-            <dt>Transport</dt>
-            <dd>polling + websocket</dd>
-          </div>
-          <div className="flex justify-between gap-3">
-            <dt>Last GPS</dt>
-            <dd>
-              {lastShared
-                ? `${formatCoordinate(getLat(lastShared), 5)}, ${formatCoordinate(getLng(lastShared), 5)}`
-                : "-"}
-            </dd>
-          </div>
-        </dl>
-        {socketHint ? (
-          <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-            {socketHint}
-          </div>
-        ) : null}
-        <div className="mt-4 flex gap-2">
-          {!isSharing ? (
-            <button
-              type="button"
-              onClick={startSharing}
-              className="inline-flex items-center gap-2 rounded-lg bg-sky-600 px-3 py-2 text-sm font-bold text-white hover:bg-sky-700"
-            >
-              <LocateFixed className="h-4 w-4" aria-hidden="true" />
-              Start
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={stopSharing}
-              className="inline-flex items-center gap-2 rounded-lg border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50"
-            >
-              <Square className="h-4 w-4" aria-hidden="true" />
-              Stop
-            </button>
-          )}
-        </div>
-      </section>
+        </CardContent>
+      </Card>
 
-      <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h2 className="text-lg font-bold text-slate-950">
-              {canMonitor ? "Live monitor" : "My live location"}
-            </h2>
-            <p className="text-sm text-slate-600">
-              {canMonitor
-                ? "Incoming locations from active clients."
-                : "Citizens can share location with relief/admin teams."}
-            </p>
+      <Card>
+        <CardHeader>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <CardTitle>
+                {canMonitor ? "Theo dõi trực tiếp" : "Vị trí trực tiếp của tôi"}
+              </CardTitle>
+              <CardDescription>
+                {canMonitor
+                  ? "Các vị trí gửi đến từ những máy khách đang hoạt động."
+                  : "Người dân có thể chia sẻ vị trí với đội cứu trợ và quản trị viên."}
+              </CardDescription>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {canMonitor ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => void refreshTrackingSnapshot(true)}
+                  disabled={isSnapshotLoading}
+                >
+                  <RefreshCw
+                    data-icon="inline-start"
+                    className={isSnapshotLoading ? "animate-spin" : undefined}
+                    aria-hidden="true"
+                  />
+                  Làm mới
+                </Button>
+              ) : null}
+              <Badge variant="secondary">{locations.length} đang hoạt động</Badge>
+            </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {canMonitor ? (
-              <button
-                type="button"
-                onClick={() => void refreshTrackingSnapshot(true)}
-                disabled={isSnapshotLoading}
-                className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <RefreshCw
-                  className={`h-4 w-4 ${isSnapshotLoading ? "animate-spin" : ""}`}
-                  aria-hidden="true"
-                />
-                Refresh
-              </button>
-            ) : null}
-            <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
-              {locations.length} active
-            </span>
-          </div>
-        </div>
+        </CardHeader>
+        <CardContent>
+          {!canMonitor ? (
+            <Alert>
+              <AlertDescription>
+                Đội cứu trợ và quản trị viên có thể theo dõi vị trí máy khách
+                đang hoạt động. Vai trò của bạn có thể chia sẻ vị trí khi cần
+                hỗ trợ.
+              </AlertDescription>
+            </Alert>
+          ) : null}
 
-        {!canMonitor ? (
-          <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-            Relief and admin users can monitor active client locations. Your role can share
-            location when you need help.
-          </div>
-        ) : null}
+          {canMonitor && snapshotHint ? (
+            <Alert className="border-warning/25 bg-warning/15 text-warning-foreground">
+              <AlertDescription>{snapshotHint}</AlertDescription>
+            </Alert>
+          ) : null}
 
-        {canMonitor && snapshotHint ? (
-          <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-            {snapshotHint}
-          </div>
-        ) : null}
-
-        {canMonitor ? (
-          <div className="mt-4 grid gap-2">
-            {locations.length === 0 ? (
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-600">
-                No active locations yet. Keep this page open to receive future socket
-                updates from sharing users.
-              </div>
-            ) : null}
+          {canMonitor ? (
+            <div className="mt-4 grid gap-2">
+              {locations.length === 0 ? (
+                <div className="rounded-lg border bg-muted/40 p-5 text-center text-sm text-muted-foreground">
+                  Chưa có vị trí đang chia sẻ. Hãy giữ trang này mở để nhận cập nhật
+                  mới từ người dùng đang chia sẻ.
+                </div>
+              ) : null}
             {locations.map((location, index) => {
               const lat = getLat(location);
               const lng = getLng(location);
@@ -483,47 +507,47 @@ export function LiveTrackingPanel() {
               return (
                 <article
                   key={id}
-                  className="grid gap-3 rounded-lg border border-slate-200 p-3 text-sm md:grid-cols-[1fr_auto] md:items-center"
+                  className="grid gap-3 rounded-lg border bg-background/60 p-3 text-sm md:grid-cols-[1fr_auto] md:items-center"
                 >
                   <div>
-                    <p className="font-bold text-slate-950">
-                      {getDisplayName(location, `Location ${index + 1}`)}
+                    <p className="font-bold text-foreground">
+                      {getDisplayName(location, `Vị trí ${index + 1}`)}
                     </p>
-                    <p className="text-slate-600">
+                    <p className="text-muted-foreground">
                       {formatCoordinate(lat)}, {formatCoordinate(lng)}
                       {location.accuracy ? ` | +/- ${Math.round(location.accuracy)}m` : ""}
                     </p>
-                    <p className="text-xs text-slate-500">
-                      ID {id} | updated {formatLocationAge(location)}
+                    <p className="text-xs text-muted-foreground">
+                      Mã {id} | cập nhật {formatLocationAge(location)}
                     </p>
                   </div>
                   {hasValidCoordinate(location) ? (
                     <div className="flex flex-wrap gap-2 md:justify-end">
-                      <button
+                      <Button
                         type="button"
                         onClick={() => openPoint(location)}
-                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-sky-200 px-3 py-2 font-semibold text-sky-700 hover:bg-sky-50"
+                        variant="outline"
                       >
-                        <Map className="h-4 w-4" aria-hidden="true" />
-                        Map
-                      </button>
-                      <button
+                        <Map data-icon="inline-start" aria-hidden="true" />
+                        Bản đồ
+                      </Button>
+                      <Button
                         type="button"
                         onClick={() => routeToLocation(location)}
-                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-sky-600 px-3 py-2 font-bold text-white hover:bg-sky-700 disabled:cursor-wait disabled:opacity-70"
                         disabled={isRouting}
                       >
-                        <Navigation className="h-4 w-4" aria-hidden="true" />
-                        {isRouting ? "Routing..." : "Dẫn đường"}
-                      </button>
+                        <Navigation data-icon="inline-start" aria-hidden="true" />
+                        {isRouting ? "Đang dẫn đường..." : "Dẫn đường"}
+                      </Button>
                     </div>
                   ) : null}
                 </article>
               );
             })}
-          </div>
-        ) : null}
-      </section>
+            </div>
+          ) : null}
+        </CardContent>
+      </Card>
     </div>
   );
 }

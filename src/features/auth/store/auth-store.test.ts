@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
+  createInitialAuthState,
   resetAuthStore,
   useAuthStore,
   type AuthIdentityReader,
@@ -26,5 +27,13 @@ describe("auth Zustand store", () => {
       role: "relief",
     });
     expect(useAuthStore.getState().identity?.role).toBe("relief");
+    expect(useAuthStore.getState().hasRestoredIdentity).toBe(true);
+  });
+
+  it("starts unresolved so server and first client render match", () => {
+    expect(createInitialAuthState()).toEqual({
+      identity: null,
+      hasRestoredIdentity: false,
+    });
   });
 });

@@ -64,6 +64,16 @@ type BackendReportEnvelope = {
   user?: ReportUser;
 };
 
+type UnknownRecord = Record<string, unknown>;
+
+function asRecord(value: unknown): UnknownRecord | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  return value as UnknownRecord;
+}
+
 function normalizeCategory(category: FloodReport["category"]): string[] {
   const values = Array.isArray(category) ? category : category ? [category] : [];
   return Array.from(
@@ -112,6 +122,35 @@ function normalizeReportList(data: unknown): FloodReport[] {
   });
 }
 
+function normalizeReportDetail(data: unknown): FloodReport | null {
+  if (Array.isArray(data)) {
+    return normalizeReportList(data)[0] ?? null;
+  }
+
+  const record = asRecord(data);
+  if (!record) {
+    return null;
+  }
+
+  if ("data" in record) {
+    return normalizeReportDetail(record.data);
+  }
+
+  if ("result" in record) {
+    return normalizeReportDetail(record.result);
+  }
+
+  if ("report" in record || "user" in record) {
+    const envelope = record as BackendReportEnvelope;
+    return normalizeReport({
+      ...(envelope.report ?? {}),
+      user: envelope.user ?? envelope.report?.user,
+    });
+  }
+
+  return normalizeReport(record as FloodReport);
+}
+
 function appendReportForm(formData: FormData, values: ReportFormValues) {
   const categories = values.categories.length > 0 ? values.categories : ["flood"];
   for (const category of categories) {
@@ -143,9 +182,39 @@ export async function listReports(role: UserRole): Promise<FloodReport[]> {
   });
   const data = await parseJsonResponse<unknown>(
     response,
-    "Could not load reports.",
+    "Không thể tải báo cáo.",
   );
   return normalizeReportList(data);
+}
+
+export async function getReportDetail(
+  role: UserRole,
+  reportId: number,
+): Promise<FloodReport> {
+  try {
+    const response = await apiGet(apiPath(`/reports/${reportId}`), {
+      credentials: "include",
+      cache: "no-store",
+    });
+    const data = await parseJsonResponse<unknown>(
+      response,
+      "Không thể tải chi tiết báo cáo.",
+    );
+    const report = normalizeReportDetail(data);
+    if (report?.id === reportId) {
+      return report;
+    }
+  } catch {
+    // Some backend deployments only expose list endpoints for role-scoped access.
+  }
+
+  const reports = await listReports(role);
+  const report = reports.find((item) => item.id === reportId);
+  if (!report) {
+    throw new Error("Không tìm thấy báo cáo.");
+  }
+
+  return report;
 }
 
 export async function createReport(values: ReportFormValues): Promise<void> {
@@ -158,7 +227,7 @@ export async function createReport(values: ReportFormValues): Promise<void> {
     body: formData,
   });
 
-  await parseJsonResponse<unknown>(response, "Could not create report.");
+  await parseJsonResponse<unknown>(response, "Không thể tạo báo cáo.");
 }
 
 export async function updateReport(
@@ -167,7 +236,7 @@ export async function updateReport(
   values: ReportFormValues,
 ): Promise<void> {
   if (!report.id) {
-    throw new Error("Missing report ID.");
+    throw new Error("Thiếu mã báo cáo.");
   }
 
   const formData = new FormData();
@@ -184,7 +253,7 @@ export async function updateReport(
     body: formData,
   });
 
-  await parseJsonResponse<unknown>(response, "Could not update report.");
+  await parseJsonResponse<unknown>(response, "Không thể cập nhật báo cáo.");
 }
 
 export async function updateReportStatus(
@@ -194,5 +263,5 @@ export async function updateReportStatus(
   const response = await apiPatch(apiPath(`/reports/${reportId}/status`), {
     ...buildReportStatusPatchPayload(status),
   });
-  await parseJsonResponse<unknown>(response, "Could not update report status.");
+  await parseJsonResponse<unknown>(response, "Không thể cập nhật trạng thái báo cáo.");
 }

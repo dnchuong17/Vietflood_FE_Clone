@@ -200,7 +200,7 @@ export function Tools() {
         : "Hiển thị bảng số liệu thời tiết";
 
     const overlayLabel = OVERLAY_LABELS[state.overlay] ?? state.overlay;
-    const overlayToolLabel = `Chọn lớp overlay. Lớp hiện tại: ${overlayLabel}`;
+    const overlayToolLabel = `Chọn lớp dữ liệu. Lớp hiện tại: ${overlayLabel}`;
 
     return (
         <div className="pointer-events-none absolute inset-x-0 top-0 z-20">
@@ -239,7 +239,7 @@ export function Tools() {
                         <div
                             className="absolute left-full top-0 ml-2 min-w-40 rounded-xl border border-slate-200/90 bg-white/96 p-1.5 shadow-lg backdrop-blur"
                             role="menu"
-                            aria-label="Chọn overlay bản đồ"
+                            aria-label="Chọn lớp dữ liệu bản đồ"
                         >
                             {OVERLAY_OPTIONS.map((option) => {
                                 const isActive = state.overlay === option;

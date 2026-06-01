@@ -4,6 +4,7 @@ import {
   APP_ROLES,
   canManageReports,
   canManageUsers,
+  getUserRoleLabel,
   normalizeRole,
 } from "./roles";
 
@@ -26,5 +27,12 @@ describe("web role model", () => {
     expect(canManageReports("admin")).toBe(true);
     expect(canManageUsers("relief")).toBe(true);
     expect(canManageUsers("admin")).toBe(true);
+  });
+
+  it("returns Vietnamese labels for app roles", () => {
+    expect(getUserRoleLabel("citizen")).toBe("Người dân");
+    expect(getUserRoleLabel("relief")).toBe("Đội cứu trợ");
+    expect(getUserRoleLabel("admin")).toBe("Quản trị viên");
+    expect(getUserRoleLabel(null)).toBe("-");
   });
 });

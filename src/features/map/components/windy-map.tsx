@@ -25,7 +25,7 @@ export function WindyMap({
     return (
         <section className="relative h-full w-full bg-[#071726]">
             <iframe
-                title="Windy interactive map"
+                title="Bản đồ tương tác Windy"
                 src={embedUrl}
                 className="h-full w-full border-0"
                 loading="eager"

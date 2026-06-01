@@ -1,5 +1,5 @@
-import type { SignInResponse } from "@/features/auth/types/auth";
-import { normalizeRole, type UserRole } from "@/features/auth/lib/roles";
+import type { SignInResponse } from "../types/auth";
+import { normalizeRole, type UserRole } from "./roles";
 
 const ACCESS_TOKEN_KEY = "vietflood_access_token";
 const REFRESH_TOKEN_KEY = "vietflood_refresh_token";

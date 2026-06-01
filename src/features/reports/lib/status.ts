@@ -8,10 +8,10 @@ export const REPORT_STATUS_OPTIONS = [
 ] as const satisfies readonly ReportStatus[];
 
 export const REPORT_STATUS_LABELS: Record<ReportStatus, string> = {
-  pending: "Pending",
-  verified: "Verified",
-  resolved: "Resolved",
-  rejected: "Rejected",
+  pending: "Chờ xử lý",
+  verified: "Đã xác minh",
+  resolved: "Đã xử lý",
+  rejected: "Từ chối",
 };
 
 export function getReportStatusLabel(status: ReportStatus): string {

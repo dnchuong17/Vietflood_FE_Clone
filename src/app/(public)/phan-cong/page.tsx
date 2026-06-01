@@ -2,12 +2,12 @@ import { AppShell } from "@/features/app-shell/components/app-shell";
 import { ReliefDashboard } from "@/features/relief/components/relief-dashboard";
 
 export const metadata = {
-  title: "Assignments | VietFlood Insight",
+  title: "Phân công | VietFlood",
 };
 
 export default function AssignmentPage() {
   return (
-    <AppShell title="Operational assignments" allowedRoles={["relief", "admin"]}>
+    <AppShell title="Phân công vận hành" allowedRoles={["relief", "admin"]}>
       <ReliefDashboard assignmentMode />
     </AppShell>
   );

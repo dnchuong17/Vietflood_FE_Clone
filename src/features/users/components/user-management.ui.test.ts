@@ -1,0 +1,20 @@
+import { readFileSync } from "node:fs";
+
+import { describe, expect, it } from "vitest";
+
+const source = readFileSync(
+  new URL("./user-management.tsx", import.meta.url),
+  "utf8",
+);
+
+describe("user management UI", () => {
+  it("uses shadcn controls, badges, and semantic surfaces", () => {
+    expect(source).toContain("@/components/ui/card");
+    expect(source).toContain("@/components/ui/input");
+    expect(source).toContain("@/components/ui/select");
+    expect(source).toContain("@/components/ui/badge");
+    expect(source).toContain("<Button");
+    expect(source).not.toContain("bg-white");
+    expect(source).not.toContain("text-slate");
+  });
+});

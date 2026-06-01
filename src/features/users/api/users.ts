@@ -32,7 +32,7 @@ export async function listUsers(): Promise<ManagedUser[]> {
   });
   const data = await parseJsonResponse<unknown[]>(
     response,
-    "Could not load users.",
+    "Không thể tải danh sách người dùng.",
   );
   return Array.isArray(data) ? (data as ManagedUser[]) : [];
 }
@@ -44,12 +44,12 @@ export async function updateUser(
   const response = await apiPut(apiPath(`/auth/update/user/${userId}`), values, {
     credentials: "include",
   });
-  await parseJsonResponse<unknown>(response, "Could not update user.");
+  await parseJsonResponse<unknown>(response, "Không thể cập nhật người dùng.");
 }
 
 export async function deleteUser(userId: number): Promise<void> {
   const response = await apiDelete(apiPath(`/auth/delete/${userId}`), {
     credentials: "include",
   });
-  await parseJsonResponse<unknown>(response, "Could not delete user.");
+  await parseJsonResponse<unknown>(response, "Không thể xoá người dùng.");
 }

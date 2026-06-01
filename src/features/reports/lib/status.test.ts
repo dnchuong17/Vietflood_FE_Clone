@@ -23,7 +23,7 @@ describe("report status helpers", () => {
   });
 
   it("labels status actions for relief users", () => {
-    expect(getReportStatusLabel("pending")).toBe("Pending");
-    expect(getReportStatusLabel("resolved")).toBe("Resolved");
+    expect(getReportStatusLabel("pending")).toBe("Chờ xử lý");
+    expect(getReportStatusLabel("resolved")).toBe("Đã xử lý");
   });
 });

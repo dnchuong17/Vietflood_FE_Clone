@@ -2,12 +2,12 @@ import { AppShell } from "@/features/app-shell/components/app-shell";
 import { ProfileSettings } from "@/features/profile/components/profile-settings";
 
 export const metadata = {
-  title: "Profile | VietFlood Insight",
+  title: "Hồ sơ | VietFlood",
 };
 
 export default function ProfilePage() {
   return (
-    <AppShell title="Profile and settings">
+    <AppShell title="Hồ sơ và cài đặt">
       <ProfileSettings />
     </AppShell>
   );

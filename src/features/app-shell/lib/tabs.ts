@@ -7,18 +7,18 @@ export type AppTab = {
 };
 
 const CITIZEN_TABS: AppTab[] = [
-  { href: "/trang-chu", label: "Windy", match: ["/trang-chu"] },
-  { href: "/bao-cao", label: "Reports", match: ["/bao-cao"] },
-  { href: "/theo-doi", label: "Tracking", match: ["/theo-doi"] },
-  { href: "/ho-so", label: "Profile", match: ["/ho-so"] },
+  { href: "/trang-chu", label: "Bản đồ", match: ["/trang-chu"] },
+  { href: "/bao-cao", label: "Báo cáo", match: ["/bao-cao"] },
+  { href: "/theo-doi", label: "Theo dõi", match: ["/theo-doi"] },
+  { href: "/ho-so", label: "Hồ sơ", match: ["/ho-so"] },
 ];
 
 const OPERATIONAL_TABS: AppTab[] = [
-  { href: "/cuu-tro", label: "Relief", match: ["/cuu-tro", "/phan-cong"] },
-  { href: "/bao-cao", label: "Reports", match: ["/bao-cao"] },
-  { href: "/theo-doi", label: "Tracking", match: ["/theo-doi"] },
-  { href: "/nguoi-dung", label: "Users", match: ["/nguoi-dung"] },
-  { href: "/ho-so", label: "Profile", match: ["/ho-so"] },
+  { href: "/cuu-tro", label: "Cứu trợ", match: ["/cuu-tro", "/phan-cong"] },
+  { href: "/bao-cao", label: "Báo cáo", match: ["/bao-cao"] },
+  { href: "/theo-doi", label: "Theo dõi", match: ["/theo-doi"] },
+  { href: "/nguoi-dung", label: "Người dùng", match: ["/nguoi-dung"] },
+  { href: "/ho-so", label: "Hồ sơ", match: ["/ho-so"] },
 ];
 
 export function getTabsForRole(role: UserRole): AppTab[] {

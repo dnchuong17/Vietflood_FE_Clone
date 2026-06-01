@@ -11,22 +11,31 @@ export type StoreAuthIdentity = {
 
 export type AuthIdentityReader = () => StoreAuthIdentity | null;
 
-type AuthStore = {
+type AuthStoreState = {
   identity: StoreAuthIdentity | null;
+  hasRestoredIdentity: boolean;
+};
+
+type AuthStore = AuthStoreState & {
   setIdentity: (identity: StoreAuthIdentity | null) => void;
   refreshIdentity: (readIdentity: AuthIdentityReader) => StoreAuthIdentity | null;
 };
 
-const initialState = {
-  identity: null,
-};
+export function createInitialAuthState(): AuthStoreState {
+  return {
+    identity: null,
+    hasRestoredIdentity: false,
+  };
+}
+
+const initialState = createInitialAuthState();
 
 export const useAuthStore = create<AuthStore>()((set) => ({
   ...initialState,
   setIdentity: (identity) => set({ identity }),
   refreshIdentity: (readIdentity) => {
     const identity = readIdentity();
-    set({ identity });
+    set({ identity, hasRestoredIdentity: true });
     return identity;
   },
 }));
@@ -53,5 +62,5 @@ export function subscribeToAuthStoreChanges(
 }
 
 export function resetAuthStore() {
-  useAuthStore.setState(initialState);
+  useAuthStore.setState(createInitialAuthState());
 }

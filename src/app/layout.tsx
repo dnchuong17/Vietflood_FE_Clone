@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { Be_Vietnam_Pro, Merriweather } from "next/font/google";
 import { GlobalAlertProvider } from "@/components/feedback/global-alert-provider";
+import { ThemeProvider } from "@/components/theme/theme-provider";
+import { TooltipProvider } from "@/components/ui/tooltip";
+
 import "./globals.css";
 
 const beVietnamPro = Be_Vietnam_Pro({
@@ -20,8 +23,8 @@ const merriweather = Merriweather({
 });
 
 export const metadata: Metadata = {
-  title: "VietFlood Insight",
-  description: "Nền tảng frontend phục vụ phân tích tình hình lũ lụt tại Việt Nam",
+  title: "VietFlood",
+  description: "Nền tảng giao diện web phục vụ phân tích tình hình lũ lụt tại Việt Nam",
 };
 
 export default function RootLayout({
@@ -30,11 +33,20 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="vi">
+    <html lang="vi" suppressHydrationWarning>
       <body
-        className={`${beVietnamPro.variable} ${merriweather.variable} min-h-screen bg-slate-100 [font-family:var(--font-body)] text-slate-900 antialiased`}
+        className={`${beVietnamPro.variable} ${merriweather.variable}`}
       >
-        <GlobalAlertProvider>{children}</GlobalAlertProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <TooltipProvider>
+            <GlobalAlertProvider>{children}</GlobalAlertProvider>
+          </TooltipProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

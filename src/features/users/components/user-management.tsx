@@ -4,7 +4,25 @@ import { useEffect, useMemo } from "react";
 import { RefreshCw, Save, ShieldCheck, Trash2 } from "lucide-react";
 
 import { useGlobalAlert } from "@/components/feedback/global-alert-provider";
-import { APP_ROLES, canDeleteUsers, normalizeRole } from "@/features/auth/lib/roles";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  APP_ROLES,
+  canDeleteUsers,
+  getUserRoleLabel,
+  normalizeRole,
+} from "@/features/auth/lib/roles";
 import { useAuthIdentity } from "@/features/auth/lib/use-auth-identity";
 import {
   deleteUser,
@@ -18,13 +36,14 @@ import {
   buildUserRoleAssignmentPayload,
 } from "@/features/users/lib/rbac";
 import { useUsersStore } from "@/features/users/store/users-store";
+import { cn } from "@/lib/utils";
 
 function displayName(user: ManagedUser): string {
   const name = [user.first_name, user.middle_name, user.last_name]
     .map((part) => (typeof part === "string" ? part.trim() : ""))
     .filter(Boolean)
     .join(" ");
-  return name || user.username || `User #${user.id ?? "-"}`;
+  return name || user.username || `Người dùng #${user.id ?? "-"}`;
 }
 
 function isSameUser(user: ManagedUser, username?: string): boolean {
@@ -59,9 +78,9 @@ export function UserManagement() {
       setUsers(await listUsers());
     } catch (error) {
       showAlert({
-        title: "Users unavailable",
+        title: "Không thể tải người dùng",
         description:
-          error instanceof Error ? error.message : "Could not load users.",
+          error instanceof Error ? error.message : "Không thể tải danh sách người dùng.",
         variant: "error",
       });
       setUsers([]);
@@ -118,17 +137,17 @@ export function UserManagement() {
       const payload = buildUserProfileUpdatePayload(form);
       await updateUser(selectedUser.id, payload);
       showAlert({
-        title: "User updated",
-        description: "User profile changes were saved.",
+        title: "Đã cập nhật người dùng",
+        description: "Các thay đổi hồ sơ người dùng đã được lưu.",
         variant: "success",
       });
       selectUser(null);
       await loadUsers();
     } catch (error) {
       showAlert({
-        title: "Update failed",
+        title: "Cập nhật thất bại",
         description:
-          error instanceof Error ? error.message : "Could not update user.",
+          error instanceof Error ? error.message : "Không thể cập nhật người dùng.",
         variant: "error",
       });
     } finally {
@@ -152,8 +171,8 @@ export function UserManagement() {
 
     if (!payload) {
       showAlert({
-        title: "Role unchanged",
-        description: "Only admins can assign another user's role.",
+        title: "Vai trò chưa đổi",
+        description: "Chỉ quản trị viên mới có thể gán vai trò cho người dùng khác.",
         variant: "info",
       });
       return;
@@ -163,17 +182,17 @@ export function UserManagement() {
       setSavingRole(true);
       await updateUser(selectedUser.id, payload);
       showAlert({
-        title: "Role assigned",
-        description: `User role was updated to ${payload.role}.`,
+        title: "Đã gán vai trò",
+        description: `Vai trò người dùng đã được cập nhật thành ${getUserRoleLabel(payload.role)}.`,
         variant: "success",
       });
       await loadUsers();
       selectUser({ ...selectedUser, role: payload.role });
     } catch (error) {
       showAlert({
-        title: "Role update failed",
+        title: "Cập nhật vai trò thất bại",
         description:
-          error instanceof Error ? error.message : "Could not update user role.",
+          error instanceof Error ? error.message : "Không thể cập nhật vai trò người dùng.",
         variant: "error",
       });
     } finally {
@@ -182,24 +201,24 @@ export function UserManagement() {
   }
 
   async function handleDelete(user: ManagedUser) {
-    if (!user.id || !window.confirm(`Delete ${displayName(user)}?`)) {
+    if (!user.id || !window.confirm(`Xoá ${displayName(user)}?`)) {
       return;
     }
 
     try {
       await deleteUser(user.id);
       showAlert({
-        title: "User deleted",
-        description: "The account was removed.",
+        title: "Đã xoá người dùng",
+        description: "Tài khoản đã được xoá.",
         variant: "success",
       });
       selectUser(null);
       await loadUsers();
     } catch (error) {
       showAlert({
-        title: "Delete failed",
+        title: "Xoá thất bại",
         description:
-          error instanceof Error ? error.message : "Could not delete user.",
+          error instanceof Error ? error.message : "Không thể xoá người dùng.",
         variant: "error",
       });
     }
@@ -207,51 +226,55 @@ export function UserManagement() {
 
   return (
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_24rem]">
-      <div className="space-y-3">
-        <div className="grid gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[1fr_auto_auto] md:items-end">
-          <label className="grid gap-1 text-sm font-semibold text-slate-700">
-            Search users
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              className="rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
-              placeholder="Name, username, email, phone"
-            />
-          </label>
-          <label className="grid gap-1 text-sm font-semibold text-slate-700">
-            Role
-            <select
-              value={roleFilter}
-              onChange={(event) => setRoleFilter(event.target.value)}
-              className="rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
+      <div className="flex flex-col gap-3">
+        <Card>
+          <CardContent className="grid gap-3 p-4 md:grid-cols-[1fr_auto_auto] md:items-end">
+            <Field>
+              <FieldLabel>Tìm người dùng</FieldLabel>
+              <Input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Tên, tên đăng nhập, thư điện tử, số điện thoại"
+              />
+            </Field>
+            <Field>
+              <FieldLabel>Vai trò</FieldLabel>
+              <Select value={roleFilter} onValueChange={setRoleFilter}>
+                <SelectTrigger className="w-full md:w-48">
+                  <SelectValue placeholder="Tất cả vai trò" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="all">Tất cả vai trò</SelectItem>
+                    {APP_ROLES.map((item) => (
+                      <SelectItem key={item} value={item}>
+                        {getUserRoleLabel(item)}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </Field>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => void loadUsers()}
             >
-              <option value="all">All roles</option>
-              {APP_ROLES.map((item) => (
-                <option key={item} value={item}>
-                  {item}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button
-            type="button"
-            onClick={() => void loadUsers()}
-            className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
-          >
-            <RefreshCw className="h-4 w-4" aria-hidden="true" />
-            Refresh
-          </button>
-        </div>
+              <RefreshCw data-icon="inline-start" aria-hidden="true" />
+              Làm mới
+            </Button>
+          </CardContent>
+        </Card>
 
-        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-          <div className="grid grid-cols-[4rem_1fr_8rem] border-b border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold uppercase tracking-[0.08em] text-slate-500 md:grid-cols-[4rem_1fr_1fr_8rem]">
-            <span>ID</span>
-            <span>User</span>
-            <span className="hidden md:block">Contact</span>
-            <span>Role</span>
+        <Card className="overflow-hidden">
+          <div className="grid grid-cols-[4rem_1fr_8rem] border-b border-border bg-muted px-3 py-2 text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground md:grid-cols-[4rem_1fr_1fr_8rem]">
+            <span>Mã</span>
+            <span>Người dùng</span>
+            <span className="hidden md:block">Liên hệ</span>
+            <span>Vai trò</span>
           </div>
           {isLoading ? (
-            <div className="p-5 text-sm text-slate-600">Loading users...</div>
+            <div className="p-5 text-sm text-muted-foreground">Đang tải người dùng...</div>
           ) : null}
           {!isLoading &&
             filteredUsers.map((user) => {
@@ -261,155 +284,165 @@ export function UserManagement() {
                   key={user.id ?? user.username}
                   type="button"
                   onClick={() => selectUser(user)}
-                  className={`grid w-full grid-cols-[4rem_1fr_8rem] gap-2 border-b border-slate-100 px-3 py-3 text-left text-sm transition last:border-b-0 hover:bg-sky-50 md:grid-cols-[4rem_1fr_1fr_8rem] ${
-                    selectedUser?.id === user.id ? "bg-sky-50" : ""
-                  }`}
+                  className={cn(
+                    "grid w-full grid-cols-[4rem_1fr_8rem] gap-2 border-b border-border px-3 py-3 text-left text-sm transition last:border-b-0 hover:bg-accent md:grid-cols-[4rem_1fr_1fr_8rem]",
+                    selectedUser?.id === user.id && "bg-accent",
+                  )}
                 >
-                  <span className="font-semibold text-slate-500">
+                  <span className="font-semibold text-muted-foreground">
                     {user.id ?? "-"}
                   </span>
                   <span>
-                    <span className="block font-semibold text-slate-950">
+                    <span className="block font-semibold text-foreground">
                       {displayName(user)}
                     </span>
-                    <span className="text-slate-500">@{user.username}</span>
+                    <span className="text-muted-foreground">@{user.username}</span>
                   </span>
-                  <span className="hidden text-slate-600 md:block">
+                  <span className="hidden text-muted-foreground md:block">
                     {user.email ?? "-"}
                     <br />
                     {user.phone ?? "-"}
                   </span>
-                  <span className="font-semibold text-sky-700">{userRole}</span>
+                  <span>
+                    <Badge variant="secondary">
+                    {getUserRoleLabel(userRole)}
+                    </Badge>
+                  </span>
                 </button>
               );
             })}
-        </div>
+        </Card>
       </div>
 
-      <aside className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+      <Card>
+        <CardContent className="p-4">
         {selectedUser ? (
-          <div className="space-y-3">
+          <div className="flex flex-col gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
-                Edit user
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                Chỉnh sửa người dùng
               </p>
-              <h2 className="text-lg font-bold text-slate-950">
+              <h2 className="text-lg font-bold text-card-foreground">
                 {displayName(selectedUser)}
               </h2>
             </div>
 
-            {[
-              ["first_name", "First name"],
-              ["middle_name", "Middle name"],
-              ["last_name", "Last name"],
-              ["email", "Email"],
-              ["phone", "Phone"],
-              ["province", "Province"],
-              ["ward", "Ward"],
-              ["address_line", "Address"],
-            ].map(([field, label]) => (
-              <label
-                key={field}
-                className="grid gap-1 text-sm font-semibold text-slate-700"
-              >
-                {label}
-                <input
-                  value={String(form[field as keyof UserUpdateValues] ?? "")}
-                  onChange={(event) =>
-                    updateField(
-                      field as keyof UserUpdateValues,
-                      event.target.value as never,
-                    )
-                  }
-                  className="rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
-                />
-              </label>
-            ))}
+            <FieldGroup className="gap-3">
+              {[
+                ["first_name", "Tên"],
+                ["middle_name", "Tên đệm"],
+                ["last_name", "Họ"],
+                ["email", "Địa chỉ thư điện tử"],
+                ["phone", "Số điện thoại"],
+                ["province", "Tỉnh/Thành phố"],
+                ["ward", "Phường/Xã"],
+                ["address_line", "Địa chỉ"],
+              ].map(([field, label]) => (
+                <Field key={field}>
+                  <FieldLabel>{label}</FieldLabel>
+                  <Input
+                    value={String(form[field as keyof UserUpdateValues] ?? "")}
+                    onChange={(event) =>
+                      updateField(
+                        field as keyof UserUpdateValues,
+                        event.target.value as never,
+                      )
+                    }
+                  />
+                </Field>
+              ))}
+            </FieldGroup>
 
             {role === "admin" ? (
-              <div className="rounded-lg border border-sky-100 bg-sky-50/60 p-3">
+              <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
                 <div className="mb-3 flex items-center gap-2">
-                  <ShieldCheck className="h-4 w-4 text-sky-700" aria-hidden="true" />
+                  <ShieldCheck className="size-4 text-primary" aria-hidden="true" />
                   <div>
-                    <p className="text-sm font-bold text-slate-950">RBAC</p>
-                    <p className="text-xs text-slate-600">
-                      Assign one backend role: citizen, relief, or admin.
+                    <p className="text-sm font-bold text-foreground">Phân quyền</p>
+                    <p className="text-xs text-muted-foreground">
+                      Gán một vai trò từ máy chủ: người dân, đội cứu trợ hoặc quản trị viên.
                     </p>
                   </div>
                 </div>
 
-                <label className="grid gap-1 text-sm font-semibold text-slate-700">
-                  Assigned role
-                  <select
+                <Field>
+                  <FieldLabel>Vai trò được gán</FieldLabel>
+                  <Select
                     value={form.role ?? "citizen"}
                     disabled={isSameUser(selectedUser, identity?.username) || isSavingRole}
-                    onChange={(event) =>
-                      updateField("role", normalizeRole(event.target.value) ?? "citizen")
+                    onValueChange={(value) =>
+                      updateField("role", normalizeRole(value) ?? "citizen")
                     }
-                    className="rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
                   >
-                    {APP_ROLES.map((item) => (
-                      <option key={item} value={item}>
-                        {item}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        {APP_ROLES.map((item) => (
+                          <SelectItem key={item} value={item}>
+                            {getUserRoleLabel(item)}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </Field>
 
                 {isSameUser(selectedUser, identity?.username) ? (
-                  <p className="mt-2 text-xs text-amber-700">
-                    You cannot change your own admin role from this screen.
+                  <p className="mt-2 text-xs text-warning">
+                    Bạn không thể đổi vai trò quản trị của chính mình từ màn hình này.
                   </p>
                 ) : null}
 
-                <button
+                <Button
                   type="button"
                   onClick={() => void handleAssignRole()}
                   disabled={isSameUser(selectedUser, identity?.username) || isSavingRole}
-                  className="mt-3 inline-flex items-center gap-2 rounded-lg bg-sky-600 px-3 py-2 text-sm font-bold text-white hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-70"
+                  className="mt-3"
                 >
-                  <ShieldCheck className="h-4 w-4" aria-hidden="true" />
-                  {isSavingRole ? "Assigning..." : "Assign role"}
-                </button>
+                  <ShieldCheck data-icon="inline-start" aria-hidden="true" />
+                  {isSavingRole ? "Đang gán..." : "Gán vai trò"}
+                </Button>
               </div>
             ) : (
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
-                Current role:{" "}
-                <span className="font-bold text-slate-900">
-                  {normalizeRole(selectedUser.role) ?? "citizen"}
+              <div className="rounded-lg border border-border bg-muted p-3 text-sm text-muted-foreground">
+                Vai trò hiện tại:{" "}
+                <span className="font-bold text-foreground">
+                  {getUserRoleLabel(normalizeRole(selectedUser.role) ?? "citizen")}
                 </span>
-                . Role assignment is available to admin users only.
+                . Chỉ quản trị viên mới có thể gán vai trò.
               </div>
             )}
 
             <div className="flex flex-wrap gap-2 pt-2">
-              <button
+              <Button
                 type="button"
                 onClick={() => void handleSave()}
                 disabled={isSaving}
-                className="inline-flex items-center gap-2 rounded-lg bg-sky-600 px-3 py-2 text-sm font-bold text-white hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-70"
               >
-                <Save className="h-4 w-4" aria-hidden="true" />
-                Save
-              </button>
+                <Save data-icon="inline-start" aria-hidden="true" />
+                Lưu
+              </Button>
               {canDelete ? (
-                <button
+                <Button
                   type="button"
                   onClick={() => void handleDelete(selectedUser)}
-                  className="inline-flex items-center gap-2 rounded-lg border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50"
+                  variant="destructive"
                 >
-                  <Trash2 className="h-4 w-4" aria-hidden="true" />
-                  Delete
-                </button>
+                  <Trash2 data-icon="inline-start" aria-hidden="true" />
+                  Xoá
+                </Button>
               ) : null}
             </div>
           </div>
         ) : (
-          <div className="grid min-h-64 place-items-center text-center text-sm text-slate-500">
-            Select a user to view or edit details.
+          <div className="grid min-h-64 place-items-center text-center text-sm text-muted-foreground">
+            Chọn một người dùng để xem hoặc chỉnh sửa chi tiết.
           </div>
         )}
-      </aside>
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -2,9 +2,20 @@
 
 import Link from "next/link";
 import { useEffect, useMemo } from "react";
-import { ArrowRight, ClipboardCheck, RefreshCw } from "lucide-react";
+import {
+  ArrowRight,
+  ClipboardCheck,
+  Clock,
+  MapPin,
+  Phone,
+  RefreshCw,
+  UserRound,
+} from "lucide-react";
 
 import { useGlobalAlert } from "@/components/feedback/global-alert-provider";
+import { Badge, type BadgeProps } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { useAuthIdentity } from "@/features/auth/lib/use-auth-identity";
 import { normalizeRole } from "@/features/auth/lib/roles";
 import {
@@ -18,6 +29,13 @@ import {
   getReportStatusLabel,
 } from "@/features/reports/lib/status";
 import { useReportsStore } from "@/features/reports/store/reports-store";
+import {
+  filterOperationalAssignments,
+  mapReportToAssignment,
+  summarizeAssignments,
+  type AssignmentPriority,
+} from "@/features/relief/lib/assignments";
+import { cn } from "@/lib/utils";
 
 function statusOf(report: FloodReport): ReportStatus {
   const status = String(report.status ?? "pending").toLowerCase();
@@ -30,6 +48,29 @@ function locationOf(report: FloodReport): string {
   return [report.addressLine, report.ward, report.province]
     .filter(Boolean)
     .join(", ");
+}
+
+const PRIORITY_BADGE_VARIANTS: Record<
+  AssignmentPriority,
+  BadgeProps["variant"]
+> = {
+  urgent: "critical",
+  high: "warning",
+  medium: "secondary",
+  low: "success",
+};
+
+function statusBadgeVariant(status: ReportStatus): BadgeProps["variant"] {
+  switch (status) {
+    case "resolved":
+      return "success";
+    case "verified":
+      return "warning";
+    case "rejected":
+      return "critical";
+    default:
+      return "secondary";
+  }
 }
 
 export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: boolean }) {
@@ -59,9 +100,9 @@ export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: b
       setReports(await listReports(role));
     } catch (error) {
       showAlert({
-        title: "Relief data unavailable",
+        title: "Không thể tải dữ liệu cứu trợ",
         description:
-          error instanceof Error ? error.message : "Could not load reports.",
+          error instanceof Error ? error.message : "Không thể tải báo cáo.",
         variant: "error",
       });
       setReports([]);
@@ -84,6 +125,28 @@ export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: b
       urgent: reports.filter((report) => report.isUrgent).length,
     };
   }, [reports]);
+  const assignments = useMemo(
+    () => reports.map((report) => mapReportToAssignment(report)),
+    [reports],
+  );
+  const assignmentStats = useMemo(
+    () => summarizeAssignments(assignments),
+    [assignments],
+  );
+  const statCards = assignmentMode
+    ? [
+        ["Tổng phân công", assignmentStats.total],
+        ["Chờ nhận việc", assignmentStats.assigned],
+        ["Đang thực hiện", assignmentStats.inProgress],
+        ["Khẩn cấp", assignmentStats.urgent],
+      ]
+    : [
+        ["Tổng số", stats.total],
+        ["Chờ xử lý", stats.pending],
+        ["Đã xác minh", stats.verified],
+        ["Đã xử lý", stats.resolved],
+        ["Khẩn cấp", stats.urgent],
+      ];
 
   const queue = useMemo(() => {
     return reports
@@ -101,6 +164,28 @@ export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: b
         return secondTime - firstTime;
       });
   }, [assignmentMode, reports]);
+  const assignmentQueue = useMemo(() => {
+    const priorityWeight: Record<AssignmentPriority, number> = {
+      urgent: 0,
+      high: 1,
+      medium: 2,
+      low: 3,
+    };
+
+    return filterOperationalAssignments(assignments).sort((first, second) => {
+      if (priorityWeight[first.priority] !== priorityWeight[second.priority]) {
+        return priorityWeight[first.priority] - priorityWeight[second.priority];
+      }
+
+      const firstTime = first.report.createdAt
+        ? new Date(first.report.createdAt).getTime()
+        : 0;
+      const secondTime = second.report.createdAt
+        ? new Date(second.report.createdAt).getTime()
+        : 0;
+      return secondTime - firstTime;
+    });
+  }, [assignments]);
 
   async function setStatus(report: FloodReport, status: ReportStatus) {
     if (!report.id) {
@@ -114,11 +199,11 @@ export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: b
       await loadReports();
     } catch (error) {
       showAlert({
-        title: "Status update failed",
+        title: "Cập nhật trạng thái thất bại",
         description:
           error instanceof Error
             ? error.message
-            : "Could not update report status.",
+            : "Không thể cập nhật trạng thái báo cáo.",
         variant: "error",
       });
       rollbackReportStatus(report.id, previousStatus);
@@ -128,124 +213,187 @@ export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: b
   }
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-4">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        {[
-          ["Total", stats.total],
-          ["Pending", stats.pending],
-          ["Verified", stats.verified],
-          ["Resolved", stats.resolved],
-          ["Urgent", stats.urgent],
-        ].map(([label, value]) => (
-          <article
-            key={label}
-            className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
-          >
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
-              {label}
-            </p>
-            <p className="mt-2 text-3xl font-bold text-slate-950">{value}</p>
-          </article>
+        {statCards.map(([label, value]) => (
+          <Card key={label} className="bg-card">
+            <CardContent className="p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                {label}
+              </p>
+              <p className="mt-2 text-3xl font-bold text-card-foreground">{value}</p>
+            </CardContent>
+          </Card>
         ))}
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-        <div>
-          <h2 className="text-lg font-bold text-slate-950">
-            {assignmentMode ? "Operational assignment queue" : "Relief queue"}
-          </h2>
-          <p className="text-sm text-slate-600">
-            {assignmentMode
-              ? "Prioritized incidents for relief/admin dispatch."
-              : "Open field reports that need triage or response."}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          {!assignmentMode ? (
-            <Link
-              href="/phan-cong"
-              className="inline-flex items-center gap-2 rounded-lg border border-sky-200 px-3 py-2 text-sm font-semibold text-sky-700 hover:bg-sky-50"
+      <Card className="bg-card">
+        <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
+          <div>
+            <h2 className="text-lg font-bold text-card-foreground">
+              {assignmentMode ? "Hàng đợi phân công vận hành" : "Hàng đợi cứu trợ"}
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {assignmentMode
+                ? "Các sự cố được ưu tiên để đội cứu trợ hoặc quản trị viên điều phối."
+                : "Các báo cáo hiện trường đang cần phân loại hoặc phản hồi."}
+            </p>
+          </div>
+          <div className="flex gap-2">
+            {!assignmentMode ? (
+              <Button asChild variant="outline">
+                <Link href="/phan-cong">
+                  Phân công
+                  <ArrowRight data-icon="inline-end" aria-hidden="true" />
+                </Link>
+              </Button>
+            ) : null}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => void loadReports()}
             >
-              Assignments
-              <ArrowRight className="h-4 w-4" aria-hidden="true" />
-            </Link>
-          ) : null}
-          <button
-            type="button"
-            onClick={() => void loadReports()}
-            className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
-          >
-            <RefreshCw className="h-4 w-4" aria-hidden="true" />
-            Refresh
-          </button>
-        </div>
-      </div>
+              <RefreshCw data-icon="inline-start" aria-hidden="true" />
+              Làm mới
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {isLoading ? (
-        <div className="rounded-lg border border-slate-200 bg-white p-6 text-slate-600">
-          Loading relief queue...
-        </div>
+        <Card>
+          <CardContent className="p-6 text-sm text-muted-foreground">
+            Đang tải hàng đợi cứu trợ...
+          </CardContent>
+        </Card>
       ) : null}
 
       <div className="grid gap-3">
-        {queue.map((report) => (
-          <article
-            key={report.id ?? report.description}
-            className="grid gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm lg:grid-cols-[1fr_auto] lg:items-center"
-          >
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-bold text-slate-700">
-                  #{report.id ?? "-"}
-                </span>
-                <span className="rounded-md bg-sky-50 px-2 py-1 text-xs font-bold text-sky-700">
-                  {getReportStatusLabel(statusOf(report))}
-                </span>
-                {report.isUrgent ? (
-                  <span className="rounded-md bg-rose-50 px-2 py-1 text-xs font-bold text-rose-700">
-                    urgent
-                  </span>
-                ) : null}
-              </div>
-              <h3 className="mt-2 text-base font-bold text-slate-950">
-                {report.description || "No description"}
-              </h3>
-              <p className="mt-1 text-sm text-slate-600">
-                {locationOf(report) || "No location"} | reporter{" "}
-                {report.user?.username ?? report.userId ?? "-"}
-              </p>
-            </div>
+        {assignmentMode
+          ? assignmentQueue.map((assignment) => (
+              <Card
+                key={assignment.id}
+                className="bg-card"
+              >
+                <CardContent className="grid gap-4 p-4 xl:grid-cols-[1fr_auto] xl:items-center">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant="outline">#{assignment.report.id ?? "-"}</Badge>
+                      <Badge variant={PRIORITY_BADGE_VARIANTS[assignment.priority]}>
+                        {assignment.priorityLabel}
+                      </Badge>
+                      <Badge variant="secondary">{assignment.statusLabel}</Badge>
+                    </div>
+                    <h3 className="mt-2 text-base font-bold text-card-foreground">
+                      {assignment.title}
+                    </h3>
+                    <div className="mt-2 grid gap-2 text-sm text-muted-foreground md:grid-cols-3">
+                      <span className="inline-flex min-w-0 items-center gap-2">
+                        <UserRound className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                        <span className="truncate">{assignment.reporter}</span>
+                      </span>
+                      <span className="inline-flex min-w-0 items-center gap-2">
+                        <Phone className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                        <span className="truncate">{assignment.contact}</span>
+                      </span>
+                      <span className="inline-flex min-w-0 items-center gap-2">
+                        <MapPin className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                        <span className="truncate">{assignment.location}</span>
+                      </span>
+                    </div>
+                    <div className="mt-4">
+                      <div className="mb-1 flex items-center justify-between gap-3 text-xs font-semibold text-muted-foreground">
+                        <span className="inline-flex items-center gap-1.5">
+                          <Clock className="size-3.5" aria-hidden="true" />
+                          Tiến độ nhiệm vụ
+                        </span>
+                        <span>{assignment.progress}%</span>
+                      </div>
+                      <div className="h-2 overflow-hidden rounded-full bg-muted">
+                        <div
+                          className="h-full rounded-full bg-primary transition-all"
+                          style={{ width: `${assignment.progress}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
 
-            <div className="flex max-w-xl flex-wrap gap-1.5 lg:justify-end">
-              {REPORT_STATUS_OPTIONS.map((status) => {
-                const currentStatus = statusOf(report);
-                const reportId = report.id ?? -1;
-                const savingStatus = savingStatusByReportId[reportId];
-                const isActive = currentStatus === status;
-                const isSaving = savingStatus === status;
-                const isDisabled = Boolean(savingStatus) || isActive;
-
-                return (
-                  <button
-                    key={status}
-                    type="button"
-                    onClick={() => void setStatus(report, status)}
-                    disabled={isDisabled}
-                    className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-70 ${
-                      isActive
-                        ? "border-sky-200 bg-sky-50 text-sky-800"
-                        : "border-slate-200 text-slate-700 hover:bg-slate-50"
-                    }`}
-                  >
-                    {status === "verified" ? (
-                      <ClipboardCheck className="h-4 w-4" aria-hidden="true" />
+                  <div className="flex flex-wrap gap-2 xl:justify-end">
+                    {assignment.nextStatus ? (
+                      <Button
+                        type="button"
+                        onClick={() =>
+                          void setStatus(assignment.report, assignment.nextStatus!)
+                        }
+                        disabled={Boolean(
+                          assignment.report.id &&
+                            savingStatusByReportId[assignment.report.id],
+                        )}
+                      >
+                        {assignment.nextActionLabel}
+                        <ArrowRight data-icon="inline-end" aria-hidden="true" />
+                      </Button>
                     ) : null}
-                    {isSaving ? "Saving..." : getReportStatusLabel(status)}
-                  </button>
-                );
-              })}
-            </div>
-          </article>
+                    <Button asChild variant="outline">
+                      <Link href="/bao-cao">Xem báo cáo</Link>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          : queue.map((report) => (
+          <Card
+            key={report.id ?? report.description}
+            className="bg-card"
+          >
+            <CardContent className="grid gap-3 p-4 lg:grid-cols-[1fr_auto] lg:items-center">
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="outline">#{report.id ?? "-"}</Badge>
+                  <Badge variant={statusBadgeVariant(statusOf(report))}>
+                    {getReportStatusLabel(statusOf(report))}
+                  </Badge>
+                  {report.isUrgent ? (
+                    <Badge variant="critical">khẩn cấp</Badge>
+                  ) : null}
+                </div>
+                <h3 className="mt-2 text-base font-bold text-card-foreground">
+                  {report.description || "Chưa có mô tả"}
+                </h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {locationOf(report) || "Chưa có vị trí"} | người báo{" "}
+                  {report.user?.username ?? report.userId ?? "-"}
+                </p>
+              </div>
+
+              <div className="flex max-w-xl flex-wrap gap-1.5 lg:justify-end">
+                {REPORT_STATUS_OPTIONS.map((status) => {
+                  const currentStatus = statusOf(report);
+                  const reportId = report.id ?? -1;
+                  const savingStatus = savingStatusByReportId[reportId];
+                  const isActive = currentStatus === status;
+                  const isSaving = savingStatus === status;
+                  const isDisabled = Boolean(savingStatus) || isActive;
+
+                  return (
+                    <Button
+                      key={status}
+                      type="button"
+                      variant={isActive ? "secondary" : "outline"}
+                      onClick={() => void setStatus(report, status)}
+                      disabled={isDisabled}
+                      className={cn(isActive && "border-primary/20")}
+                    >
+                      {status === "verified" ? (
+                        <ClipboardCheck data-icon="inline-start" aria-hidden="true" />
+                      ) : null}
+                      {isSaving ? "Đang lưu..." : getReportStatusLabel(status)}
+                    </Button>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
         ))}
       </div>
     </div>

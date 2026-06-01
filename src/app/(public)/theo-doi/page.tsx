@@ -2,12 +2,12 @@ import { AppShell } from "@/features/app-shell/components/app-shell";
 import { LiveTrackingPanel } from "@/features/tracking/components/live-tracking-panel";
 
 export const metadata = {
-  title: "Live tracking | VietFlood Insight",
+  title: "Theo dõi trực tiếp | VietFlood",
 };
 
 export default function TrackingPage() {
   return (
-    <AppShell title="Live tracking">
+    <AppShell title="Theo dõi trực tiếp">
       <LiveTrackingPanel />
     </AppShell>
   );

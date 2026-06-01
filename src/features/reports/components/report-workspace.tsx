@@ -1,9 +1,22 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Edit3, LocateFixed, Plus, RefreshCw } from "lucide-react";
 
 import { useGlobalAlert } from "@/components/feedback/global-alert-provider";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Field, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useAuthIdentity } from "@/features/auth/lib/use-auth-identity";
 import { canManageReports, normalizeRole } from "@/features/auth/lib/roles";
 import {
@@ -19,13 +32,24 @@ import {
   REPORT_STATUS_OPTIONS,
   getReportStatusLabel,
 } from "@/features/reports/lib/status";
+import {
+  canEditReport,
+  getReportEditRestrictionReason,
+} from "@/features/reports/lib/edit-permissions";
 import { useReportsStore } from "@/features/reports/store/reports-store";
 
+const CATEGORY_LABELS: Record<string, string> = {
+  flood: "Ngập lụt",
+  rescue: "Cứu hộ",
+  infrastructure: "Hạ tầng",
+  incident: "Sự cố",
+};
+
 const CATEGORY_OPTIONS = [
-  { value: "flood", label: "Flood" },
-  { value: "rescue", label: "Rescue" },
-  { value: "infrastructure", label: "Infrastructure" },
-  { value: "incident", label: "Incident" },
+  { value: "flood", label: CATEGORY_LABELS.flood },
+  { value: "rescue", label: CATEGORY_LABELS.rescue },
+  { value: "infrastructure", label: CATEGORY_LABELS.infrastructure },
+  { value: "incident", label: CATEGORY_LABELS.incident },
 ];
 
 const EMPTY_FORM: ReportFormValues = {
@@ -47,7 +71,9 @@ function categoryText(report: FloodReport): string {
     : report.category
       ? [report.category]
       : [];
-  return categories.length > 0 ? categories.join(", ") : "Uncategorized";
+  return categories.length > 0
+    ? categories.map((category) => CATEGORY_LABELS[category] ?? category).join(", ")
+    : "Chưa phân loại";
 }
 
 function addressText(report: FloodReport): string {
@@ -61,6 +87,21 @@ function statusOf(report: FloodReport): ReportStatus {
   return REPORT_STATUS_OPTIONS.includes(status as ReportStatus)
     ? (status as ReportStatus)
     : "pending";
+}
+
+function statusBadgeVariant(
+  status: ReportStatus,
+): "default" | "secondary" | "success" | "warning" | "critical" {
+  if (status === "resolved") {
+    return "success";
+  }
+  if (status === "pending") {
+    return "warning";
+  }
+  if (status === "rejected") {
+    return "critical";
+  }
+  return "default";
 }
 
 function toFormValues(report: FloodReport): ReportFormValues {
@@ -117,8 +158,8 @@ function ReportForm({
   function fillCurrentLocation() {
     if (!navigator.geolocation) {
       showAlert({
-        title: "Location unavailable",
-        description: "This browser does not support geolocation.",
+        title: "Không có vị trí",
+        description: "Trình duyệt này không hỗ trợ định vị.",
         variant: "error",
       });
       return;
@@ -134,8 +175,8 @@ function ReportForm({
       },
       () => {
         showAlert({
-          title: "Location blocked",
-          description: "Allow location access or enter coordinates manually.",
+          title: "Vị trí bị chặn",
+          description: "Hãy cho phép truy cập vị trí hoặc nhập toạ độ thủ công.",
           variant: "error",
         });
       },
@@ -159,7 +200,7 @@ function ReportForm({
       className="grid gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
     >
       <div>
-        <span className="text-sm font-semibold text-slate-700">Categories</span>
+        <span className="text-sm font-semibold text-slate-700">Loại báo cáo</span>
         <div className="mt-2 flex flex-wrap gap-2">
           {CATEGORY_OPTIONS.map((option) => (
             <label
@@ -178,7 +219,7 @@ function ReportForm({
       </div>
 
       <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
-        Description
+        Mô tả
         <textarea
           value={values.description}
           onChange={(event) => setField("description", event.target.value)}
@@ -190,7 +231,7 @@ function ReportForm({
 
       <div className="grid gap-3 md:grid-cols-3">
         <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
-          Province
+          Tỉnh/Thành phố
           <input
             value={values.province}
             onChange={(event) => setField("province", event.target.value)}
@@ -199,7 +240,7 @@ function ReportForm({
           />
         </label>
         <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
-          Ward
+          Phường/Xã
           <input
             value={values.ward}
             onChange={(event) => setField("ward", event.target.value)}
@@ -207,7 +248,7 @@ function ReportForm({
           />
         </label>
         <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
-          Severity
+          Mức độ
           <input
             value={values.severity}
             onChange={(event) => setField("severity", event.target.value)}
@@ -220,7 +261,7 @@ function ReportForm({
       </div>
 
       <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
-        Address
+        Địa chỉ
         <input
           value={values.addressLine}
           onChange={(event) => setField("addressLine", event.target.value)}
@@ -230,7 +271,7 @@ function ReportForm({
 
       <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto] md:items-end">
         <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
-          Latitude
+          Vĩ độ
           <input
             value={values.lat}
             onChange={(event) => setField("lat", event.target.value)}
@@ -239,7 +280,7 @@ function ReportForm({
           />
         </label>
         <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
-          Longitude
+          Kinh độ
           <input
             value={values.lng}
             onChange={(event) => setField("lng", event.target.value)}
@@ -253,7 +294,7 @@ function ReportForm({
           className="inline-flex items-center justify-center gap-2 rounded-lg border border-sky-200 px-3 py-2 text-sm font-semibold text-sky-700 hover:bg-sky-50"
         >
           <LocateFixed className="h-4 w-4" aria-hidden="true" />
-          Use GPS
+          Dùng GPS
         </button>
       </div>
 
@@ -264,10 +305,10 @@ function ReportForm({
             checked={values.isUrgent}
             onChange={(event) => setField("isUrgent", event.target.checked)}
           />
-          Urgent report
+          Báo cáo khẩn cấp
         </label>
         <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
-          Evidence files
+          Tệp minh chứng
           <input
             type="file"
             multiple
@@ -284,14 +325,14 @@ function ReportForm({
           className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
           disabled={isSubmitting}
         >
-          Cancel
+          Huỷ
         </button>
         <button
           type="submit"
           className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-bold text-white hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-70"
           disabled={isSubmitting}
         >
-          {isSubmitting ? "Saving..." : submitLabel}
+          {isSubmitting ? "Đang lưu..." : submitLabel}
         </button>
       </div>
     </form>
@@ -303,6 +344,7 @@ export function ReportWorkspace() {
   const identity = useAuthIdentity();
   const role = normalizeRole(identity?.role) ?? "citizen";
   const canManage = canManageReports(role);
+  const assumeCurrentUserReport = !canManage;
   const reports = useReportsStore((state) => state.reports);
   const isLoading = useReportsStore((state) => state.isLoading);
   const filter = useReportsStore((state) => state.filter);
@@ -334,9 +376,9 @@ export function ReportWorkspace() {
       setReports(await listReports(role));
     } catch (error) {
       showAlert({
-        title: "Reports unavailable",
+        title: "Không thể tải báo cáo",
         description:
-          error instanceof Error ? error.message : "Could not load reports.",
+          error instanceof Error ? error.message : "Không thể tải báo cáo.",
         variant: "error",
       });
       setReports([]);
@@ -385,16 +427,16 @@ export function ReportWorkspace() {
       await createReport(values);
       setCreating(false);
       showAlert({
-        title: "Report created",
-        description: "Your field report was submitted.",
+        title: "Đã tạo báo cáo",
+        description: "Báo cáo hiện trường của bạn đã được gửi.",
         variant: "success",
       });
       await loadReports();
     } catch (error) {
       showAlert({
-        title: "Create failed",
+        title: "Tạo báo cáo thất bại",
         description:
-          error instanceof Error ? error.message : "Could not create report.",
+          error instanceof Error ? error.message : "Không thể tạo báo cáo.",
         variant: "error",
       });
     }
@@ -405,20 +447,35 @@ export function ReportWorkspace() {
       return;
     }
 
+    const editRestrictionReason = getReportEditRestrictionReason(
+      editingReport,
+      identity,
+      { assumeCurrentUserReport },
+    );
+    if (editRestrictionReason) {
+      setEditingReport(null);
+      showAlert({
+        title: "Không thể sửa báo cáo",
+        description: editRestrictionReason,
+        variant: "error",
+      });
+      return;
+    }
+
     try {
       await updateReport(role, editingReport, values);
       setEditingReport(null);
       showAlert({
-        title: "Report updated",
-        description: "Report details were saved.",
+        title: "Đã cập nhật báo cáo",
+        description: "Chi tiết báo cáo đã được lưu.",
         variant: "success",
       });
       await loadReports();
     } catch (error) {
       showAlert({
-        title: "Update failed",
+        title: "Cập nhật thất bại",
         description:
-          error instanceof Error ? error.message : "Could not update report.",
+          error instanceof Error ? error.message : "Không thể cập nhật báo cáo.",
         variant: "error",
       });
     }
@@ -436,11 +493,11 @@ export function ReportWorkspace() {
       await loadReports();
     } catch (error) {
       showAlert({
-        title: "Status update failed",
+        title: "Cập nhật trạng thái thất bại",
         description:
           error instanceof Error
             ? error.message
-            : "Could not update report status.",
+            : "Không thể cập nhật trạng thái báo cáo.",
         variant: "error",
       });
       rollbackReportStatus(report.id, previousStatus);
@@ -451,54 +508,57 @@ export function ReportWorkspace() {
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[1fr_auto_auto] md:items-end">
-        <label className="grid gap-1 text-sm font-semibold text-slate-700">
-          Search
-          <input
+      <div className="grid gap-3 rounded-lg border bg-card p-4 shadow-sm md:grid-cols-[1fr_auto_auto] md:items-end">
+        <Field>
+          <FieldLabel htmlFor="report-search">Tìm kiếm</FieldLabel>
+          <Input
+            id="report-search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="ID, location, category, description"
-            className="rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
+            placeholder="Mã, vị trí, loại báo cáo, mô tả"
           />
-        </label>
-        <label className="grid gap-1 text-sm font-semibold text-slate-700">
-          Status
-          <select
+        </Field>
+        <Field>
+          <FieldLabel>Trạng thái</FieldLabel>
+          <Select
             value={filter}
-            onChange={(event) =>
-              setFilter(event.target.value as "all" | ReportStatus)
-            }
-            className="rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
+            onValueChange={(value) => setFilter(value as "all" | ReportStatus)}
           >
-            <option value="all">All</option>
-            {REPORT_STATUS_OPTIONS.map((status) => (
-              <option key={status} value={status}>
-                {getReportStatusLabel(status)}
-              </option>
-            ))}
-          </select>
-        </label>
+            <SelectTrigger className="w-full min-w-40">
+              <SelectValue placeholder="Trạng thái" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectItem value="all">Tất cả</SelectItem>
+                {REPORT_STATUS_OPTIONS.map((status) => (
+                  <SelectItem key={status} value={status}>
+                    {getReportStatusLabel(status)}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </Field>
         <div className="flex gap-2">
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={() => void loadReports()}
-            className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
           >
-            <RefreshCw className="h-4 w-4" aria-hidden="true" />
-            Refresh
-          </button>
+            <RefreshCw data-icon="inline-start" aria-hidden="true" />
+            Làm mới
+          </Button>
           {!canManage ? (
-            <button
+            <Button
               type="button"
               onClick={() => {
                 setEditingReport(null);
                 setCreating(true);
               }}
-              className="inline-flex items-center gap-2 rounded-lg bg-sky-600 px-3 py-2 text-sm font-bold text-white hover:bg-sky-700"
             >
-              <Plus className="h-4 w-4" aria-hidden="true" />
-              New
-            </button>
+              <Plus data-icon="inline-start" aria-hidden="true" />
+              Tạo mới
+            </Button>
           ) : null}
         </div>
       </div>
@@ -506,7 +566,7 @@ export function ReportWorkspace() {
       {isCreating ? (
         <ReportForm
           initialValues={EMPTY_FORM}
-          submitLabel="Submit report"
+          submitLabel="Gửi báo cáo"
           onSubmit={handleCreate}
           onCancel={() => setCreating(false)}
         />
@@ -515,7 +575,7 @@ export function ReportWorkspace() {
       {editingReport ? (
         <ReportForm
           initialValues={toFormValues(editingReport)}
-          submitLabel="Save report"
+          submitLabel="Lưu báo cáo"
           onSubmit={handleUpdate}
           onCancel={() => setEditingReport(null)}
         />
@@ -523,13 +583,13 @@ export function ReportWorkspace() {
 
       {isLoading ? (
         <div className="rounded-lg border border-slate-200 bg-white p-6 text-slate-600">
-          Loading reports...
+          Đang tải báo cáo...
         </div>
       ) : null}
 
       {!isLoading && filteredReports.length === 0 ? (
         <div className="rounded-lg border border-slate-200 bg-white p-6 text-center text-slate-600">
-          No reports found.
+          Không tìm thấy báo cáo.
         </div>
       ) : null}
 
@@ -537,54 +597,63 @@ export function ReportWorkspace() {
         {filteredReports.map((report) => (
           <article
             key={report.id ?? `${report.description}-${report.createdAt}`}
-            className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
+            className="rounded-lg border bg-card p-4 shadow-sm"
           >
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
-                  Report #{report.id ?? "-"}
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                  Báo cáo #{report.id ?? "-"}
                 </p>
-                <h2 className="mt-1 text-lg font-bold text-slate-950">
+                <h2 className="mt-1 text-lg font-bold text-card-foreground">
                   {categoryText(report)}
                 </h2>
               </div>
-              <span className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-700">
+              <Badge variant={statusBadgeVariant(statusOf(report))}>
                 {getReportStatusLabel(statusOf(report))}
-              </span>
+              </Badge>
             </div>
 
-            <p className="mt-3 text-sm leading-6 text-slate-700">
-              {report.description || "No description."}
+            <p className="mt-3 text-sm leading-6 text-muted-foreground">
+              {report.description || "Chưa có mô tả."}
             </p>
-            <dl className="mt-3 grid gap-2 text-sm text-slate-600">
+            <dl className="mt-3 grid gap-2 text-sm text-muted-foreground">
               <div className="flex gap-2">
-                <dt className="w-24 font-semibold text-slate-500">Address</dt>
+                <dt className="w-24 font-semibold text-muted-foreground">Địa chỉ</dt>
                 <dd>{addressText(report) || "-"}</dd>
               </div>
               <div className="flex gap-2">
-                <dt className="w-24 font-semibold text-slate-500">Coords</dt>
+                <dt className="w-24 font-semibold text-muted-foreground">Toạ độ</dt>
                 <dd>
                   {report.lat ?? "-"}, {report.lng ?? "-"}
                 </dd>
               </div>
               <div className="flex gap-2">
-                <dt className="w-24 font-semibold text-slate-500">Reporter</dt>
+                <dt className="w-24 font-semibold text-muted-foreground">Người báo</dt>
                 <dd>{report.user?.username ?? report.userId ?? "-"}</dd>
               </div>
             </dl>
 
             <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setCreating(false);
-                  setEditingReport(report);
-                }}
-                className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
-              >
-                <Edit3 className="h-4 w-4" aria-hidden="true" />
-                Edit
-              </button>
+              <div className="flex flex-wrap gap-2">
+                {report.id ? (
+                  <Button asChild variant="outline">
+                    <Link href={`/bao-cao/${report.id}`}>Chi tiết</Link>
+                  </Button>
+                ) : null}
+              {canEditReport(report, identity, { assumeCurrentUserReport }) ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setCreating(false);
+                    setEditingReport(report);
+                  }}
+                >
+                  <Edit3 data-icon="inline-start" aria-hidden="true" />
+                  Sửa
+                </Button>
+              ) : null}
+              </div>
 
               {canManage ? (
                 <div className="flex flex-wrap gap-1.5">
@@ -597,19 +666,16 @@ export function ReportWorkspace() {
                     const isDisabled = Boolean(savingStatus) || isActive;
 
                     return (
-                      <button
+                      <Button
                         key={status}
                         type="button"
+                        size="sm"
+                        variant={isActive ? "default" : "outline"}
                         onClick={() => void handleStatusChange(report, status)}
                         disabled={isDisabled}
-                        className={`rounded-lg border px-3 py-2 text-xs font-bold transition disabled:cursor-not-allowed disabled:opacity-70 ${
-                          isActive
-                            ? "border-sky-200 bg-sky-50 text-sky-800"
-                            : "border-slate-200 text-slate-700 hover:bg-slate-50"
-                        }`}
                       >
-                        {isSaving ? "Saving..." : getReportStatusLabel(status)}
-                      </button>
+                        {isSaving ? "Đang lưu..." : getReportStatusLabel(status)}
+                      </Button>
                     );
                   })}
                 </div>

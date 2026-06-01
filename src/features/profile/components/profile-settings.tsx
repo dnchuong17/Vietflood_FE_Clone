@@ -1,9 +1,21 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
-import { HelpCircle, KeyRound, Save } from "lucide-react";
+import { BookOpen, HelpCircle, KeyRound, Save } from "lucide-react";
 
 import { useGlobalAlert } from "@/components/feedback/global-alert-provider";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   apiPath,
   apiPut,
@@ -11,6 +23,7 @@ import {
   parseJsonResponse,
 } from "@/features/auth/lib/api-client";
 import { getAccessToken } from "@/features/auth/lib/auth-storage";
+import { getUserRoleLabel, normalizeRole } from "@/features/auth/lib/roles";
 import type { AuthProfile } from "@/features/auth/types/auth";
 
 type ProfileForm = {
@@ -60,7 +73,7 @@ export function ProfileSettings() {
       });
       const data = await parseJsonResponse<AuthProfile>(
         response,
-        "Could not load profile.",
+        "Không thể tải hồ sơ.",
       );
       setProfile(data);
       setForm({
@@ -75,9 +88,9 @@ export function ProfileSettings() {
       });
     } catch (error) {
       showAlert({
-        title: "Profile unavailable",
+        title: "Không thể tải hồ sơ",
         description:
-          error instanceof Error ? error.message : "Could not load profile.",
+          error instanceof Error ? error.message : "Không thể tải hồ sơ.",
         variant: "error",
       });
     } finally {
@@ -101,18 +114,18 @@ export function ProfileSettings() {
       const response = await apiPut(apiPath("/auth/update"), form, {
         credentials: "include",
       });
-      await parseJsonResponse<unknown>(response, "Could not update profile.");
+      await parseJsonResponse<unknown>(response, "Không thể cập nhật hồ sơ.");
       showAlert({
-        title: "Profile saved",
-        description: "Your account details were updated.",
+        title: "Đã lưu hồ sơ",
+        description: "Thông tin tài khoản của bạn đã được cập nhật.",
         variant: "success",
       });
       await loadProfile();
     } catch (error) {
       showAlert({
-        title: "Update failed",
+        title: "Cập nhật thất bại",
         description:
-          error instanceof Error ? error.message : "Could not update profile.",
+          error instanceof Error ? error.message : "Không thể cập nhật hồ sơ.",
         variant: "error",
       });
     } finally {
@@ -128,23 +141,23 @@ export function ProfileSettings() {
       });
       if (response.status === 404) {
         throw new Error(
-          "Password change is not available until the backend endpoint is enabled.",
+          "Chức năng đổi mật khẩu chưa khả dụng cho đến khi máy chủ bật chức năng này.",
         );
       }
-      await parseJsonResponse<unknown>(response, "Could not change password.");
+      await parseJsonResponse<unknown>(response, "Không thể đổi mật khẩu.");
       setPasswordForm({ currentPassword: "", newPassword: "" });
       showAlert({
-        title: "Password changed",
-        description: "Use the new password next time you sign in.",
+        title: "Đã đổi mật khẩu",
+        description: "Hãy dùng mật khẩu mới trong lần đăng nhập tiếp theo.",
         variant: "success",
       });
     } catch (error) {
       showAlert({
-        title: "Password not changed",
+        title: "Chưa đổi mật khẩu",
         description:
           error instanceof Error
             ? error.message
-            : "Could not change password.",
+            : "Không thể đổi mật khẩu.",
         variant: "error",
       });
     }
@@ -152,151 +165,155 @@ export function ProfileSettings() {
 
   if (isLoading) {
     return (
-      <div className="rounded-lg border border-slate-200 bg-white p-6 text-slate-600">
-        Loading profile...
-      </div>
+      <Card>
+        <CardContent className="p-6 text-sm text-muted-foreground">
+        Đang tải hồ sơ...
+        </CardContent>
+      </Card>
     );
   }
 
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_24rem]">
-      <form
-        onSubmit={handleSaveProfile}
-        className="grid gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
-      >
-        <div>
-          <h2 className="text-lg font-bold text-slate-950">Profile</h2>
-          <p className="text-sm text-slate-600">
-            Role: <span className="font-semibold">{profile?.role ?? "-"}</span>
-          </p>
-        </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Hồ sơ</CardTitle>
+          <CardDescription>
+            Vai trò:{" "}
+            <span className="font-semibold">
+              {getUserRoleLabel(normalizeRole(profile?.role))}
+            </span>
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSaveProfile} className="flex flex-col gap-4">
+            <FieldGroup>
+              <div className="grid gap-3 sm:grid-cols-3">
+                {[
+                  ["first_name", "Tên"],
+                  ["middle_name", "Tên đệm"],
+                  ["last_name", "Họ"],
+                ].map(([field, label]) => (
+                  <Field key={field}>
+                    <FieldLabel>{label}</FieldLabel>
+                    <Input
+                      value={form[field as keyof ProfileForm]}
+                      onChange={(event) =>
+                        updateField(field as keyof ProfileForm, event.target.value)
+                      }
+                    />
+                  </Field>
+                ))}
+              </div>
 
-        <div className="grid gap-3 sm:grid-cols-3">
-          {[
-            ["first_name", "First name"],
-            ["middle_name", "Middle name"],
-            ["last_name", "Last name"],
-          ].map(([field, label]) => (
-            <label
-              key={field}
-              className="grid gap-1 text-sm font-semibold text-slate-700"
-            >
-              {label}
-              <input
-                value={form[field as keyof ProfileForm]}
-                onChange={(event) =>
-                  updateField(field as keyof ProfileForm, event.target.value)
-                }
-                className="rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
-              />
-            </label>
-          ))}
-        </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {[
+                  ["email", "Địa chỉ thư điện tử"],
+                  ["phone", "Số điện thoại"],
+                  ["province", "Tỉnh/Thành phố"],
+                  ["ward", "Phường/Xã"],
+                ].map(([field, label]) => (
+                  <Field key={field}>
+                    <FieldLabel>{label}</FieldLabel>
+                    <Input
+                      value={form[field as keyof ProfileForm]}
+                      onChange={(event) =>
+                        updateField(field as keyof ProfileForm, event.target.value)
+                      }
+                    />
+                  </Field>
+                ))}
+              </div>
 
-        <div className="grid gap-3 sm:grid-cols-2">
-          {[
-            ["email", "Email"],
-            ["phone", "Phone"],
-            ["province", "Province"],
-            ["ward", "Ward"],
-          ].map(([field, label]) => (
-            <label
-              key={field}
-              className="grid gap-1 text-sm font-semibold text-slate-700"
-            >
-              {label}
-              <input
-                value={form[field as keyof ProfileForm]}
-                onChange={(event) =>
-                  updateField(field as keyof ProfileForm, event.target.value)
-                }
-                className="rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
-              />
-            </label>
-          ))}
-        </div>
+              <Field>
+                <FieldLabel>Địa chỉ</FieldLabel>
+                <Textarea
+                  value={form.address_line}
+                  onChange={(event) => updateField("address_line", event.target.value)}
+                  rows={3}
+                />
+              </Field>
+            </FieldGroup>
 
-        <label className="grid gap-1 text-sm font-semibold text-slate-700">
-          Address
-          <textarea
-            value={form.address_line}
-            onChange={(event) => updateField("address_line", event.target.value)}
-            rows={3}
-            className="rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
-          />
-        </label>
+            <div className="flex justify-end">
+              <Button type="submit" disabled={isSaving}>
+                <Save data-icon="inline-start" aria-hidden="true" />
+                {isSaving ? "Đang lưu..." : "Lưu hồ sơ"}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
 
-        <div className="flex justify-end">
-          <button
-            type="submit"
-            disabled={isSaving}
-            className="inline-flex items-center gap-2 rounded-lg bg-sky-600 px-4 py-2 text-sm font-bold text-white hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-70"
-          >
-            <Save className="h-4 w-4" aria-hidden="true" />
-            {isSaving ? "Saving..." : "Save profile"}
-          </button>
-        </div>
-      </form>
+      <div className="flex flex-col gap-4">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <KeyRound className="size-5 text-primary" aria-hidden="true" />
+              <CardTitle>Mật khẩu</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleChangePassword} className="flex flex-col gap-4">
+              <FieldGroup>
+                <Field>
+                  <FieldLabel>Mật khẩu hiện tại</FieldLabel>
+                  <Input
+                    type="password"
+                    value={passwordForm.currentPassword}
+                    onChange={(event) =>
+                      setPasswordForm((prev) => ({
+                        ...prev,
+                        currentPassword: event.target.value,
+                      }))
+                    }
+                    required
+                  />
+                </Field>
+                <Field>
+                  <FieldLabel>Mật khẩu mới</FieldLabel>
+                  <Input
+                    type="password"
+                    minLength={6}
+                    value={passwordForm.newPassword}
+                    onChange={(event) =>
+                      setPasswordForm((prev) => ({
+                        ...prev,
+                        newPassword: event.target.value,
+                      }))
+                    }
+                    required
+                  />
+                </Field>
+              </FieldGroup>
+              <Button type="submit" variant="outline">
+                Đổi mật khẩu
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
 
-      <div className="space-y-4">
-        <form
-          onSubmit={handleChangePassword}
-          className="grid gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
-        >
-          <div className="flex items-center gap-2">
-            <KeyRound className="h-5 w-5 text-sky-700" aria-hidden="true" />
-            <h2 className="text-lg font-bold text-slate-950">Password</h2>
-          </div>
-          <label className="grid gap-1 text-sm font-semibold text-slate-700">
-            Current password
-            <input
-              type="password"
-              value={passwordForm.currentPassword}
-              onChange={(event) =>
-                setPasswordForm((prev) => ({
-                  ...prev,
-                  currentPassword: event.target.value,
-                }))
-              }
-              className="rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
-              required
-            />
-          </label>
-          <label className="grid gap-1 text-sm font-semibold text-slate-700">
-            New password
-            <input
-              type="password"
-              minLength={6}
-              value={passwordForm.newPassword}
-              onChange={(event) =>
-                setPasswordForm((prev) => ({
-                  ...prev,
-                  newPassword: event.target.value,
-                }))
-              }
-              className="rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
-              required
-            />
-          </label>
-          <button
-            type="submit"
-            className="rounded-lg border border-sky-200 px-3 py-2 text-sm font-semibold text-sky-700 hover:bg-sky-50"
-          >
-            Change password
-          </button>
-        </form>
-
-        <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-2">
-            <HelpCircle className="h-5 w-5 text-sky-700" aria-hidden="true" />
-            <h2 className="text-lg font-bold text-slate-950">Help</h2>
-          </div>
-          <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-slate-600">
-            <li>Citizens create reports and share live location when requesting help.</li>
-            <li>Relief users triage reports, update status, monitor tracking, and review users.</li>
-            <li>Admins have the same operational access plus user role and delete controls.</li>
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <HelpCircle className="size-5 text-primary" aria-hidden="true" />
+              <CardTitle>Trợ giúp</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+          <ul className="flex list-disc flex-col gap-2 pl-5 text-sm leading-6 text-muted-foreground">
+            <li>Người dân tạo báo cáo và chia sẻ vị trí trực tiếp khi cần hỗ trợ.</li>
+            <li>Đội cứu trợ phân loại báo cáo, cập nhật trạng thái, theo dõi vị trí và rà soát người dùng.</li>
+            <li>Quản trị viên có cùng quyền vận hành, thêm quyền đổi vai trò và xoá tài khoản người dùng.</li>
           </ul>
-        </section>
+          <Button asChild variant="outline" className="mt-4 w-full">
+            <Link href="/huong-dan">
+              <BookOpen data-icon="inline-start" aria-hidden="true" />
+              Mở hướng dẫn đầy đủ
+            </Link>
+          </Button>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

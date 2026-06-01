@@ -9,7 +9,7 @@ import { apiUrl } from "@/lib/api-config";
 
 export function extractErrorMessage(
   data: unknown,
-  fallback = "Request failed. Please try again.",
+  fallback = "Yêu cầu thất bại. Vui lòng thử lại.",
 ): string {
   if (typeof data === "object" && data !== null && "message" in data) {
     const message = (data as { message?: unknown }).message;
@@ -50,7 +50,7 @@ function isSignInResponse(data: unknown): data is SignInResponse {
 
 function normalizeTokens(data: unknown): SignInResponse {
   if (typeof data !== "object" || data === null) {
-    throw new Error("Invalid token response from server.");
+    throw new Error("Phản hồi token từ máy chủ không hợp lệ.");
   }
 
   const raw = data as {
@@ -77,7 +77,7 @@ function normalizeTokens(data: unknown): SignInResponse {
         : undefined;
 
   if (!accessToken) {
-    throw new Error("Server did not return an access token.");
+    throw new Error("Máy chủ không trả về access token.");
   }
 
   return {
@@ -100,7 +100,7 @@ export async function getProfile(
   const data: unknown = await response.json().catch(() => null);
 
   if (!response.ok) {
-    throw new Error(extractErrorMessage(data, "Could not load profile."));
+    throw new Error(extractErrorMessage(data, "Không thể tải hồ sơ."));
   }
 
   if (typeof data !== "object" || data === null) {
@@ -123,11 +123,11 @@ export async function signIn(payload: SignInPayload): Promise<SignInResponse> {
   const data: unknown = await response.json().catch(() => null);
 
   if (!response.ok) {
-    throw new Error(extractErrorMessage(data, "Login failed."));
+    throw new Error(extractErrorMessage(data, "Đăng nhập thất bại."));
   }
 
   if (!isSignInResponse(data)) {
-    throw new Error("Invalid login response from server.");
+    throw new Error("Phản hồi đăng nhập từ máy chủ không hợp lệ.");
   }
 
   const tokens = normalizeTokens(data);
@@ -135,7 +135,7 @@ export async function signIn(payload: SignInPayload): Promise<SignInResponse> {
   const role = normalizeRole(profile?.role);
 
   if (!role) {
-    throw new Error("This account does not use a supported VietFlood role.");
+    throw new Error("Tài khoản này không dùng vai trò VietFlood được hỗ trợ.");
   }
 
   return tokens;
@@ -154,7 +154,7 @@ export async function register(payload: RegisterPayload): Promise<void> {
   const data: unknown = await response.json().catch(() => null);
 
   if (!response.ok) {
-    throw new Error(extractErrorMessage(data, "Registration failed."));
+    throw new Error(extractErrorMessage(data, "Đăng ký thất bại."));
   }
 }
 
@@ -173,7 +173,7 @@ export async function refreshAccessToken(
   const data: unknown = await response.json().catch(() => null);
 
   if (!response.ok) {
-    throw new Error(extractErrorMessage(data, "Could not refresh session."));
+    throw new Error(extractErrorMessage(data, "Không thể làm mới phiên đăng nhập."));
   }
 
   return normalizeTokens(data);
