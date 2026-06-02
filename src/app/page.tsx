@@ -21,6 +21,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import {
+  LandingHeroMotion,
+  LandingMotionItem,
+  LandingProgressBar,
+  LandingPulseMarker,
+  LandingReveal,
+  LandingStagger,
+} from "@/components/motion/landing-motion";
 
 const roleCards = [
   {
@@ -156,7 +164,7 @@ export default function LandingPage() {
       <section className="relative overflow-hidden border-b border-border bg-background">
         <div className="absolute inset-0 opacity-[0.08] [background-image:linear-gradient(var(--foreground)_1px,transparent_1px),linear-gradient(90deg,var(--foreground)_1px,transparent_1px)] [background-size:40px_40px]" />
         <div className="relative mx-auto grid min-h-[calc(100vh-4rem)] max-w-7xl items-center gap-10 px-4 py-14 lg:grid-cols-[0.9fr_1.1fr] lg:py-18">
-          <div className="max-w-3xl">
+          <LandingHeroMotion className="max-w-3xl">
             <Badge variant="outline" className="mb-5 bg-background">
               Nền tảng web ứng phó ngập lụt
             </Badge>
@@ -182,25 +190,27 @@ export default function LandingPage() {
                 </Link>
               </Button>
             </div>
-            <div className="mt-8 grid max-w-xl grid-cols-3 gap-3">
+            <LandingStagger className="mt-8 grid max-w-xl grid-cols-3 gap-3">
               {[
                 ["3", "vai trò"],
                 ["4", "trạng thái báo cáo"],
                 ["24/7", "kết nối trực tiếp"],
               ].map(([value, label]) => (
-                <Card key={label} className="bg-card/80">
-                  <CardContent className="p-4">
-                    <p className="text-2xl font-black text-foreground">{value}</p>
-                    <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                      {label}
-                    </p>
-                  </CardContent>
-                </Card>
+                <LandingMotionItem key={label}>
+                  <Card className="bg-card/80">
+                    <CardContent className="p-4">
+                      <p className="text-2xl font-black text-foreground">{value}</p>
+                      <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                        {label}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </LandingMotionItem>
               ))}
-            </div>
-          </div>
+            </LandingStagger>
+          </LandingHeroMotion>
 
-          <div className="relative">
+          <LandingHeroMotion className="relative" delay={0.12} direction="left">
             <div className="rounded-lg border border-border bg-foreground p-3 text-background shadow-2xl">
               <div className="rounded-md border border-background/10 bg-foreground p-4">
                 <div className="flex items-center justify-between gap-3">
@@ -218,9 +228,9 @@ export default function LandingPage() {
                 <div className="mt-4 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
                   <div className="relative min-h-80 overflow-hidden rounded-md border border-background/10 bg-muted">
                     <div className="absolute inset-0 [background-image:linear-gradient(120deg,rgba(14,165,233,0.22)_0_10%,transparent_10%_22%,rgba(20,184,166,0.18)_22%_30%,transparent_30%_100%),linear-gradient(35deg,transparent_0_35%,rgba(15,23,42,0.18)_35%_36%,transparent_36%_100%)] [background-size:180px_140px,220px_180px]" />
-                    <div className="absolute left-[18%] top-[22%] size-3 rounded-full bg-critical shadow-[0_0_0_8px_color-mix(in_oklch,var(--critical)_20%,transparent)]" />
-                    <div className="absolute right-[28%] top-[38%] size-3 rounded-full bg-warning shadow-[0_0_0_8px_color-mix(in_oklch,var(--warning)_22%,transparent)]" />
-                    <div className="absolute bottom-[22%] left-[44%] size-3 rounded-full bg-success shadow-[0_0_0_8px_color-mix(in_oklch,var(--success)_22%,transparent)]" />
+                    <LandingPulseMarker className="left-[18%] top-[22%] bg-critical shadow-[0_0_0_8px_color-mix(in_oklch,var(--critical)_20%,transparent)]" />
+                    <LandingPulseMarker className="right-[28%] top-[38%] bg-warning shadow-[0_0_0_8px_color-mix(in_oklch,var(--warning)_22%,transparent)]" />
+                    <LandingPulseMarker className="bottom-[22%] left-[44%] bg-success shadow-[0_0_0_8px_color-mix(in_oklch,var(--success)_22%,transparent)]" />
                     <div className="absolute bottom-3 left-3 rounded-md border border-border bg-card/95 p-3 text-card-foreground shadow-lg">
                       <p className="text-xs font-bold text-muted-foreground">Thiết bị hoạt động</p>
                       <p className="mt-1 text-2xl font-black text-foreground">18</p>
@@ -253,16 +263,14 @@ export default function LandingPage() {
                         </div>
                         <p className="mt-2 text-sm text-background/70">{report.title}</p>
                         <div className="mt-3 h-1.5 rounded-full bg-background/10">
-                          <div
-                            className="h-1.5 rounded-full bg-primary"
-                            style={{
-                              width:
-                                report.status === "resolved"
-                                  ? "100%"
-                                  : report.status === "verified"
-                                    ? "68%"
-                                    : "34%",
-                            }}
+                          <LandingProgressBar
+                            width={
+                              report.status === "resolved"
+                                ? "100%"
+                                : report.status === "verified"
+                                  ? "68%"
+                                  : "34%"
+                            }
                           />
                         </div>
                       </div>
@@ -271,12 +279,12 @@ export default function LandingPage() {
                 </div>
               </div>
             </div>
-          </div>
+          </LandingHeroMotion>
         </div>
       </section>
 
       <section id="roles" className="mx-auto max-w-7xl px-4 py-16">
-        <div className="max-w-2xl">
+        <LandingReveal className="max-w-2xl">
           <Badge variant="secondary">Mô hình ba vai trò</Badge>
           <h2 className="mt-4 text-3xl font-black tracking-normal text-foreground">
             Xây dựng theo vai trò từ máy chủ, không tạo thêm vai trò riêng cho giao diện trình duyệt.
@@ -285,30 +293,32 @@ export default function LandingPage() {
             Trang giới thiệu phản ánh đúng mô hình phân quyền đang dùng trong
             web app: người dân, đội ứng cứu và quản trị viên.
           </p>
-        </div>
-        <div className="mt-8 grid gap-4 md:grid-cols-3">
+        </LandingReveal>
+        <LandingStagger className="mt-8 grid gap-4 md:grid-cols-3">
           {roleCards.map((role) => {
             const Icon = role.icon;
             return (
-              <Card key={role.title}>
-                <CardHeader>
-                  <div className="mb-3 flex size-10 items-center justify-center rounded-md bg-primary/10 text-primary">
-                    <Icon aria-hidden="true" />
-                  </div>
-                  <CardTitle>{role.title}</CardTitle>
-                  <CardDescription>{role.description}</CardDescription>
-                </CardHeader>
-              </Card>
+              <LandingMotionItem key={role.title}>
+                <Card>
+                  <CardHeader>
+                    <div className="mb-3 flex size-10 items-center justify-center rounded-md bg-primary/10 text-primary">
+                      <Icon aria-hidden="true" />
+                    </div>
+                    <CardTitle>{role.title}</CardTitle>
+                    <CardDescription>{role.description}</CardDescription>
+                  </CardHeader>
+                </Card>
+              </LandingMotionItem>
             );
           })}
-        </div>
+        </LandingStagger>
       </section>
 
       <Separator />
 
       <section id="features" className="mx-auto max-w-7xl px-4 py-16">
         <div className="grid gap-10 lg:grid-cols-[0.75fr_1fr] lg:items-start">
-          <div>
+          <LandingReveal>
             <Badge variant="outline">Đồng bộ với ứng dụng di động</Badge>
             <h2 className="mt-4 text-3xl font-black tracking-normal text-foreground">
               Điểm vào trên web truyền tải cùng một trải nghiệm sản phẩm như ứng dụng di động.
@@ -317,33 +327,35 @@ export default function LandingPage() {
               Báo cáo, điều phối cứu trợ, theo dõi, người dùng và thiết lập hồ
               sơ được trình bày như một quy trình ứng phó ngập lụt thống nhất.
             </p>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
+          </LandingReveal>
+          <LandingStagger className="grid gap-4 sm:grid-cols-2">
             {featureCards.map((feature) => {
               const Icon = feature.icon;
               return (
-                <Card key={feature.title}>
-                  <CardHeader>
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex size-10 items-center justify-center rounded-md bg-muted text-muted-foreground">
-                        <Icon aria-hidden="true" />
+                <LandingMotionItem key={feature.title}>
+                  <Card>
+                    <CardHeader>
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex size-10 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                          <Icon aria-hidden="true" />
+                        </div>
+                        <Badge variant="outline">{feature.metric}</Badge>
                       </div>
-                      <Badge variant="outline">{feature.metric}</Badge>
-                    </div>
-                    <CardTitle>{feature.title}</CardTitle>
-                    <CardDescription>{feature.description}</CardDescription>
-                  </CardHeader>
-                </Card>
+                      <CardTitle>{feature.title}</CardTitle>
+                      <CardDescription>{feature.description}</CardDescription>
+                    </CardHeader>
+                  </Card>
+                </LandingMotionItem>
               );
             })}
-          </div>
+          </LandingStagger>
         </div>
       </section>
 
       <section id="workflow" className="bg-muted/35 py-16">
         <div className="mx-auto max-w-7xl px-4">
           <div className="grid gap-8 lg:grid-cols-[1fr_1fr] lg:items-center">
-            <div>
+            <LandingReveal>
               <Badge variant="secondary">Quy trình ứng phó</Badge>
               <h2 className="mt-4 text-3xl font-black tracking-normal text-foreground">
                 Từ báo cáo của người dân đến hành động cứu trợ.
@@ -361,27 +373,33 @@ export default function LandingPage() {
                   <Link href="/dang-nhap">Mở bảng điều phối</Link>
                 </Button>
               </div>
-            </div>
-            <Card>
-              <CardContent className="p-5">
+            </LandingReveal>
+            <LandingReveal delay={0.08} direction="left">
+              <Card>
+                <CardContent className="p-5">
+                <LandingStagger>
                 {workflowSteps.map(([step, title, description], index) => (
-                  <div key={step}>
-                    <div className="flex gap-4 py-4">
-                      <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary text-sm font-black text-primary-foreground">
-                        {step}
+                  <LandingMotionItem key={step}>
+                    <div>
+                      <div className="flex gap-4 py-4">
+                        <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary text-sm font-black text-primary-foreground">
+                          {step}
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-foreground">{title}</h3>
+                          <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                            {description}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="font-bold text-foreground">{title}</h3>
-                        <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                          {description}
-                        </p>
-                      </div>
+                      {index < workflowSteps.length - 1 ? <Separator /> : null}
                     </div>
-                    {index < workflowSteps.length - 1 ? <Separator /> : null}
-                  </div>
+                  </LandingMotionItem>
                 ))}
-              </CardContent>
-            </Card>
+                </LandingStagger>
+                </CardContent>
+              </Card>
+            </LandingReveal>
           </div>
         </div>
       </section>

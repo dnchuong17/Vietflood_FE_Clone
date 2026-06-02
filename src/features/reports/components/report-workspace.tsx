@@ -2,11 +2,24 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Edit3, LocateFixed, Plus, RefreshCw } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  ClipboardList,
+  Clock3,
+  Edit3,
+  LocateFixed,
+  Plus,
+  RefreshCw,
+  ShieldCheck,
+  XCircle,
+} from "lucide-react";
 
 import { useGlobalAlert } from "@/components/feedback/global-alert-provider";
+import { LoadingBar } from "@/components/feedback/loading-bar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
@@ -42,6 +55,10 @@ import {
   getReportEditRestrictionReason,
 } from "@/features/reports/lib/edit-permissions";
 import { buildAddressSuggestions } from "@/features/reports/lib/address-suggestions";
+import {
+  buildReportsOverviewSummary,
+  formatReportsLastSyncedAt,
+} from "@/features/reports/lib/overview";
 import { useReportsStore } from "@/features/reports/store/reports-store";
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -225,6 +242,24 @@ function ReportForm({
       }),
     [reports, values.addressLine, values.province, values.ward],
   );
+  const selectedLocationParts = [values.province.trim(), values.ward.trim()].filter(Boolean);
+  const canEditWard = Boolean(selectedProvinceCode || values.province.trim());
+  const normalizedProvinceValue = values.province.trim().toLocaleLowerCase("vi-VN");
+  const normalizedWardValue = values.ward.trim().toLocaleLowerCase("vi-VN");
+  const visibleProvinceOptions = useMemo(
+    () =>
+      provinceOptions.filter(
+        (option) => option.name.trim().toLocaleLowerCase("vi-VN") !== normalizedProvinceValue,
+      ),
+    [normalizedProvinceValue, provinceOptions],
+  );
+  const visibleWardOptions = useMemo(
+    () =>
+      wardOptions.filter(
+        (option) => option.name.trim().toLocaleLowerCase("vi-VN") !== normalizedWardValue,
+      ),
+    [normalizedWardValue, wardOptions],
+  );
 
   function handleProvinceInput(value: string) {
     setValues((prev) => ({
@@ -338,70 +373,122 @@ function ReportForm({
         />
       </label>
 
-      <div className="grid gap-3 md:grid-cols-3">
-        <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
-          Tỉnh/Thành phố
-          <input
-            value={values.province}
-            onChange={(event) => handleProvinceInput(event.target.value)}
-            className="rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
-            placeholder="Tìm tỉnh/thành phố"
-            required
-          />
-          {provinceOptions.length > 0 ? (
-            <div className="grid max-h-40 gap-1 overflow-y-auto rounded-lg border border-slate-200 bg-white p-1 shadow-sm">
-              {provinceOptions.map((option) => (
-                <button
-                  key={option.code}
-                  type="button"
-                  onClick={() => selectProvince(option)}
-                  className="rounded-md px-2 py-1.5 text-left text-xs font-semibold text-slate-700 hover:bg-sky-50"
-                >
-                  {option.name}
-                </button>
-              ))}
-            </div>
-          ) : isLoadingProvinces ? (
-            <span className="text-xs font-medium text-slate-500">Đang tải tỉnh/thành phố...</span>
-          ) : null}
-        </label>
-        <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
-          Phường/Xã
-          <input
-            value={values.ward}
-            onChange={(event) => handleWardInput(event.target.value)}
-            className="rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 disabled:cursor-not-allowed disabled:bg-slate-100"
-            disabled={!selectedProvinceCode}
-            placeholder={selectedProvinceCode ? "Tìm phường/xã" : "Chọn tỉnh/thành phố trước"}
-          />
-          {wardOptions.length > 0 ? (
-            <div className="grid max-h-40 gap-1 overflow-y-auto rounded-lg border border-slate-200 bg-white p-1 shadow-sm">
-              {wardOptions.map((option) => (
-                <button
-                  key={option.code}
-                  type="button"
-                  onClick={() => selectWard(option)}
-                  className="rounded-md px-2 py-1.5 text-left text-xs font-semibold text-slate-700 hover:bg-sky-50"
-                >
-                  {option.name}
-                </button>
-              ))}
-            </div>
-          ) : isLoadingWards ? (
-            <span className="text-xs font-medium text-slate-500">Đang tải phường/xã...</span>
-          ) : null}
-        </label>
-        <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
-          Mức độ
-          <input
-            value={values.severity}
-            onChange={(event) => setField("severity", event.target.value)}
-            min={1}
-            max={5}
-            type="number"
-            className="rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
-          />
-        </label>
+      <div className="grid gap-3 rounded-lg border border-border bg-muted/30 p-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-bold text-foreground">Khu vực báo cáo</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Chọn tỉnh/thành phố trước, sau đó chọn hoặc nhập phường/xã để lọc gợi ý địa chỉ.
+            </p>
+          </div>
+          <div
+            data-location-summary="selected"
+            className="flex flex-wrap gap-2"
+            aria-live="polite"
+          >
+            {selectedLocationParts.length > 0 ? (
+              selectedLocationParts.map((part) => (
+                <Badge key={part} variant="outline">
+                  {part}
+                </Badge>
+              ))
+            ) : (
+              <Badge variant="secondary">Chưa chọn khu vực</Badge>
+            )}
+          </div>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-[1fr_1fr_8rem]">
+          <Field data-location-step="province">
+            <FieldLabel htmlFor="report-province">Tỉnh/Thành phố</FieldLabel>
+            <Input
+              id="report-province"
+              value={values.province}
+              onChange={(event) => handleProvinceInput(event.target.value)}
+              placeholder="Tìm tỉnh/thành phố"
+              required
+            />
+            {values.province.trim() ? (
+              <Badge variant={selectedProvinceCode ? "success" : "outline"} className="w-fit">
+                Tỉnh/Thành phố đã chọn: {values.province}
+              </Badge>
+            ) : (
+              <span className="text-xs text-muted-foreground">
+                Nhập tên tỉnh/thành phố để tìm từ danh mục hành chính.
+              </span>
+            )}
+            {visibleProvinceOptions.length > 0 ? (
+              <div className="grid max-h-40 gap-1 overflow-y-auto rounded-lg border border-border bg-popover p-1 shadow-sm">
+                {visibleProvinceOptions.map((option) => (
+                  <button
+                    key={option.code}
+                    type="button"
+                    onClick={() => selectProvince(option)}
+                    className="rounded-md px-2 py-1.5 text-left text-xs font-semibold text-popover-foreground hover:bg-accent hover:text-accent-foreground"
+                  >
+                    {option.name}
+                  </button>
+                ))}
+              </div>
+            ) : isLoadingProvinces ? (
+              <span className="text-xs font-medium text-muted-foreground">
+                Đang tải tỉnh/thành phố...
+              </span>
+            ) : null}
+          </Field>
+
+          <Field data-location-step="ward">
+            <FieldLabel htmlFor="report-ward">Phường/Xã</FieldLabel>
+            <Input
+              id="report-ward"
+              value={values.ward}
+              onChange={(event) => handleWardInput(event.target.value)}
+              disabled={!canEditWard}
+              placeholder={canEditWard ? "Tìm phường/xã" : "Chọn tỉnh/thành phố trước"}
+            />
+            {values.ward.trim() ? (
+              <Badge variant="success" className="w-fit">
+                Phường/Xã đã chọn: {values.ward}
+              </Badge>
+            ) : (
+              <span className="text-xs text-muted-foreground">
+                {canEditWard
+                  ? "Chọn từ danh sách gợi ý hoặc nhập thủ công nếu chưa có dữ liệu."
+                  : "Chọn tỉnh/thành phố trước"}
+              </span>
+            )}
+            {visibleWardOptions.length > 0 ? (
+              <div className="grid max-h-40 gap-1 overflow-y-auto rounded-lg border border-border bg-popover p-1 shadow-sm">
+                {visibleWardOptions.map((option) => (
+                  <button
+                    key={option.code}
+                    type="button"
+                    onClick={() => selectWard(option)}
+                    className="rounded-md px-2 py-1.5 text-left text-xs font-semibold text-popover-foreground hover:bg-accent hover:text-accent-foreground"
+                  >
+                    {option.name}
+                  </button>
+                ))}
+              </div>
+            ) : isLoadingWards ? (
+              <span className="text-xs font-medium text-muted-foreground">
+                Đang tải phường/xã...
+              </span>
+            ) : null}
+          </Field>
+
+          <Field>
+            <FieldLabel htmlFor="report-severity">Mức độ</FieldLabel>
+            <Input
+              id="report-severity"
+              value={values.severity}
+              onChange={(event) => setField("severity", event.target.value)}
+              min={1}
+              max={5}
+              type="number"
+            />
+          </Field>
+        </div>
       </div>
 
       <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
@@ -507,6 +594,7 @@ export function ReportWorkspace() {
   const isLoading = useReportsStore((state) => state.isLoading);
   const filter = useReportsStore((state) => state.filter);
   const query = useReportsStore((state) => state.query);
+  const lastSyncedAt = useReportsStore((state) => state.lastSyncedAt);
   const isCreating = useReportsStore((state) => state.isCreating);
   const editingReport = useReportsStore((state) => state.editingReport);
   const savingStatusByReportId = useReportsStore(
@@ -516,6 +604,7 @@ export function ReportWorkspace() {
   const setLoading = useReportsStore((state) => state.setLoading);
   const setFilter = useReportsStore((state) => state.setFilter);
   const setQuery = useReportsStore((state) => state.setQuery);
+  const setLastSyncedAt = useReportsStore((state) => state.setLastSyncedAt);
   const setCreating = useReportsStore((state) => state.setCreating);
   const setEditingReport = useReportsStore((state) => state.setEditingReport);
   const startReportStatusSave = useReportsStore(
@@ -531,7 +620,9 @@ export function ReportWorkspace() {
   async function loadReports() {
     try {
       setLoading(true);
-      setReports(await listReports(role));
+      const nextReports = await listReports(role);
+      setReports(nextReports);
+      setLastSyncedAt(new Date().toISOString());
     } catch (error) {
       showAlert({
         title: "Không thể tải báo cáo",
@@ -579,6 +670,12 @@ export function ReportWorkspace() {
         return bTime - aTime;
       });
   }, [filter, query, reports]);
+
+  const reportsOverview = useMemo(
+    () => buildReportsOverviewSummary(reports, filteredReports.length),
+    [filteredReports.length, reports],
+  );
+  const lastSyncedLabel = formatReportsLastSyncedAt(lastSyncedAt);
 
   async function handleCreate(values: ReportFormValues) {
     try {
@@ -666,6 +763,79 @@ export function ReportWorkspace() {
 
   return (
     <div className="space-y-4">
+      <Card>
+        <CardContent className="grid gap-4 p-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-bold text-card-foreground">
+                Tổng quan báo cáo
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Theo dõi nhanh trạng thái báo cáo từ danh sách hiện tại.
+              </p>
+            </div>
+            <Badge variant="outline" className="gap-1.5">
+              <Clock3 className="h-3.5 w-3.5" aria-hidden="true" />
+              Đồng bộ: {lastSyncedLabel}
+            </Badge>
+          </div>
+
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-md border border-border bg-muted/30 p-3">
+              <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                <ClipboardList className="h-4 w-4" aria-hidden="true" />
+                Tổng báo cáo
+              </div>
+              <p className="mt-2 text-2xl font-bold text-card-foreground">
+                {reportsOverview.total}
+              </p>
+            </div>
+            <div className="rounded-md border border-border bg-muted/30 p-3">
+              <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                <RefreshCw className="h-4 w-4" aria-hidden="true" />
+                Đang hiển thị
+              </div>
+              <p className="mt-2 text-2xl font-bold text-card-foreground">
+                {reportsOverview.filtered}
+              </p>
+            </div>
+            <div className="rounded-md border border-border bg-muted/30 p-3">
+              <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                <Clock3 className="h-4 w-4" aria-hidden="true" />
+                {getReportStatusLabel("pending")}
+              </div>
+              <p className="mt-2 text-2xl font-bold text-card-foreground">
+                {reportsOverview.pending}
+              </p>
+            </div>
+            <div className="rounded-md border border-border bg-muted/30 p-3">
+              <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                <AlertTriangle className="h-4 w-4" aria-hidden="true" />
+                Khẩn cấp
+              </div>
+              <p className="mt-2 text-2xl font-bold text-card-foreground">
+                {reportsOverview.urgent}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="default" className="gap-1.5">
+              <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
+              {getReportStatusLabel("verified")}: {reportsOverview.verified}
+            </Badge>
+            <Badge variant="success" className="gap-1.5">
+              <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
+              {getReportStatusLabel("resolved")}: {reportsOverview.resolved}
+            </Badge>
+            <Badge variant="critical" className="gap-1.5">
+              <XCircle className="h-3.5 w-3.5" aria-hidden="true" />
+              {getReportStatusLabel("rejected")}: {reportsOverview.rejected}
+            </Badge>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="grid gap-3 rounded-lg border bg-card p-4 shadow-sm md:grid-cols-[1fr_auto_auto] md:items-end">
         <Field>
           <FieldLabel htmlFor="report-search">Tìm kiếm</FieldLabel>
@@ -742,9 +912,10 @@ export function ReportWorkspace() {
       ) : null}
 
       {isLoading ? (
-        <div className="rounded-lg border border-slate-200 bg-white p-6 text-slate-600">
-          Đang tải báo cáo...
-        </div>
+        <LoadingBar
+          title="Đang tải báo cáo..."
+          description="Đồng bộ danh sách báo cáo hiện trường mới nhất."
+        />
       ) : null}
 
       {!isLoading && filteredReports.length === 0 ? (

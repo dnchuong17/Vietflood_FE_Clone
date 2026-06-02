@@ -13,6 +13,13 @@ describe("report detail helpers", () => {
       latitude: 10.7769,
       longitude: 106.7009,
     });
+
+    expect(
+      getReportCoordinates({ latitude: "16.0544", longitude: 108.2022 }),
+    ).toEqual({
+      latitude: 16.0544,
+      longitude: 108.2022,
+    });
   });
 
   it("rejects missing or out-of-range coordinates", () => {

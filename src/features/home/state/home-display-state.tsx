@@ -26,7 +26,7 @@ type HomeDisplayAction =
 
 const initialHomeDisplayState: HomeDisplayState = {
     isWeatherStatsVisible: false,
-    overlay: "rain",
+    overlay: "wind",
 };
 
 function homeDisplayReducer(

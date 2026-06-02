@@ -7,6 +7,7 @@ type ReportsStore = {
   isLoading: boolean;
   filter: "all" | ReportStatus;
   query: string;
+  lastSyncedAt: string | null;
   isCreating: boolean;
   editingReport: FloodReport | null;
   savingStatusByReportId: Record<number, ReportStatus>;
@@ -14,6 +15,7 @@ type ReportsStore = {
   setLoading: (isLoading: boolean) => void;
   setFilter: (filter: "all" | ReportStatus) => void;
   setQuery: (query: string) => void;
+  setLastSyncedAt: (lastSyncedAt: string | null) => void;
   setCreating: (isCreating: boolean) => void;
   setEditingReport: (report: FloodReport | null) => void;
   startReportStatusSave: (reportId: number, status: ReportStatus) => void;
@@ -26,6 +28,7 @@ const initialState = {
   isLoading: true,
   filter: "all" as const,
   query: "",
+  lastSyncedAt: null,
   isCreating: false,
   editingReport: null,
   savingStatusByReportId: {} as Record<number, ReportStatus>,
@@ -37,6 +40,7 @@ export const useReportsStore = create<ReportsStore>()((set) => ({
   setLoading: (isLoading) => set({ isLoading }),
   setFilter: (filter) => set({ filter }),
   setQuery: (query) => set({ query }),
+  setLastSyncedAt: (lastSyncedAt) => set({ lastSyncedAt }),
   setCreating: (isCreating) => set({ isCreating }),
   setEditingReport: (editingReport) => set({ editingReport }),
   startReportStatusSave: (reportId, status) =>

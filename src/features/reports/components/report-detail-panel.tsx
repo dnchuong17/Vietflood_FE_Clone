@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, CalendarClock, ImageIcon, MapPin, UserRound } from "lucide-react";
 
+import { LoadingBar } from "@/components/feedback/loading-bar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,7 +15,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { normalizeRole } from "@/features/auth/lib/roles";
 import { useAuthIdentity } from "@/features/auth/lib/use-auth-identity";
 import {
@@ -112,25 +112,10 @@ export function ReportDetailPanel({ reportId }: { reportId: number }) {
 
   if (isLoading) {
     return (
-      <div className="grid gap-4 lg:grid-cols-[1fr_22rem]">
-        <Card>
-          <CardHeader>
-            <Skeleton className="h-6 w-48" />
-            <Skeleton className="h-4 w-72" />
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            <Skeleton className="h-28 w-full" />
-            <Skeleton className="h-20 w-full" />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex flex-col gap-3 p-5">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-          </CardContent>
-        </Card>
-      </div>
+      <LoadingBar
+        title="Đang tải chi tiết báo cáo..."
+        description="Đang đồng bộ thông tin vận hành và minh chứng."
+      />
     );
   }
 

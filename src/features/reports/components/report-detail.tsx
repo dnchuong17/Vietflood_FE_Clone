@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 
 import { useGlobalAlert } from "@/components/feedback/global-alert-provider";
+import { LoadingBar } from "@/components/feedback/loading-bar";
 import {
   Alert,
   AlertDescription,
@@ -251,11 +252,10 @@ export function ReportDetail({ reportId }: { reportId: string }) {
 
   if (isLoading) {
     return (
-      <Card>
-        <CardContent className="p-6 text-sm font-medium text-muted-foreground">
-          Đang tải chi tiết báo cáo...
-        </CardContent>
-      </Card>
+      <LoadingBar
+        title="Đang tải chi tiết báo cáo..."
+        description="Đang lấy vị trí, minh chứng và trạng thái mới nhất."
+      />
     );
   }
 

@@ -1,10 +1,25 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { BookOpen, Eye, EyeOff, HelpCircle, KeyRound, Save } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  BookOpen,
+  CalendarDays,
+  Eye,
+  EyeOff,
+  HelpCircle,
+  KeyRound,
+  Mail,
+  MapPin,
+  Phone,
+  Save,
+  UserCircle,
+  type LucideIcon,
+} from "lucide-react";
 
 import { useGlobalAlert } from "@/components/feedback/global-alert-provider";
+import { LoadingBar } from "@/components/feedback/loading-bar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -26,10 +41,23 @@ import { getAccessToken } from "@/features/auth/lib/auth-storage";
 import { getUserRoleLabel, normalizeRole } from "@/features/auth/lib/roles";
 import type { AuthProfile } from "@/features/auth/types/auth";
 import {
+  searchProvinces,
+  searchWards,
+  type DivisionOption,
+} from "@/features/location/api/vietnam-divisions";
+import {
   buildChangePasswordPayload,
   validateChangePasswordForm,
   type ChangePasswordForm,
 } from "@/features/profile/lib/password";
+import {
+  buildProfileAvatarUrl,
+  buildProfileDisplayName,
+  buildProfileLocation,
+  formatProfileDate,
+} from "@/features/profile/lib/profile-summary";
+import { buildAddressSuggestions } from "@/features/reports/lib/address-suggestions";
+import { useReportsStore } from "@/features/reports/store/reports-store";
 
 type ProfileForm = {
   first_name: string;
@@ -55,8 +83,29 @@ const EMPTY_PROFILE: ProfileForm = {
   address_line: "",
 };
 
+function ProfileInfoItem({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: LucideIcon;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex items-start gap-3 rounded-md border p-3">
+      <Icon className="mt-0.5 size-4 text-primary" aria-hidden="true" />
+      <div className="min-w-0">
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="break-words text-sm font-medium">{value}</p>
+      </div>
+    </div>
+  );
+}
+
 export function ProfileSettings() {
   const { showAlert } = useGlobalAlert();
+  const reports = useReportsStore((state) => state.reports);
   const [profile, setProfile] = useState<AuthProfile | null>(null);
   const [form, setForm] = useState<ProfileForm>(EMPTY_PROFILE);
   const [passwordForm, setPasswordForm] = useState({
@@ -74,6 +123,11 @@ export function ProfileSettings() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [selectedProvinceCode, setSelectedProvinceCode] = useState<number | null>(null);
+  const [provinceOptions, setProvinceOptions] = useState<DivisionOption[]>([]);
+  const [wardOptions, setWardOptions] = useState<DivisionOption[]>([]);
+  const [isLoadingProvinces, setIsLoadingProvinces] = useState(false);
+  const [isLoadingWards, setIsLoadingWards] = useState(false);
 
   async function loadProfile() {
     const token = getAccessToken();
@@ -119,8 +173,121 @@ export function ProfileSettings() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    let isCurrent = true;
+    const timeoutId = window.setTimeout(async () => {
+      try {
+        setIsLoadingProvinces(true);
+        const options = await searchProvinces(form.province);
+        if (isCurrent) {
+          setProvinceOptions(options);
+        }
+      } catch {
+        if (isCurrent) {
+          setProvinceOptions([]);
+        }
+      } finally {
+        if (isCurrent) {
+          setIsLoadingProvinces(false);
+        }
+      }
+    }, 180);
+
+    return () => {
+      isCurrent = false;
+      window.clearTimeout(timeoutId);
+    };
+  }, [form.province]);
+
+  useEffect(() => {
+    if (!selectedProvinceCode) {
+      setWardOptions([]);
+      return;
+    }
+
+    let isCurrent = true;
+    const timeoutId = window.setTimeout(async () => {
+      try {
+        setIsLoadingWards(true);
+        const options = await searchWards(selectedProvinceCode, form.ward);
+        if (isCurrent) {
+          setWardOptions(options);
+        }
+      } catch {
+        if (isCurrent) {
+          setWardOptions([]);
+        }
+      } finally {
+        if (isCurrent) {
+          setIsLoadingWards(false);
+        }
+      }
+    }, 180);
+
+    return () => {
+      isCurrent = false;
+      window.clearTimeout(timeoutId);
+    };
+  }, [form.ward, selectedProvinceCode]);
+
+  const normalizedProvinceValue = form.province.trim().toLocaleLowerCase("vi-VN");
+  const normalizedWardValue = form.ward.trim().toLocaleLowerCase("vi-VN");
+  const visibleProvinceOptions = useMemo(
+    () =>
+      provinceOptions.filter(
+        (option) => option.name.trim().toLocaleLowerCase("vi-VN") !== normalizedProvinceValue,
+      ),
+    [normalizedProvinceValue, provinceOptions],
+  );
+  const visibleWardOptions = useMemo(
+    () =>
+      wardOptions.filter(
+        (option) => option.name.trim().toLocaleLowerCase("vi-VN") !== normalizedWardValue,
+      ),
+    [normalizedWardValue, wardOptions],
+  );
+  const addressSuggestions = useMemo(
+    () =>
+      buildAddressSuggestions({
+        query: form.address_line,
+        province: form.province,
+        ward: form.ward,
+        reports,
+      }),
+    [form.address_line, form.province, form.ward, reports],
+  );
+
+  useEffect(() => {
+    if (selectedProvinceCode || !normalizedProvinceValue) {
+      return;
+    }
+
+    const exactProvince = provinceOptions.find(
+      (option) => option.name.trim().toLocaleLowerCase("vi-VN") === normalizedProvinceValue,
+    );
+    if (exactProvince) {
+      setSelectedProvinceCode(exactProvince.code);
+    }
+  }, [normalizedProvinceValue, provinceOptions, selectedProvinceCode]);
+
   function updateField<T extends keyof ProfileForm>(field: T, value: ProfileForm[T]) {
     setForm((prev) => ({ ...prev, [field]: value }));
+  }
+
+  function handleProvinceInput(value: string) {
+    setSelectedProvinceCode(null);
+    setWardOptions([]);
+    setForm((prev) => ({ ...prev, province: value, ward: "" }));
+  }
+
+  function selectProvince(option: DivisionOption) {
+    setSelectedProvinceCode(option.code);
+    setWardOptions([]);
+    setForm((prev) => ({ ...prev, province: option.name, ward: "" }));
+  }
+
+  function selectWard(option: DivisionOption) {
+    setForm((prev) => ({ ...prev, ward: option.name }));
   }
 
   async function handleSaveProfile(event: React.FormEvent<HTMLFormElement>) {
@@ -202,85 +369,211 @@ export function ProfileSettings() {
 
   if (isLoading) {
     return (
-      <Card>
-        <CardContent className="p-6 text-sm text-muted-foreground">
-        Đang tải hồ sơ...
-        </CardContent>
-      </Card>
+      <LoadingBar
+        title="Đang tải hồ sơ..."
+        description="Đang lấy thông tin tài khoản và địa chỉ đã lưu."
+      />
     );
   }
 
+  const displayName = buildProfileDisplayName(profile, "Chưa có dữ liệu");
+  const profileRole = getUserRoleLabel(normalizeRole(profile?.role));
+  const profileLocation = buildProfileLocation(profile, "Chưa cập nhật");
+  const avatarUrl = buildProfileAvatarUrl(profile);
+  const missingValue = "Chưa cập nhật";
+  const canEditWard = Boolean(selectedProvinceCode || form.province.trim());
+
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_24rem]">
-      <Card>
-        <CardHeader>
-          <CardTitle>Hồ sơ</CardTitle>
-          <CardDescription>
-            Vai trò:{" "}
-            <span className="font-semibold">
-              {getUserRoleLabel(normalizeRole(profile?.role))}
-            </span>
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSaveProfile} className="flex flex-col gap-4">
-            <FieldGroup>
-              <div className="grid gap-3 sm:grid-cols-3">
-                {[
-                  ["first_name", "Tên"],
-                  ["middle_name", "Tên đệm"],
-                  ["last_name", "Họ"],
-                ].map(([field, label]) => (
-                  <Field key={field}>
-                    <FieldLabel>{label}</FieldLabel>
-                    <Input
-                      value={form[field as keyof ProfileForm]}
-                      onChange={(event) =>
-                        updateField(field as keyof ProfileForm, event.target.value)
-                      }
-                    />
-                  </Field>
-                ))}
+      <div className="flex flex-col gap-4">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-4">
+              <div
+                aria-label={`Ảnh đại diện của ${displayName}`}
+                className="size-16 shrink-0 rounded-full border bg-muted bg-cover bg-center"
+                role="img"
+                style={{ backgroundImage: `url("${avatarUrl}")` }}
+              />
+              <div className="min-w-0">
+                <CardTitle className="truncate">{displayName}</CardTitle>
+                <CardDescription>{profile?.username ?? missingValue}</CardDescription>
+                <Badge variant="secondary" className="mt-2">
+                  {profileRole}
+                </Badge>
               </div>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                {[
-                  ["email", "Địa chỉ thư điện tử"],
-                  ["phone", "Số điện thoại"],
-                  ["province", "Tỉnh/Thành phố"],
-                  ["ward", "Phường/Xã"],
-                ].map(([field, label]) => (
-                  <Field key={field}>
-                    <FieldLabel>{label}</FieldLabel>
-                    <Input
-                      value={form[field as keyof ProfileForm]}
-                      onChange={(event) =>
-                        updateField(field as keyof ProfileForm, event.target.value)
-                      }
-                    />
-                  </Field>
-                ))}
-              </div>
-
-              <Field>
-                <FieldLabel>Địa chỉ</FieldLabel>
-                <Textarea
-                  value={form.address_line}
-                  onChange={(event) => updateField("address_line", event.target.value)}
-                  rows={3}
-                />
-              </Field>
-            </FieldGroup>
-
-            <div className="flex justify-end">
-              <Button type="submit" disabled={isSaving}>
-                <Save data-icon="inline-start" aria-hidden="true" />
-                {isSaving ? "Đang lưu..." : "Lưu hồ sơ"}
-              </Button>
             </div>
-          </form>
-        </CardContent>
-      </Card>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <ProfileInfoItem
+                icon={Mail}
+                label="Email"
+                value={profile?.email ?? missingValue}
+              />
+              <ProfileInfoItem
+                icon={Phone}
+                label="Số điện thoại"
+                value={profile?.phone ?? missingValue}
+              />
+              <ProfileInfoItem
+                icon={MapPin}
+                label="Địa chỉ"
+                value={profileLocation}
+              />
+              <ProfileInfoItem
+                icon={UserCircle}
+                label="Ngày sinh"
+                value={formatProfileDate(profile?.date_of_birth, missingValue)}
+              />
+              <ProfileInfoItem
+                icon={CalendarDays}
+                label="Ngày tạo"
+                value={formatProfileDate(profile?.created_at, missingValue)}
+              />
+              <ProfileInfoItem
+                icon={CalendarDays}
+                label="Cập nhật"
+                value={formatProfileDate(profile?.updated_at, missingValue)}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Hồ sơ</CardTitle>
+            <CardDescription>
+              Chỉnh sửa thông tin liên hệ và địa chỉ của tài khoản.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSaveProfile} className="flex flex-col gap-4">
+              <FieldGroup>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {[
+                    ["first_name", "Tên"],
+                    ["middle_name", "Tên đệm"],
+                    ["last_name", "Họ"],
+                  ].map(([field, label]) => (
+                    <Field key={field}>
+                      <FieldLabel>{label}</FieldLabel>
+                      <Input
+                        value={form[field as keyof ProfileForm]}
+                        onChange={(event) =>
+                          updateField(field as keyof ProfileForm, event.target.value)
+                        }
+                      />
+                    </Field>
+                  ))}
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {[
+                    ["email", "Địa chỉ thư điện tử"],
+                    ["phone", "Số điện thoại"],
+                  ].map(([field, label]) => (
+                    <Field key={field}>
+                      <FieldLabel>{label}</FieldLabel>
+                      <Input
+                        value={form[field as keyof ProfileForm]}
+                        onChange={(event) =>
+                          updateField(field as keyof ProfileForm, event.target.value)
+                        }
+                      />
+                    </Field>
+                  ))}
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Field>
+                    <FieldLabel>Tỉnh/Thành phố</FieldLabel>
+                    <Input
+                      value={form.province}
+                      onChange={(event) => handleProvinceInput(event.target.value)}
+                      placeholder="Nhập tỉnh hoặc thành phố"
+                    />
+                    {visibleProvinceOptions.length > 0 ? (
+                      <div className="rounded-md border bg-popover shadow-sm">
+                        {visibleProvinceOptions.slice(0, 6).map((option) => (
+                          <button
+                            key={option.code}
+                            type="button"
+                            className="block w-full px-3 py-2 text-left text-sm font-medium text-popover-foreground hover:bg-accent hover:text-accent-foreground"
+                            onClick={() => selectProvince(option)}
+                          >
+                            {option.name}
+                          </button>
+                        ))}
+                      </div>
+                    ) : isLoadingProvinces ? (
+                      <p className="text-xs text-muted-foreground">
+                        Đang tìm tỉnh/thành phố...
+                      </p>
+                    ) : null}
+                  </Field>
+
+                  <Field>
+                    <FieldLabel>Phường/Xã</FieldLabel>
+                    <Input
+                      value={form.ward}
+                      onChange={(event) => updateField("ward", event.target.value)}
+                      placeholder="Chọn hoặc nhập phường/xã"
+                      disabled={!canEditWard}
+                    />
+                    {visibleWardOptions.length > 0 ? (
+                      <div className="rounded-md border bg-popover shadow-sm">
+                        {visibleWardOptions.slice(0, 6).map((option) => (
+                          <button
+                            key={option.code}
+                            type="button"
+                            className="block w-full px-3 py-2 text-left text-sm font-medium text-popover-foreground hover:bg-accent hover:text-accent-foreground"
+                            onClick={() => selectWard(option)}
+                          >
+                            {option.name}
+                          </button>
+                        ))}
+                      </div>
+                    ) : isLoadingWards ? (
+                      <p className="text-xs text-muted-foreground">Đang tìm phường/xã...</p>
+                    ) : null}
+                  </Field>
+                </div>
+
+                <Field>
+                  <FieldLabel>Địa chỉ</FieldLabel>
+                  <Textarea
+                    value={form.address_line}
+                    onChange={(event) => updateField("address_line", event.target.value)}
+                    rows={3}
+                  />
+                  {addressSuggestions.length > 0 ? (
+                    <div className="rounded-md border bg-popover shadow-sm">
+                      {addressSuggestions.map((suggestion) => (
+                        <button
+                          key={suggestion}
+                          type="button"
+                          className="block w-full px-3 py-2 text-left text-sm font-medium text-popover-foreground hover:bg-accent hover:text-accent-foreground"
+                          onClick={() => updateField("address_line", suggestion)}
+                        >
+                          {suggestion}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </Field>
+              </FieldGroup>
+
+              <div className="flex justify-end">
+                <Button type="submit" disabled={isSaving}>
+                  <Save data-icon="inline-start" aria-hidden="true" />
+                  {isSaving ? "Đang lưu..." : "Lưu hồ sơ"}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
 
       <div className="flex flex-col gap-4">
         <Card>

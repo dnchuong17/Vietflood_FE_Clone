@@ -9,13 +9,17 @@ import {
   MapPin,
   Phone,
   RefreshCw,
+  Search,
   UserRound,
 } from "lucide-react";
 
 import { useGlobalAlert } from "@/components/feedback/global-alert-provider";
+import { LoadingBar } from "@/components/feedback/loading-bar";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Field, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import { useAuthIdentity } from "@/features/auth/lib/use-auth-identity";
 import { normalizeRole } from "@/features/auth/lib/roles";
 import {
@@ -35,6 +39,11 @@ import {
   summarizeAssignments,
   type AssignmentPriority,
 } from "@/features/relief/lib/assignments";
+import {
+  buildReliefQueueStats,
+  filterReliefQueueReports,
+} from "@/features/relief/lib/queue";
+import { useReliefStore } from "@/features/relief/store/relief-store";
 import { cn } from "@/lib/utils";
 
 function statusOf(report: FloodReport): ReportStatus {
@@ -77,6 +86,10 @@ export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: b
   const { showAlert } = useGlobalAlert();
   const identity = useAuthIdentity();
   const role = normalizeRole(identity?.role) ?? "relief";
+  const searchQuery = useReliefStore((state) => state.searchQuery);
+  const queueFilter = useReliefStore((state) => state.queueFilter);
+  const setSearchQuery = useReliefStore((state) => state.setSearchQuery);
+  const setQueueFilter = useReliefStore((state) => state.setQueueFilter);
   const reports = useReportsStore((state) => state.reports);
   const isLoading = useReportsStore((state) => state.isLoading);
   const savingStatusByReportId = useReportsStore(
@@ -116,15 +129,7 @@ export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: b
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [role]);
 
-  const stats = useMemo(() => {
-    return {
-      total: reports.length,
-      pending: reports.filter((report) => statusOf(report) === "pending").length,
-      verified: reports.filter((report) => statusOf(report) === "verified").length,
-      resolved: reports.filter((report) => statusOf(report) === "resolved").length,
-      urgent: reports.filter((report) => report.isUrgent).length,
-    };
-  }, [reports]);
+  const stats = useMemo(() => buildReliefQueueStats(reports), [reports]);
   const assignments = useMemo(
     () => reports.map((report) => mapReportToAssignment(report)),
     [reports],
@@ -142,19 +147,32 @@ export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: b
       ]
     : [
         ["Tổng số", stats.total],
-        ["Chờ xử lý", stats.pending],
-        ["Đã xác minh", stats.verified],
+        ["Chờ xử lý", stats.awaiting],
+        ["Đang xử lý", stats.active],
         ["Đã xử lý", stats.resolved],
-        ["Khẩn cấp", stats.urgent],
+        ["Sẵn tuyến đường", stats.routeReady],
       ];
+  const reliefQueueFilters = useMemo(
+    () => [
+      { key: "all" as const, label: "Tất cả", count: stats.total },
+      { key: "awaiting" as const, label: "Chờ xử lý", count: stats.awaiting },
+      { key: "active" as const, label: "Đang xử lý", count: stats.active },
+      { key: "resolved" as const, label: "Đã xử lý", count: stats.resolved },
+      {
+        key: "route-ready" as const,
+        label: "Sẵn tuyến đường",
+        count: stats.routeReady,
+      },
+    ],
+    [stats],
+  );
 
   const queue = useMemo(() => {
-    return reports
-      .filter((report) =>
-        assignmentMode
-          ? statusOf(report) === "pending" || statusOf(report) === "verified"
-          : statusOf(report) !== "resolved",
-      )
+    return filterReliefQueueReports(
+      reports,
+      queueFilter,
+      searchQuery,
+    )
       .sort((first, second) => {
         if (Boolean(first.isUrgent) !== Boolean(second.isUrgent)) {
           return first.isUrgent ? -1 : 1;
@@ -163,7 +181,7 @@ export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: b
         const secondTime = second.createdAt ? new Date(second.createdAt).getTime() : 0;
         return secondTime - firstTime;
       });
-  }, [assignmentMode, reports]);
+  }, [queueFilter, searchQuery, reports]);
   const assignmentQueue = useMemo(() => {
     const priorityWeight: Record<AssignmentPriority, number> = {
       urgent: 0,
@@ -260,12 +278,70 @@ export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: b
         </CardContent>
       </Card>
 
-      {isLoading ? (
-        <Card>
-          <CardContent className="p-6 text-sm text-muted-foreground">
-            Đang tải hàng đợi cứu trợ...
+      {!assignmentMode ? (
+        <Card className="bg-card">
+          <CardContent className="grid gap-3 p-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 className="text-base font-bold text-card-foreground">
+                  Hàng chờ trực tiếp
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {queue.length} báo cáo đang hiển thị theo bộ lọc hiện tại.
+                </p>
+              </div>
+              <Badge variant="outline">
+                {queueFilter === "route-ready"
+                  ? "Chế độ tuyến đường"
+                  : "Chế độ vận hành"}
+              </Badge>
+            </div>
+
+            <Field>
+              <FieldLabel htmlFor="relief-queue-search">Tìm ca cứu trợ</FieldLabel>
+              <div className="relative">
+                <Search
+                  className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                  aria-hidden="true"
+                />
+                <Input
+                  id="relief-queue-search"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  placeholder="Tìm theo địa chỉ, danh mục hoặc người báo"
+                  className="pl-9"
+                />
+              </div>
+            </Field>
+
+            <div className="flex flex-wrap gap-2">
+              {reliefQueueFilters.map((filter) => (
+                <Button
+                  key={filter.key}
+                  type="button"
+                  size="sm"
+                  variant={queueFilter === filter.key ? "default" : "outline"}
+                  onClick={() => setQueueFilter(filter.key)}
+                >
+                  {filter.label}
+                  <Badge
+                    variant={queueFilter === filter.key ? "secondary" : "outline"}
+                    className="ml-1"
+                  >
+                    {filter.count}
+                  </Badge>
+                </Button>
+              ))}
+            </div>
           </CardContent>
         </Card>
+      ) : null}
+
+      {isLoading ? (
+        <LoadingBar
+          title="Đang tải hàng đợi cứu trợ..."
+          description="Đang đồng bộ các báo cáo cần phản hồi và phân công."
+        />
       ) : null}
 
       <div className="grid gap-3">

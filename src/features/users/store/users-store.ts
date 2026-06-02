@@ -9,6 +9,7 @@ type UsersStore = {
   roleFilter: "all" | string;
   selectedUser: ManagedUser | null;
   form: UserUpdateValues;
+  lastSyncedAt: string | null;
   isLoading: boolean;
   isSaving: boolean;
   isSavingRole: boolean;
@@ -16,6 +17,7 @@ type UsersStore = {
   setQuery: (query: string) => void;
   setRoleFilter: (roleFilter: "all" | string) => void;
   selectUser: (user: ManagedUser | null) => void;
+  setLastSyncedAt: (lastSyncedAt: string | null) => void;
   setField: <T extends keyof UserUpdateValues>(
     field: T,
     value: UserUpdateValues[T],
@@ -31,6 +33,7 @@ const initialState = {
   roleFilter: "all",
   selectedUser: null,
   form: {} as UserUpdateValues,
+  lastSyncedAt: null,
   isLoading: true,
   isSaving: false,
   isSavingRole: false,
@@ -55,6 +58,7 @@ export const useUsersStore = create<UsersStore>()((set) => ({
   setUsers: (users) => set({ users }),
   setQuery: (query) => set({ query }),
   setRoleFilter: (roleFilter) => set({ roleFilter }),
+  setLastSyncedAt: (lastSyncedAt) => set({ lastSyncedAt }),
   selectUser: (selectedUser) =>
     set({
       selectedUser,

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { useGlobalAlert } from "@/components/feedback/global-alert-provider";
+import { LoadingBar } from "@/components/feedback/loading-bar";
 import { Button } from "@/components/ui/button";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -178,6 +179,13 @@ export function RegisterForm() {
         <Button type="submit" className="mt-1 w-full" disabled={isSubmitting}>
           {isSubmitting ? "Đang tạo tài khoản..." : "Tạo tài khoản người dân"}
         </Button>
+
+        {isSubmitting ? (
+          <LoadingBar
+            title="Đang tạo tài khoản..."
+            description="Đang gửi hồ sơ đăng ký và chuẩn bị trang đăng nhập."
+          />
+        ) : null}
 
         <p className="text-center text-sm text-muted-foreground">
           Đã có tài khoản?{" "}

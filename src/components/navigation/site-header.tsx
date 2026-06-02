@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { motion, useReducedMotion } from "framer-motion";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import {
@@ -15,6 +16,7 @@ import {
 } from "lucide-react";
 
 import { useGlobalAlert } from "@/components/feedback/global-alert-provider";
+import { LoadingBar } from "@/components/feedback/loading-bar";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { getTabsForRole, isTabActive } from "@/features/app-shell/lib/tabs";
@@ -40,6 +42,7 @@ export function SiteHeader() {
   const identity = useAuthIdentity();
   const role = normalizeRole(identity?.role);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const shouldReduceMotion = useReducedMotion();
 
   function handleLogout() {
     setIsLoggingOut(true);
@@ -51,14 +54,21 @@ export function SiteHeader() {
     });
     router.push("/trang-chu");
     router.refresh();
-    setIsLoggingOut(false);
+    window.setTimeout(() => setIsLoggingOut(false), 700);
   }
 
   const tabs = role ? getTabsForRole(role) : [];
 
   return (
     <>
-      <header className="sticky top-0 z-20 border-b shadow-sm bg-background/85 backdrop-blur-xl">
+      <motion.header
+        className="sticky top-0 z-20 border-b shadow-sm bg-background/85 backdrop-blur-xl"
+        data-motion="site-header"
+        data-motion-policy="prefers-reduced-motion"
+        initial={shouldReduceMotion ? false : { opacity: 0, y: -8 }}
+        animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
+        transition={{ duration: 0.24, ease: "easeOut" }}
+      >
         <div className="mx-auto grid h-[var(--navbar-height)] max-w-7xl grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 px-3 sm:gap-3 sm:px-4">
           <Link
             href="/"
@@ -112,7 +122,9 @@ export function SiteHeader() {
                 aria-label="Đăng xuất"
               >
                 <LogOut data-icon="inline-start" className="sm:hidden" aria-hidden="true" />
-                <span className="hidden sm:inline">Đăng xuất</span>
+                <span className="hidden sm:inline">
+                  {isLoggingOut ? "Đang xuất..." : "Đăng xuất"}
+                </span>
               </Button>
             ) : (
               <Button asChild size="sm">
@@ -121,7 +133,15 @@ export function SiteHeader() {
             )}
           </div>
         </div>
-      </header>
+      </motion.header>
+
+      {isLoggingOut ? (
+        <LoadingBar
+          title="Đang đăng xuất..."
+          description="Đang kết thúc phiên và đưa bạn về trang chủ."
+          className="fixed inset-x-0 top-[var(--navbar-height)] z-50 rounded-none border-x-0 border-t-0"
+        />
+      ) : null}
 
       {tabs.length > 0 ? (
         <nav

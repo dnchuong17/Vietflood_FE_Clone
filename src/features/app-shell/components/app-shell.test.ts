@@ -31,4 +31,18 @@ describe("app navigation chrome", () => {
     expect(appShellSource).toContain("motion");
     expect(appShellSource).toContain("prefers-reduced-motion");
   });
+
+  it("uses motion-safe animation on the shared site header", () => {
+    expect(siteHeaderSource).toContain('from "framer-motion"');
+    expect(siteHeaderSource).toContain("useReducedMotion");
+    expect(siteHeaderSource).toContain('data-motion="site-header"');
+    expect(siteHeaderSource).toContain("prefers-reduced-motion");
+  });
+
+  it("shows BarLoader feedback during logout redirect", () => {
+    expect(siteHeaderSource).toContain("@/components/feedback/loading-bar");
+    expect(siteHeaderSource).toContain("<LoadingBar");
+    expect(siteHeaderSource).toContain('title="Đang đăng xuất..."');
+    expect(siteHeaderSource).toContain("window.setTimeout");
+  });
 });

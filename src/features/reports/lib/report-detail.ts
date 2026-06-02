@@ -47,8 +47,8 @@ export function normalizeReportStatus(status: FloodReport["status"]): ReportStat
 export function getReportCoordinates(
   report: FloodReport,
 ): ReportCoordinate | null {
-  const latitude = toOptionalNumber(report.lat);
-  const longitude = toOptionalNumber(report.lng);
+  const latitude = toOptionalNumber(report.lat ?? report.latitude);
+  const longitude = toOptionalNumber(report.lng ?? report.longitude);
 
   if (
     latitude === undefined ||

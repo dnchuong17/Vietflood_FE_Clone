@@ -14,6 +14,11 @@ describe("user management UI", () => {
     expect(source).toContain("@/components/ui/select");
     expect(source).toContain("@/components/ui/badge");
     expect(source).toContain("<Button");
+    expect(source).toContain("buildUsersOverviewSummary");
+    expect(source).toContain("formatUsersLastSyncedAt");
+    expect(source).toContain("lastSyncedAt");
+    expect(source).toContain("Tổng người dùng");
+    expect(source).toContain("Đang hiển thị");
     expect(source).not.toContain("bg-white");
     expect(source).not.toContain("text-slate");
   });

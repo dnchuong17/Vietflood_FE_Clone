@@ -21,8 +21,11 @@ export type AuthProfile = {
   last_name?: string;
   province?: string;
   ward?: string;
+  district?: string;
   address_line?: string;
+  date_of_birth?: string | null;
   created_at?: string;
+  updated_at?: string;
 };
 
 export type RegisterPayload = {

@@ -1,9 +1,19 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
-import { RefreshCw, Save, ShieldCheck, Trash2 } from "lucide-react";
+import {
+  Clock,
+  RefreshCw,
+  Save,
+  ShieldCheck,
+  Trash2,
+  UserCheck,
+  UserRound,
+  Users,
+} from "lucide-react";
 
 import { useGlobalAlert } from "@/components/feedback/global-alert-provider";
+import { LoadingBar } from "@/components/feedback/loading-bar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -35,6 +45,11 @@ import {
   buildUserProfileUpdatePayload,
   buildUserRoleAssignmentPayload,
 } from "@/features/users/lib/rbac";
+import {
+  buildUsersOverviewSummary,
+  formatUsersLastSyncedAt,
+  toOverviewUserRole,
+} from "@/features/users/lib/overview";
 import { useUsersStore } from "@/features/users/store/users-store";
 import { cn } from "@/lib/utils";
 
@@ -60,6 +75,7 @@ export function UserManagement() {
   const roleFilter = useUsersStore((state) => state.roleFilter);
   const selectedUser = useUsersStore((state) => state.selectedUser);
   const form = useUsersStore((state) => state.form);
+  const lastSyncedAt = useUsersStore((state) => state.lastSyncedAt);
   const isLoading = useUsersStore((state) => state.isLoading);
   const isSaving = useUsersStore((state) => state.isSaving);
   const isSavingRole = useUsersStore((state) => state.isSavingRole);
@@ -67,6 +83,7 @@ export function UserManagement() {
   const setQuery = useUsersStore((state) => state.setQuery);
   const setRoleFilter = useUsersStore((state) => state.setRoleFilter);
   const selectUser = useUsersStore((state) => state.selectUser);
+  const setLastSyncedAt = useUsersStore((state) => state.setLastSyncedAt);
   const setField = useUsersStore((state) => state.setField);
   const setLoading = useUsersStore((state) => state.setLoading);
   const setSaving = useUsersStore((state) => state.setSaving);
@@ -75,7 +92,9 @@ export function UserManagement() {
   async function loadUsers() {
     try {
       setLoading(true);
-      setUsers(await listUsers());
+      const loadedUsers = await listUsers();
+      setUsers(loadedUsers);
+      setLastSyncedAt(new Date().toISOString());
     } catch (error) {
       showAlert({
         title: "Không thể tải người dùng",
@@ -97,7 +116,7 @@ export function UserManagement() {
   const filteredUsers = useMemo(() => {
     const keyword = query.trim().toLowerCase();
     return users.filter((user) => {
-      const userRole = normalizeRole(user.role) ?? "citizen";
+      const userRole = toOverviewUserRole(user.role);
       if (roleFilter !== "all" && userRole !== roleFilter) {
         return false;
       }
@@ -119,6 +138,11 @@ export function UserManagement() {
         .includes(keyword);
     });
   }, [query, roleFilter, users]);
+
+  const overviewSummary = useMemo(
+    () => buildUsersOverviewSummary(users, filteredUsers.length),
+    [filteredUsers.length, users],
+  );
 
   function updateField<T extends keyof UserUpdateValues>(
     field: T,
@@ -228,6 +252,72 @@ export function UserManagement() {
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_24rem]">
       <div className="flex flex-col gap-3">
         <Card>
+          <CardContent className="flex flex-col gap-4 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                  Danh bạ điều hành
+                </p>
+                <h2 className="text-lg font-bold text-card-foreground">
+                  Tổng quan người dùng
+                </h2>
+              </div>
+              <Badge variant="secondary" className="gap-1.5">
+                <Clock aria-hidden="true" />
+                Đồng bộ {formatUsersLastSyncedAt(lastSyncedAt, "chưa đồng bộ")}
+              </Badge>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              {[
+                {
+                  label: "Tổng người dùng",
+                  value: overviewSummary.total,
+                  icon: Users,
+                },
+                {
+                  label: "Đang hiển thị",
+                  value: overviewSummary.filtered,
+                  icon: UserCheck,
+                },
+                {
+                  label: getUserRoleLabel("citizen"),
+                  value: overviewSummary.citizen,
+                  icon: UserRound,
+                },
+                {
+                  label: getUserRoleLabel("relief"),
+                  value: overviewSummary.relief,
+                  icon: ShieldCheck,
+                },
+                {
+                  label: getUserRoleLabel("admin"),
+                  value: overviewSummary.admin,
+                  icon: ShieldCheck,
+                },
+              ].map((item) => {
+                const Icon = item.icon;
+
+                return (
+                  <div
+                    key={item.label}
+                    className="rounded-md border bg-muted/40 p-3"
+                  >
+                    <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                      <Icon aria-hidden="true" />
+                      <span>{item.label}</span>
+                    </div>
+                    <p className="mt-2 text-2xl font-bold text-card-foreground">
+                      {item.value}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
           <CardContent className="grid gap-3 p-4 md:grid-cols-[1fr_auto_auto] md:items-end">
             <Field>
               <FieldLabel>Tìm người dùng</FieldLabel>
@@ -274,11 +364,15 @@ export function UserManagement() {
             <span>Vai trò</span>
           </div>
           {isLoading ? (
-            <div className="p-5 text-sm text-muted-foreground">Đang tải người dùng...</div>
+            <LoadingBar
+              title="Đang tải người dùng..."
+              description="Cập nhật danh sách tài khoản và vai trò mới nhất."
+              className="m-3"
+            />
           ) : null}
           {!isLoading &&
             filteredUsers.map((user) => {
-              const userRole = normalizeRole(user.role) ?? "citizen";
+              const userRole = toOverviewUserRole(user.role);
               return (
                 <button
                   key={user.id ?? user.username}

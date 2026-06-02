@@ -2,6 +2,8 @@
 
 import type { ReactNode } from "react";
 
+import { LoadingBar } from "@/components/feedback/loading-bar";
+
 type ConfirmDialogProps = {
     isOpen: boolean;
     title: string;
@@ -57,6 +59,14 @@ export function ConfirmDialog({
                 </p>
                 <h3 className="mt-1 text-lg font-bold text-slate-900">{title}</h3>
                 <div className="mt-2 text-sm text-slate-600">{description}</div>
+
+                {isConfirming ? (
+                    <LoadingBar
+                        title="Đang xử lý..."
+                        description="Vui lòng chờ trong khi hệ thống hoàn tất thao tác."
+                        className="mt-4"
+                    />
+                ) : null}
 
                 <div className="mt-5 flex items-center justify-end gap-2">
                     <button

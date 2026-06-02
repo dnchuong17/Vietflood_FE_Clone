@@ -20,4 +20,15 @@ describe("auth form UI", () => {
     expect(authCardSource).toContain("CardHeader");
     expect(authCardSource).toContain("CardContent");
   });
+
+  it("shows BarLoader feedback while login and registration submit", () => {
+    for (const source of [loginSource, registerSource]) {
+      expect(source).toContain("@/components/feedback/loading-bar");
+      expect(source).toContain("<LoadingBar");
+      expect(source).toContain("isSubmitting ? (");
+    }
+
+    expect(loginSource).toContain('title="Đang đăng nhập..."');
+    expect(registerSource).toContain('title="Đang tạo tài khoản..."');
+  });
 });

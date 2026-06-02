@@ -30,4 +30,17 @@ describe("users Zustand store", () => {
     );
     expect(useUsersStore.getState().roleFilter).toBe("admin");
   });
+
+  it("tracks the last successful sync time and clears it on reset", () => {
+    const syncedAt = "2026-06-02T15:00:00.000Z";
+
+    useUsersStore.getState().setUsers([{ id: 1, username: "citizen-a" }]);
+    useUsersStore.getState().setLastSyncedAt(syncedAt);
+
+    expect(useUsersStore.getState().lastSyncedAt).toBe(syncedAt);
+
+    resetUsersStore();
+
+    expect(useUsersStore.getState().lastSyncedAt).toBeNull();
+  });
 });

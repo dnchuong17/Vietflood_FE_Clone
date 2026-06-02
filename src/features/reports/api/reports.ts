@@ -36,6 +36,8 @@ export type FloodReport = {
   address_line?: string;
   lat?: number | string;
   lng?: number | string;
+  latitude?: number | string;
+  longitude?: number | string;
   status?: ReportStatus | string;
   isUrgent?: boolean;
   is_urgent?: boolean;
@@ -81,7 +83,23 @@ function normalizeCategory(category: FloodReport["category"]): string[] {
   );
 }
 
+function normalizeOptionalNumber(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number.parseFloat(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+
+  return undefined;
+}
+
 export function normalizeReport(report: FloodReport): FloodReport {
+  const latitude = normalizeOptionalNumber(report.lat ?? report.latitude);
+  const longitude = normalizeOptionalNumber(report.lng ?? report.longitude);
+
   return {
     ...report,
     category: normalizeCategory(report.category),
@@ -89,10 +107,10 @@ export function normalizeReport(report: FloodReport): FloodReport {
     userId: report.userId ?? report.user_id ?? report.user?.id,
     isUrgent: report.isUrgent ?? report.is_urgent ?? false,
     createdAt: report.createdAt ?? report.created_at,
-    lat:
-      typeof report.lat === "string" ? Number.parseFloat(report.lat) : report.lat,
-    lng:
-      typeof report.lng === "string" ? Number.parseFloat(report.lng) : report.lng,
+    lat: latitude,
+    lng: longitude,
+    latitude,
+    longitude,
     severity:
       typeof report.severity === "string"
         ? Number.parseInt(report.severity, 10)
