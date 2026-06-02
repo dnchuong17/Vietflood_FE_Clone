@@ -4,10 +4,16 @@ import {
   apiPath,
   apiRequest,
   parseJsonResponse,
-} from "@/features/auth/lib/api-client";
-import type { UserRole } from "@/features/auth/lib/roles";
-import { canManageReports } from "@/features/auth/lib/roles";
-import { buildReportStatusPatchPayload } from "@/features/reports/lib/status";
+} from "../../auth/lib/api-client";
+import type { UserRole } from "../../auth/lib/roles";
+import { canManageReports } from "../../auth/lib/roles";
+import {
+  buildReportFormData,
+  type ReportFormValues,
+} from "../lib/form-data";
+import { buildReportStatusPatchPayload } from "../lib/status";
+
+export type { ReportFormValues } from "../lib/form-data";
 
 export type ReportStatus = "pending" | "verified" | "resolved" | "rejected";
 
@@ -46,19 +52,6 @@ export type FloodReport = {
   created_at?: string;
   evidences?: ReportEvidence[];
   images?: string[];
-};
-
-export type ReportFormValues = {
-  categories: string[];
-  description: string;
-  province: string;
-  ward: string;
-  addressLine: string;
-  lat: string;
-  lng: string;
-  severity: string;
-  isUrgent: boolean;
-  files?: FileList | null;
 };
 
 type BackendReportEnvelope = {
@@ -169,29 +162,6 @@ function normalizeReportDetail(data: unknown): FloodReport | null {
   return normalizeReport(record as FloodReport);
 }
 
-function appendReportForm(formData: FormData, values: ReportFormValues) {
-  const categories = values.categories.length > 0 ? values.categories : ["flood"];
-  for (const category of categories) {
-    formData.append("category", category);
-  }
-  if (categories.length === 1) {
-    formData.append("category", categories[0]);
-  }
-
-  formData.append("description", values.description);
-  formData.append("province", values.province);
-  formData.append("ward", values.ward);
-  formData.append("addressLine", values.addressLine);
-  formData.append("lat", values.lat);
-  formData.append("lng", values.lng);
-  formData.append("severity", values.severity);
-  formData.append("isUrgent", String(values.isUrgent));
-
-  Array.from(values.files ?? []).forEach((file) => {
-    formData.append("files", file);
-  });
-}
-
 export async function listReports(role: UserRole): Promise<FloodReport[]> {
   const endpoint = canManageReports(role) ? "/reports" : "/reports/user";
   const response = await apiGet(apiPath(endpoint), {
@@ -236,8 +206,7 @@ export async function getReportDetail(
 }
 
 export async function createReport(values: ReportFormValues): Promise<void> {
-  const formData = new FormData();
-  appendReportForm(formData, values);
+  const formData = buildReportFormData(values);
 
   const response = await apiRequest(apiPath("/reports/create"), {
     method: "POST",
@@ -257,8 +226,7 @@ export async function updateReport(
     throw new Error("Thiếu mã báo cáo.");
   }
 
-  const formData = new FormData();
-  appendReportForm(formData, values);
+  const formData = buildReportFormData(values);
   const ownerUserId = report.userId ?? report.user?.id;
   const endpoint =
     canManageReports(role) && ownerUserId
