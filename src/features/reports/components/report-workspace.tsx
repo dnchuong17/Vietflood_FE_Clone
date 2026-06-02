@@ -17,6 +17,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  searchProvinces,
+  searchWards,
+  type DivisionOption,
+} from "@/features/location/api/vietnam-divisions";
 import { useAuthIdentity } from "@/features/auth/lib/use-auth-identity";
 import { canManageReports, normalizeRole } from "@/features/auth/lib/roles";
 import {
@@ -36,6 +41,7 @@ import {
   canEditReport,
   getReportEditRestrictionReason,
 } from "@/features/reports/lib/edit-permissions";
+import { buildAddressSuggestions } from "@/features/reports/lib/address-suggestions";
 import { useReportsStore } from "@/features/reports/store/reports-store";
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -125,11 +131,13 @@ function toFormValues(report: FloodReport): ReportFormValues {
 
 function ReportForm({
   initialValues,
+  reports,
   submitLabel,
   onSubmit,
   onCancel,
 }: {
   initialValues: ReportFormValues;
+  reports: FloodReport[];
   submitLabel: string;
   onSubmit: (values: ReportFormValues) => Promise<void>;
   onCancel: () => void;
@@ -137,12 +145,113 @@ function ReportForm({
   const { showAlert } = useGlobalAlert();
   const [values, setValues] = useState(initialValues);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedProvinceCode, setSelectedProvinceCode] = useState<number | null>(null);
+  const [provinceOptions, setProvinceOptions] = useState<DivisionOption[]>([]);
+  const [wardOptions, setWardOptions] = useState<DivisionOption[]>([]);
+  const [isLoadingProvinces, setIsLoadingProvinces] = useState(false);
+  const [isLoadingWards, setIsLoadingWards] = useState(false);
 
   function setField<T extends keyof ReportFormValues>(
     field: T,
     value: ReportFormValues[T],
   ) {
     setValues((prev) => ({ ...prev, [field]: value }));
+  }
+
+  useEffect(() => {
+    let isActive = true;
+    const timeout = window.setTimeout(async () => {
+      try {
+        setIsLoadingProvinces(true);
+        const options = await searchProvinces(values.province);
+        if (isActive) {
+          setProvinceOptions(options);
+        }
+      } catch {
+        if (isActive) {
+          setProvinceOptions([]);
+        }
+      } finally {
+        if (isActive) {
+          setIsLoadingProvinces(false);
+        }
+      }
+    }, 250);
+
+    return () => {
+      isActive = false;
+      window.clearTimeout(timeout);
+    };
+  }, [values.province]);
+
+  useEffect(() => {
+    if (!selectedProvinceCode) {
+      setWardOptions([]);
+      return;
+    }
+
+    let isActive = true;
+    const timeout = window.setTimeout(async () => {
+      try {
+        setIsLoadingWards(true);
+        const options = await searchWards(selectedProvinceCode, values.ward);
+        if (isActive) {
+          setWardOptions(options);
+        }
+      } catch {
+        if (isActive) {
+          setWardOptions([]);
+        }
+      } finally {
+        if (isActive) {
+          setIsLoadingWards(false);
+        }
+      }
+    }, 250);
+
+    return () => {
+      isActive = false;
+      window.clearTimeout(timeout);
+    };
+  }, [selectedProvinceCode, values.ward]);
+
+  const addressSuggestions = useMemo(
+    () =>
+      buildAddressSuggestions({
+        query: values.addressLine,
+        province: values.province,
+        ward: values.ward,
+        reports,
+      }),
+    [reports, values.addressLine, values.province, values.ward],
+  );
+
+  function handleProvinceInput(value: string) {
+    setValues((prev) => ({
+      ...prev,
+      province: value,
+      ward: "",
+    }));
+    setSelectedProvinceCode(null);
+    setWardOptions([]);
+  }
+
+  function selectProvince(option: DivisionOption) {
+    setValues((prev) => ({
+      ...prev,
+      province: option.name,
+      ward: "",
+    }));
+    setSelectedProvinceCode(option.code);
+    setWardOptions([]);
+  }
+
+  function handleWardInput(value: string) {
+    setField("ward", value);
+  }
+
+  function selectWard(option: DivisionOption) {
+    setField("ward", option.name);
   }
 
   function toggleCategory(category: string) {
@@ -234,18 +343,53 @@ function ReportForm({
           Tỉnh/Thành phố
           <input
             value={values.province}
-            onChange={(event) => setField("province", event.target.value)}
+            onChange={(event) => handleProvinceInput(event.target.value)}
             className="rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
+            placeholder="Tìm tỉnh/thành phố"
             required
           />
+          {provinceOptions.length > 0 ? (
+            <div className="grid max-h-40 gap-1 overflow-y-auto rounded-lg border border-slate-200 bg-white p-1 shadow-sm">
+              {provinceOptions.map((option) => (
+                <button
+                  key={option.code}
+                  type="button"
+                  onClick={() => selectProvince(option)}
+                  className="rounded-md px-2 py-1.5 text-left text-xs font-semibold text-slate-700 hover:bg-sky-50"
+                >
+                  {option.name}
+                </button>
+              ))}
+            </div>
+          ) : isLoadingProvinces ? (
+            <span className="text-xs font-medium text-slate-500">Đang tải tỉnh/thành phố...</span>
+          ) : null}
         </label>
         <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
           Phường/Xã
           <input
             value={values.ward}
-            onChange={(event) => setField("ward", event.target.value)}
-            className="rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
+            onChange={(event) => handleWardInput(event.target.value)}
+            className="rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 disabled:cursor-not-allowed disabled:bg-slate-100"
+            disabled={!selectedProvinceCode}
+            placeholder={selectedProvinceCode ? "Tìm phường/xã" : "Chọn tỉnh/thành phố trước"}
           />
+          {wardOptions.length > 0 ? (
+            <div className="grid max-h-40 gap-1 overflow-y-auto rounded-lg border border-slate-200 bg-white p-1 shadow-sm">
+              {wardOptions.map((option) => (
+                <button
+                  key={option.code}
+                  type="button"
+                  onClick={() => selectWard(option)}
+                  className="rounded-md px-2 py-1.5 text-left text-xs font-semibold text-slate-700 hover:bg-sky-50"
+                >
+                  {option.name}
+                </button>
+              ))}
+            </div>
+          ) : isLoadingWards ? (
+            <span className="text-xs font-medium text-slate-500">Đang tải phường/xã...</span>
+          ) : null}
         </label>
         <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
           Mức độ
@@ -266,9 +410,23 @@ function ReportForm({
           value={values.addressLine}
           onChange={(event) => setField("addressLine", event.target.value)}
           className="rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
+          placeholder="Số nhà, tên đường"
         />
+        {addressSuggestions.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {addressSuggestions.map((suggestion) => (
+              <button
+                key={suggestion}
+                type="button"
+                onClick={() => setField("addressLine", suggestion)}
+                className="rounded-full border border-sky-200 px-3 py-1 text-xs font-semibold text-sky-700 hover:bg-sky-50"
+              >
+                {suggestion}
+              </button>
+            ))}
+          </div>
+        ) : null}
       </label>
-
       <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto] md:items-end">
         <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
           Vĩ độ
@@ -566,6 +724,7 @@ export function ReportWorkspace() {
       {isCreating ? (
         <ReportForm
           initialValues={EMPTY_FORM}
+          reports={reports}
           submitLabel="Gửi báo cáo"
           onSubmit={handleCreate}
           onCancel={() => setCreating(false)}
@@ -575,6 +734,7 @@ export function ReportWorkspace() {
       {editingReport ? (
         <ReportForm
           initialValues={toFormValues(editingReport)}
+          reports={reports}
           submitLabel="Lưu báo cáo"
           onSubmit={handleUpdate}
           onCancel={() => setEditingReport(null)}

@@ -14,6 +14,9 @@ describe("profile settings UI", () => {
     expect(source).toContain("@/components/ui/input");
     expect(source).toContain("@/components/ui/textarea");
     expect(source).toContain("<Button");
+    expect(source).toContain("validateChangePasswordForm");
+    expect(source).toContain("confirmPassword");
+    expect(source).toContain("Eye");
     expect(source).not.toContain("bg-white");
     expect(source).not.toContain("text-slate");
   });

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { BookOpen, HelpCircle, KeyRound, Save } from "lucide-react";
+import { BookOpen, Eye, EyeOff, HelpCircle, KeyRound, Save } from "lucide-react";
 
 import { useGlobalAlert } from "@/components/feedback/global-alert-provider";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,11 @@ import {
 import { getAccessToken } from "@/features/auth/lib/auth-storage";
 import { getUserRoleLabel, normalizeRole } from "@/features/auth/lib/roles";
 import type { AuthProfile } from "@/features/auth/types/auth";
+import {
+  buildChangePasswordPayload,
+  validateChangePasswordForm,
+  type ChangePasswordForm,
+} from "@/features/profile/lib/password";
 
 type ProfileForm = {
   first_name: string;
@@ -36,6 +41,8 @@ type ProfileForm = {
   ward: string;
   address_line: string;
 };
+
+type PasswordFieldName = keyof ChangePasswordForm;
 
 const EMPTY_PROFILE: ProfileForm = {
   first_name: "",
@@ -55,9 +62,18 @@ export function ProfileSettings() {
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
     newPassword: "",
+    confirmPassword: "",
+  });
+  const [visiblePasswords, setVisiblePasswords] = useState<
+    Record<PasswordFieldName, boolean>
+  >({
+    currentPassword: false,
+    newPassword: false,
+    confirmPassword: false,
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   async function loadProfile() {
     const token = getAccessToken();
@@ -135,17 +151,36 @@ export function ProfileSettings() {
 
   async function handleChangePassword(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    try {
-      const response = await apiPut(apiPath("/auth/change-password"), passwordForm, {
-        credentials: "include",
+    const validationError = validateChangePasswordForm(passwordForm);
+    if (validationError) {
+      showAlert({
+        title: "Chưa đổi mật khẩu",
+        description: validationError,
+        variant: "error",
       });
+      return;
+    }
+
+    try {
+      setIsChangingPassword(true);
+      const response = await apiPut(
+        apiPath("/auth/change-password"),
+        buildChangePasswordPayload(passwordForm),
+        {
+          credentials: "include",
+        },
+      );
       if (response.status === 404) {
         throw new Error(
           "Chức năng đổi mật khẩu chưa khả dụng cho đến khi máy chủ bật chức năng này.",
         );
       }
       await parseJsonResponse<unknown>(response, "Không thể đổi mật khẩu.");
-      setPasswordForm({ currentPassword: "", newPassword: "" });
+      setPasswordForm({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
       showAlert({
         title: "Đã đổi mật khẩu",
         description: "Hãy dùng mật khẩu mới trong lần đăng nhập tiếp theo.",
@@ -160,6 +195,8 @@ export function ProfileSettings() {
             : "Không thể đổi mật khẩu.",
         variant: "error",
       });
+    } finally {
+      setIsChangingPassword(false);
     }
   }
 
@@ -259,7 +296,7 @@ export function ProfileSettings() {
                 <Field>
                   <FieldLabel>Mật khẩu hiện tại</FieldLabel>
                   <Input
-                    type="password"
+                    type={visiblePasswords.currentPassword ? "text" : "password"}
                     value={passwordForm.currentPassword}
                     onChange={(event) =>
                       setPasswordForm((prev) => ({
@@ -268,12 +305,36 @@ export function ProfileSettings() {
                       }))
                     }
                     required
+                    disabled={isChangingPassword}
                   />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    aria-label={
+                      visiblePasswords.currentPassword
+                        ? "Ẩn mật khẩu hiện tại"
+                        : "Hiện mật khẩu hiện tại"
+                    }
+                    onClick={() =>
+                      setVisiblePasswords((prev) => ({
+                        ...prev,
+                        currentPassword: !prev.currentPassword,
+                      }))
+                    }
+                    disabled={isChangingPassword}
+                  >
+                    {visiblePasswords.currentPassword ? (
+                      <EyeOff aria-hidden="true" />
+                    ) : (
+                      <Eye aria-hidden="true" />
+                    )}
+                  </Button>
                 </Field>
                 <Field>
                   <FieldLabel>Mật khẩu mới</FieldLabel>
                   <Input
-                    type="password"
+                    type={visiblePasswords.newPassword ? "text" : "password"}
                     minLength={6}
                     value={passwordForm.newPassword}
                     onChange={(event) =>
@@ -283,11 +344,73 @@ export function ProfileSettings() {
                       }))
                     }
                     required
+                    disabled={isChangingPassword}
                   />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    aria-label={
+                      visiblePasswords.newPassword
+                        ? "Ẩn mật khẩu mới"
+                        : "Hiện mật khẩu mới"
+                    }
+                    onClick={() =>
+                      setVisiblePasswords((prev) => ({
+                        ...prev,
+                        newPassword: !prev.newPassword,
+                      }))
+                    }
+                    disabled={isChangingPassword}
+                  >
+                    {visiblePasswords.newPassword ? (
+                      <EyeOff aria-hidden="true" />
+                    ) : (
+                      <Eye aria-hidden="true" />
+                    )}
+                  </Button>
+                </Field>
+                <Field>
+                  <FieldLabel>Xác nhận mật khẩu mới</FieldLabel>
+                  <Input
+                    type={visiblePasswords.confirmPassword ? "text" : "password"}
+                    value={passwordForm.confirmPassword}
+                    onChange={(event) =>
+                      setPasswordForm((prev) => ({
+                        ...prev,
+                        confirmPassword: event.target.value,
+                      }))
+                    }
+                    required
+                    disabled={isChangingPassword}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    aria-label={
+                      visiblePasswords.confirmPassword
+                        ? "Ẩn mật khẩu xác nhận"
+                        : "Hiện mật khẩu xác nhận"
+                    }
+                    onClick={() =>
+                      setVisiblePasswords((prev) => ({
+                        ...prev,
+                        confirmPassword: !prev.confirmPassword,
+                      }))
+                    }
+                    disabled={isChangingPassword}
+                  >
+                    {visiblePasswords.confirmPassword ? (
+                      <EyeOff aria-hidden="true" />
+                    ) : (
+                      <Eye aria-hidden="true" />
+                    )}
+                  </Button>
                 </Field>
               </FieldGroup>
-              <Button type="submit" variant="outline">
-                Đổi mật khẩu
+              <Button type="submit" variant="outline" disabled={isChangingPassword}>
+                {isChangingPassword ? "Đang đổi..." : "Đổi mật khẩu"}
               </Button>
             </form>
           </CardContent>

@@ -58,10 +58,10 @@ export function SiteHeader() {
 
   return (
     <>
-      <header className="sticky top-0 z-20 border-b bg-background/85 shadow-sm backdrop-blur-xl">
+      <header className="sticky top-0 z-20 border-b shadow-sm bg-background/85 backdrop-blur-xl">
         <div className="mx-auto grid h-[var(--navbar-height)] max-w-7xl grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 px-3 sm:gap-3 sm:px-4">
           <Link
-            href="/trang-chu"
+            href="/"
             className="inline-flex min-w-0 items-center gap-2.5 font-bold"
             aria-label="Trang chủ VietFlood"
           >
@@ -95,7 +95,7 @@ export function SiteHeader() {
             </nav>
           ) : null}
 
-          <div className="flex min-w-0 items-center justify-end gap-2">
+          <div className="flex items-center justify-end min-w-0 gap-2">
             <ThemeToggle />
             {identity ? (
               <span className="hidden rounded-lg border bg-card px-2.5 py-1.5 text-xs font-semibold text-muted-foreground sm:inline-flex">
@@ -129,7 +129,7 @@ export function SiteHeader() {
           aria-label="Thanh tab di động"
         >
           <div
-            className="mx-auto grid max-w-md px-2"
+            className="grid max-w-md px-2 mx-auto"
             style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}
           >
             {tabs.map((tab) => {

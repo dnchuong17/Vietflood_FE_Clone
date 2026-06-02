@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+﻿import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
@@ -17,5 +17,13 @@ describe("report workspace UI", () => {
     expect(source).toContain("next/link");
     expect(source).toContain("href={`/bao-cao/${report.id}`}");
     expect(source).toContain("Chi tiết");
+  });
+
+  it("wires v2 province and ward suggestions into the report form", () => {
+    expect(source).toContain("@/features/location/api/vietnam-divisions");
+    expect(source).toContain("searchProvinces(values.province)");
+    expect(source).toContain("searchWards(selectedProvinceCode, values.ward)");
+    expect(source).toContain("@/features/reports/lib/address-suggestions");
+    expect(source).not.toContain('formData.append("district"');
   });
 });

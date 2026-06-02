@@ -32,6 +32,7 @@ import {
   getReportTitle,
   normalizeReportStatus,
 } from "@/features/reports/lib/report-detail";
+import { withReportDetailTimeout } from "@/features/reports/lib/report-detail-timeout";
 
 function statusBadgeVariant(status: ReportStatus): BadgeProps["variant"] {
   switch (status) {
@@ -66,7 +67,9 @@ export function ReportDetailPanel({ reportId }: { reportId: number }) {
       try {
         setIsLoading(true);
         setError(null);
-        const nextReport = await getReportDetail(role, reportId);
+        const nextReport = await withReportDetailTimeout(
+          getReportDetail(role, reportId),
+        );
         if (isActive) {
           setReport(nextReport);
         }

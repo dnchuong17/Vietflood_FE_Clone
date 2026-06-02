@@ -51,6 +51,7 @@ import {
   REPORT_STATUS_OPTIONS,
   getReportStatusLabel,
 } from "@/features/reports/lib/status";
+import { withReportDetailTimeout } from "@/features/reports/lib/report-detail-timeout";
 import {
   buildGoogleMapsDirectionsUrl,
   buildGoogleMapsPointUrl,
@@ -124,7 +125,7 @@ export function ReportDetail({ reportId }: { reportId: string }) {
           setIsLoading(true);
         }
         setErrorMessage(null);
-        setReport(await getReportDetail(role, numericReportId));
+        setReport(await withReportDetailTimeout(getReportDetail(role, numericReportId)));
       } catch (error) {
         setErrorMessage(
           error instanceof Error

@@ -334,9 +334,13 @@ export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: b
                         <ArrowRight data-icon="inline-end" aria-hidden="true" />
                       </Button>
                     ) : null}
-                    <Button asChild variant="outline">
-                      <Link href="/bao-cao">Xem báo cáo</Link>
-                    </Button>
+                    {assignment.report.id ? (
+                      <Button asChild variant="outline">
+                        <Link href={`/bao-cao/${assignment.report.id}`}>
+                          Chi tiết
+                        </Link>
+                      </Button>
+                    ) : null}
                   </div>
                 </CardContent>
               </Card>
@@ -367,6 +371,11 @@ export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: b
               </div>
 
               <div className="flex max-w-xl flex-wrap gap-1.5 lg:justify-end">
+                {report.id ? (
+                  <Button asChild variant="outline">
+                    <Link href={`/bao-cao/${report.id}`}>Chi tiết</Link>
+                  </Button>
+                ) : null}
                 {REPORT_STATUS_OPTIONS.map((status) => {
                   const currentStatus = statusOf(report);
                   const reportId = report.id ?? -1;

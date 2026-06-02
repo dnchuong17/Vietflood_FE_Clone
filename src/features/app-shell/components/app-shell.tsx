@@ -48,23 +48,23 @@ export function AppShell({ children, allowedRoles, title }: AppShellProps) {
   return (
     <div className="min-h-screen bg-background pb-24 pt-[var(--navbar-height)] text-foreground lg:pb-8">
       <motion.div
-        className="mx-auto w-full max-w-7xl px-4 py-4"
+        className="w-full px-4 py-4 mx-auto max-w-7xl"
         data-motion-policy="prefers-reduced-motion"
         initial={shouldReduceMotion ? false : { opacity: 0, y: 10 }}
         animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
         transition={{ duration: 0.28, ease: "easeOut" }}
       >
         {title ? (
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
                 {getUserRoleLabel(role)}
               </p>
               <h1 className="text-2xl font-bold text-foreground">{title}</h1>
             </div>
-            <div className="rounded-lg border bg-card px-3 py-2 text-sm text-muted-foreground shadow-sm">
+            {/* <div className="px-3 py-2 text-sm border rounded-lg shadow-sm bg-card text-muted-foreground">
               {identity.displayName}
-            </div>
+            </div> */}
           </div>
         ) : null}
         {children}
