@@ -1,6 +1,11 @@
 "use client";
 
 import type { ReactNode } from "react";
+import {
+    CheckIcon,
+    ExclamationTriangleIcon,
+    XMarkIcon,
+} from "@heroicons/react/24/solid";
 
 import { LoadingBar } from "@/components/feedback/loading-bar";
 
@@ -55,7 +60,10 @@ export function ConfirmDialog({
                 onClick={(event) => event.stopPropagation()}
             >
                 <p className={`text-xs font-semibold uppercase tracking-[0.08em] ${accentTextClass}`}>
-                    Xác nhận hành động
+                    <span className="inline-flex items-center gap-1.5">
+                        <ExclamationTriangleIcon className="size-4" aria-hidden="true" />
+                        Xác nhận hành động
+                    </span>
                 </p>
                 <h3 className="mt-1 text-lg font-bold text-slate-900">{title}</h3>
                 <div className="mt-2 text-sm text-slate-600">{description}</div>
@@ -75,6 +83,7 @@ export function ConfirmDialog({
                         onClick={onCancel}
                         disabled={isConfirming}
                     >
+                        <XMarkIcon className="mr-1.5 inline size-4 align-[-0.125em]" aria-hidden="true" />
                         {cancelLabel}
                     </button>
                     <button
@@ -83,6 +92,7 @@ export function ConfirmDialog({
                         onClick={onConfirm}
                         disabled={isConfirming}
                     >
+                        <CheckIcon className="mr-1.5 inline size-4 align-[-0.125em]" aria-hidden="true" />
                         {isConfirming ? "Đang xử lý..." : confirmLabel}
                     </button>
                 </div>

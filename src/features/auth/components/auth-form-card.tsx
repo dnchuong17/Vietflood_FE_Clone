@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { ShieldCheckIcon } from "@heroicons/react/24/solid";
 
 import {
     Card,
@@ -19,7 +20,10 @@ export function AuthFormCard({ title, description, note, children }: AuthFormCar
     return (
         <div className="mx-auto grid w-[min(1120px,92vw)] place-items-center py-6">
             <Card className="mx-auto w-full max-w-xl shadow-[0_18px_60px_rgba(4,20,47,0.12)]">
-                <CardHeader className="text-center">
+                <CardHeader className="items-center text-center">
+                    <span className="flex size-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                        <ShieldCheckIcon className="size-5" aria-hidden="true" />
+                    </span>
                     <CardTitle className="[font-family:var(--font-heading)] text-[clamp(1.4rem,2.5vw,2rem)]">
                         {title}
                     </CardTitle>

@@ -1,6 +1,10 @@
 "use client";
 
-import { Laptop, Moon, Sun } from "lucide-react";
+import {
+  ComputerDesktopIcon as Laptop,
+  MoonIcon as Moon,
+  SunIcon as Sun,
+} from "@heroicons/react/24/solid";
 import { useTheme } from "next-themes";
 
 import { Button } from "@/components/ui/button";

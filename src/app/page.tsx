@@ -1,14 +1,16 @@
 import Link from "next/link";
 import {
-  ArrowRight,
-  ClipboardList,
-  LocateFixed,
-  MapPinned,
-  RadioTower,
-  ShieldCheck,
-  Siren,
-  Users,
-} from "lucide-react";
+  ArrowRightIcon as ArrowRight,
+  ArrowRightEndOnRectangleIcon as LogIn,
+  BellAlertIcon as Siren,
+  ClipboardDocumentListIcon as ClipboardList,
+  CursorArrowRaysIcon as LocateFixed,
+  MapPinIcon as MapPinned,
+  ShieldCheckIcon as ShieldCheck,
+  SignalIcon as RadioTower,
+  UserPlusIcon as UserPlus,
+  UsersIcon as Users,
+} from "@heroicons/react/24/solid";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -152,10 +154,16 @@ export default function LandingPage() {
           <div className="flex items-center gap-2">
             <ThemeToggle />
             <Button asChild variant="ghost" className="hidden sm:inline-flex">
-              <Link href="/dang-nhap">Đăng nhập</Link>
+              <Link href="/dang-nhap">
+                <LogIn data-icon="inline-start" aria-hidden="true" />
+                Đăng nhập
+              </Link>
             </Button>
             <Button asChild>
-              <Link href="/dang-ky">Tạo tài khoản</Link>
+              <Link href="/dang-ky">
+                <UserPlus data-icon="inline-start" aria-hidden="true" />
+                Tạo tài khoản
+              </Link>
             </Button>
           </div>
         </div>
@@ -179,6 +187,7 @@ export default function LandingPage() {
             <div className="mt-7 flex flex-wrap gap-3">
               <Button asChild size="lg">
                 <Link href="/dang-nhap">
+                  <LogIn data-icon="inline-start" aria-hidden="true" />
                   Đăng nhập
                   <ArrowRight data-icon="inline-end" aria-hidden="true" />
                 </Link>
@@ -367,10 +376,16 @@ export default function LandingPage() {
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <Button asChild>
-                  <Link href="/dang-ky">Bắt đầu với vai trò người dân</Link>
+                  <Link href="/dang-ky">
+                    <UserPlus data-icon="inline-start" aria-hidden="true" />
+                    Bắt đầu với vai trò người dân
+                  </Link>
                 </Button>
                 <Button asChild variant="outline">
-                  <Link href="/dang-nhap">Mở bảng điều phối</Link>
+                  <Link href="/dang-nhap">
+                    <LogIn data-icon="inline-start" aria-hidden="true" />
+                    Mở bảng điều phối
+                  </Link>
                 </Button>
               </div>
             </LandingReveal>
@@ -411,13 +426,16 @@ export default function LandingPage() {
             <p className="mt-1">Báo cáo ngập lụt, điều phối cứu trợ và theo dõi trực tiếp.</p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <Link href="/trang-chu" className="transition hover:text-foreground">
+            <Link href="/trang-chu" className="inline-flex items-center gap-1.5 transition hover:text-foreground">
+              <MapPinned className="size-4" aria-hidden="true" />
               Bản đồ
             </Link>
-            <Link href="/bao-cao" className="transition hover:text-foreground">
+            <Link href="/bao-cao" className="inline-flex items-center gap-1.5 transition hover:text-foreground">
+              <ClipboardList className="size-4" aria-hidden="true" />
               Báo cáo
             </Link>
-            <Link href="/theo-doi" className="transition hover:text-foreground">
+            <Link href="/theo-doi" className="inline-flex items-center gap-1.5 transition hover:text-foreground">
+              <RadioTower className="size-4" aria-hidden="true" />
               Theo dõi
             </Link>
           </div>

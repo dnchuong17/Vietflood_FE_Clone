@@ -32,6 +32,12 @@ describe("app navigation chrome", () => {
     expect(appShellSource).toContain("prefers-reduced-motion");
   });
 
+  it("shows BarLoader feedback while restoring protected route access", () => {
+    expect(appShellSource).toContain("@/components/feedback/loading-bar");
+    expect(appShellSource).toContain("<LoadingBar");
+    expect(appShellSource).toContain('title="Đang kiểm tra quyền truy cập..."');
+  });
+
   it("uses motion-safe animation on the shared site header", () => {
     expect(siteHeaderSource).toContain('from "framer-motion"');
     expect(siteHeaderSource).toContain("useReducedMotion");

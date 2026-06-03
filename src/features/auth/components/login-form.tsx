@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import {
+  ArrowRightEndOnRectangleIcon as LogIn,
+  UserPlusIcon as UserPlus,
+} from "@heroicons/react/24/solid";
 
 import { useGlobalAlert } from "@/components/feedback/global-alert-provider";
 import { LoadingBar } from "@/components/feedback/loading-bar";
@@ -16,18 +19,21 @@ import {
   persistAuthTokens,
 } from "@/features/auth/lib/auth-storage";
 import { normalizeRole } from "@/features/auth/lib/roles";
+import { useAuthFormStore } from "@/features/auth/store/auth-form-store";
 
 export function LoginForm() {
   const router = useRouter();
   const { showAlert } = useGlobalAlert();
-  const [loginName, setLoginName] = useState("");
-  const [secret, setSecret] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const login = useAuthFormStore((state) => state.login);
+  const isSubmitting = useAuthFormStore((state) => state.isLoginSubmitting);
+  const setLoginField = useAuthFormStore((state) => state.setLoginField);
+  const setIsSubmitting = useAuthFormStore((state) => state.setLoginSubmitting);
+  const resetLoginForm = useAuthFormStore((state) => state.resetLoginForm);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!loginName.trim() || !secret.trim()) {
+    if (!login.loginName.trim() || !login.secret.trim()) {
       showAlert({
         title: "Thiếu thông tin",
         description: "Nhập đầy đủ tên đăng nhập và mật khẩu.",
@@ -39,11 +45,12 @@ export function LoginForm() {
     try {
       setIsSubmitting(true);
       const tokens = await signIn({
-        username: loginName.trim(),
-        password: secret,
+        username: login.loginName.trim(),
+        password: login.secret,
       });
 
       persistAuthTokens(tokens);
+      resetLoginForm();
       const role = normalizeRole(getAuthIdentity()?.role) ?? "citizen";
 
       showAlert({
@@ -77,8 +84,8 @@ export function LoginForm() {
             name="username"
             type="text"
             autoComplete="username"
-            value={loginName}
-            onChange={(event) => setLoginName(event.target.value)}
+            value={login.loginName}
+            onChange={(event) => setLoginField("loginName", event.target.value)}
             required
           />
         </Field>
@@ -90,13 +97,14 @@ export function LoginForm() {
             name="password"
             type="password"
             autoComplete="current-password"
-            value={secret}
-            onChange={(event) => setSecret(event.target.value)}
+            value={login.secret}
+            onChange={(event) => setLoginField("secret", event.target.value)}
             required
           />
         </Field>
 
         <Button type="submit" className="mt-1 w-full" disabled={isSubmitting}>
+          <LogIn data-icon="inline-start" aria-hidden="true" />
           {isSubmitting ? "Đang đăng nhập..." : "Đăng nhập"}
         </Button>
 
@@ -109,7 +117,8 @@ export function LoginForm() {
 
         <p className="text-center text-sm text-muted-foreground">
           Cần tài khoản người dân?{" "}
-          <Link href="/dang-ky" className="font-semibold text-primary">
+          <Link href="/dang-ky" className="inline-flex items-center gap-1.5 font-semibold text-primary">
+            <UserPlus className="size-4" aria-hidden="true" />
             Đăng ký
           </Link>
         </p>

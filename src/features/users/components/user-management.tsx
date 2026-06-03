@@ -1,20 +1,23 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useMemo } from "react";
 import {
-  Clock,
-  RefreshCw,
-  Save,
-  ShieldCheck,
-  Trash2,
-  UserCheck,
-  UserRound,
-  Users,
-} from "lucide-react";
+  DocumentTextIcon as DocumentText,
+  ArrowPathIcon as RefreshCw,
+  CheckBadgeIcon as UserCheck,
+  CheckIcon as Save,
+  ClockIcon as Clock,
+  MagnifyingGlassIcon as Search,
+  ShieldCheckIcon as ShieldCheck,
+  TrashIcon as Trash2,
+  UserIcon as UserRound,
+  UsersIcon as Users,
+} from "@heroicons/react/24/solid";
 
 import { useGlobalAlert } from "@/components/feedback/global-alert-provider";
 import { LoadingBar } from "@/components/feedback/loading-bar";
-import { Badge } from "@/components/ui/badge";
+import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
@@ -34,6 +37,16 @@ import {
   normalizeRole,
 } from "@/features/auth/lib/roles";
 import { useAuthIdentity } from "@/features/auth/lib/use-auth-identity";
+import {
+  listReports,
+  type ReportStatus,
+} from "@/features/reports/api/reports";
+import {
+  buildReportAddress,
+  normalizeReportStatus,
+} from "@/features/reports/lib/report-detail";
+import { getReportStatusLabel } from "@/features/reports/lib/status";
+import { filterReportsByUserId } from "@/features/reports/lib/user-reports";
 import {
   deleteUser,
   listUsers,
@@ -65,6 +78,19 @@ function isSameUser(user: ManagedUser, username?: string): boolean {
   return Boolean(user.username && username && user.username === username);
 }
 
+function reportStatusBadgeVariant(status: ReportStatus): BadgeProps["variant"] {
+  switch (status) {
+    case "resolved":
+      return "success";
+    case "verified":
+      return "warning";
+    case "rejected":
+      return "critical";
+    default:
+      return "secondary";
+  }
+}
+
 export function UserManagement() {
   const { showAlert } = useGlobalAlert();
   const identity = useAuthIdentity();
@@ -79,6 +105,15 @@ export function UserManagement() {
   const isLoading = useUsersStore((state) => state.isLoading);
   const isSaving = useUsersStore((state) => state.isSaving);
   const isSavingRole = useUsersStore((state) => state.isSavingRole);
+  const selectedUserReports = useUsersStore(
+    (state) => state.selectedUserReports,
+  );
+  const isLoadingSelectedUserReports = useUsersStore(
+    (state) => state.isLoadingSelectedUserReports,
+  );
+  const selectedUserReportsError = useUsersStore(
+    (state) => state.selectedUserReportsError,
+  );
   const setUsers = useUsersStore((state) => state.setUsers);
   const setQuery = useUsersStore((state) => state.setQuery);
   const setRoleFilter = useUsersStore((state) => state.setRoleFilter);
@@ -88,6 +123,15 @@ export function UserManagement() {
   const setLoading = useUsersStore((state) => state.setLoading);
   const setSaving = useUsersStore((state) => state.setSaving);
   const setSavingRole = useUsersStore((state) => state.setSavingRole);
+  const setSelectedUserReports = useUsersStore(
+    (state) => state.setSelectedUserReports,
+  );
+  const setLoadingSelectedUserReports = useUsersStore(
+    (state) => state.setLoadingSelectedUserReports,
+  );
+  const setSelectedUserReportsError = useUsersStore(
+    (state) => state.setSelectedUserReportsError,
+  );
 
   async function loadUsers() {
     try {
@@ -112,6 +156,51 @@ export function UserManagement() {
     void loadUsers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const loadSelectedUserReports = useCallback(
+    async (user: ManagedUser | null = selectedUser) => {
+      if (!user?.id || !role) {
+        return;
+      }
+
+      try {
+        setLoadingSelectedUserReports(true);
+        setSelectedUserReportsError(null);
+        const reports = await listReports(role);
+        setSelectedUserReports(filterReportsByUserId(reports, user.id));
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Không thể tải báo cáo của người dùng.";
+        setSelectedUserReports([]);
+        setSelectedUserReportsError(message);
+        showAlert({
+          title: "Không thể tải báo cáo",
+          description: message,
+          variant: "error",
+        });
+      } finally {
+        setLoadingSelectedUserReports(false);
+      }
+    },
+    [
+      role,
+      selectedUser,
+      setLoadingSelectedUserReports,
+      setSelectedUserReports,
+      setSelectedUserReportsError,
+      showAlert,
+    ],
+  );
+
+  useEffect(() => {
+    if (!selectedUser?.id) {
+      return;
+    }
+
+    void loadSelectedUserReports(selectedUser);
+  }, [loadSelectedUserReports, selectedUser]);
 
   const filteredUsers = useMemo(() => {
     const keyword = query.trim().toLowerCase();
@@ -321,11 +410,18 @@ export function UserManagement() {
           <CardContent className="grid gap-3 p-4 md:grid-cols-[1fr_auto_auto] md:items-end">
             <Field>
               <FieldLabel>Tìm người dùng</FieldLabel>
-              <Input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Tên, tên đăng nhập, thư điện tử, số điện thoại"
-              />
+              <div className="relative">
+                <Search
+                  className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                  aria-hidden="true"
+                />
+                <Input
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Tên, tên đăng nhập, thư điện tử, số điện thoại"
+                  className="pl-9"
+                />
+              </div>
             </Field>
             <Field>
               <FieldLabel>Vai trò</FieldLabel>
@@ -359,9 +455,15 @@ export function UserManagement() {
         <Card className="overflow-hidden">
           <div className="grid grid-cols-[4rem_1fr_8rem] border-b border-border bg-muted px-3 py-2 text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground md:grid-cols-[4rem_1fr_1fr_8rem]">
             <span>Mã</span>
-            <span>Người dùng</span>
+            <span className="inline-flex items-center gap-1.5">
+              <UserRound className="size-3.5" aria-hidden="true" />
+              Người dùng
+            </span>
             <span className="hidden md:block">Liên hệ</span>
-            <span>Vai trò</span>
+            <span className="inline-flex items-center gap-1.5">
+              <ShieldCheck className="size-3.5" aria-hidden="true" />
+              Vai trò
+            </span>
           </div>
           {isLoading ? (
             <LoadingBar
@@ -398,13 +500,20 @@ export function UserManagement() {
                     {user.phone ?? "-"}
                   </span>
                   <span>
-                    <Badge variant="secondary">
-                    {getUserRoleLabel(userRole)}
+                    <Badge variant="secondary" className="gap-1.5">
+                      <ShieldCheck className="size-3.5" aria-hidden="true" />
+                      {getUserRoleLabel(userRole)}
                     </Badge>
                   </span>
                 </button>
               );
             })}
+          {!isLoading && filteredUsers.length === 0 ? (
+            <div className="grid place-items-center gap-2 p-6 text-center text-sm text-muted-foreground">
+              <Users className="size-9 text-primary" aria-hidden="true" />
+              <span>Không tìm thấy người dùng phù hợp với bộ lọc hiện tại.</span>
+            </div>
+          ) : null}
         </Card>
       </div>
 
@@ -529,10 +638,97 @@ export function UserManagement() {
                 </Button>
               ) : null}
             </div>
+
+            <div className="rounded-lg border bg-muted/30 p-3">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="flex items-start gap-2">
+                  <DocumentText className="mt-0.5 size-4 text-primary" aria-hidden="true" />
+                  <div>
+                    <p className="text-sm font-bold text-foreground">
+                      Báo cáo của người dùng
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Xem nhanh các báo cáo liên quan để điều phối hoặc kiểm tra lịch sử.
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => void loadSelectedUserReports(selectedUser)}
+                  disabled={isLoadingSelectedUserReports}
+                >
+                  <RefreshCw data-icon="inline-start" aria-hidden="true" />
+                  Làm mới
+                </Button>
+              </div>
+
+              {isLoadingSelectedUserReports ? (
+                <LoadingBar
+                  title="Đang tải báo cáo..."
+                  description="Đang lấy các báo cáo liên quan đến người dùng này."
+                  className="mt-3"
+                />
+              ) : selectedUserReportsError ? (
+                <p className="mt-3 rounded-md border border-critical/25 bg-critical/10 p-3 text-sm text-critical">
+                  {selectedUserReportsError}
+                </p>
+              ) : selectedUserReports.length > 0 ? (
+                <div className="mt-3 flex flex-col gap-2">
+                  {selectedUserReports.map((report, index) => {
+                    const status = normalizeReportStatus(report.status);
+                    const address = buildReportAddress(report);
+                    const reportContent = (
+                      <>
+                        <span className="flex items-start justify-between gap-2">
+                          <span className="inline-flex items-center gap-1.5 font-semibold text-foreground">
+                            <DocumentText className="size-4 text-primary" aria-hidden="true" />
+                            Báo cáo #{report.id ?? "chưa có mã"}
+                          </span>
+                          <Badge variant={reportStatusBadgeVariant(status)}>
+                            {getReportStatusLabel(status)}
+                          </Badge>
+                        </span>
+                        <span className="mt-1 block line-clamp-2 text-muted-foreground">
+                          {report.description || "Chưa có mô tả."}
+                        </span>
+                        <span className="mt-1 block text-xs text-muted-foreground">
+                          {address || "Chưa có vị trí."}
+                        </span>
+                      </>
+                    );
+
+                    return report.id ? (
+                      <Link
+                        key={report.id}
+                        href={`/bao-cao/${report.id}`}
+                        className="rounded-md border bg-background px-3 py-2 text-sm transition hover:bg-accent"
+                      >
+                        {reportContent}
+                      </Link>
+                    ) : (
+                      <div
+                        key={`${report.description ?? "report"}-${index}`}
+                        className="rounded-md border bg-background px-3 py-2 text-sm"
+                      >
+                        {reportContent}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="mt-3 grid place-items-center gap-2 rounded-md border border-dashed p-3 text-center text-sm text-muted-foreground">
+                  <DocumentText className="size-8 text-primary" aria-hidden="true" />
+                  <span>Người dùng này chưa có báo cáo nào trong dữ liệu hiện tại.</span>
+                </div>
+              )}
+            </div>
           </div>
         ) : (
-          <div className="grid min-h-64 place-items-center text-center text-sm text-muted-foreground">
-            Chọn một người dùng để xem hoặc chỉnh sửa chi tiết.
+          <div className="grid min-h-64 place-items-center gap-3 text-center text-sm text-muted-foreground">
+            <Users className="size-10 text-primary" aria-hidden="true" />
+            <span>Chọn một người dùng để xem hoặc chỉnh sửa chi tiết.</span>
           </div>
         )}
         </CardContent>

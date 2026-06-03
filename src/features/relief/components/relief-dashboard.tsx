@@ -1,17 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, type ComponentType, type SVGProps } from "react";
 import {
-  ArrowRight,
-  ClipboardCheck,
-  Clock,
-  MapPin,
-  Phone,
-  RefreshCw,
-  Search,
-  UserRound,
-} from "lucide-react";
+  ArrowPathIcon as RefreshCw,
+  ArrowRightIcon as ArrowRight,
+  CheckCircleIcon as CheckCircle2,
+  ClipboardDocumentCheckIcon as ClipboardCheck,
+  ClockIcon as Clock,
+  EyeIcon as Eye,
+  ExclamationTriangleIcon as AlertTriangle,
+  MagnifyingGlassIcon as Search,
+  MapIcon as Map,
+  MapPinIcon as MapPin,
+  PhoneIcon as Phone,
+  UserIcon as UserRound,
+  XCircleIcon as XCircle,
+} from "@heroicons/react/24/solid";
 
 import { useGlobalAlert } from "@/components/feedback/global-alert-provider";
 import { LoadingBar } from "@/components/feedback/loading-bar";
@@ -81,6 +86,16 @@ function statusBadgeVariant(status: ReportStatus): BadgeProps["variant"] {
       return "secondary";
   }
 }
+
+const REPORT_STATUS_ICONS: Record<
+  ReportStatus,
+  ComponentType<SVGProps<SVGSVGElement>>
+> = {
+  pending: Clock,
+  verified: ClipboardCheck,
+  resolved: CheckCircle2,
+  rejected: XCircle,
+};
 
 export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: boolean }) {
   const { showAlert } = useGlobalAlert();
@@ -152,6 +167,9 @@ export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: b
         ["Đã xử lý", stats.resolved],
         ["Sẵn tuyến đường", stats.routeReady],
       ];
+  const statCardIcons = assignmentMode
+    ? [ClipboardCheck, Clock, ArrowRight, AlertTriangle]
+    : [ClipboardCheck, Clock, RefreshCw, CheckCircle2, Map];
   const reliefQueueFilters = useMemo(
     () => [
       { key: "all" as const, label: "Tất cả", count: stats.total },
@@ -233,16 +251,25 @@ export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: b
   return (
     <div className="flex flex-col gap-4">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        {statCards.map(([label, value]) => (
-          <Card key={label} className="bg-card">
-            <CardContent className="p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                {label}
-              </p>
-              <p className="mt-2 text-3xl font-bold text-card-foreground">{value}</p>
-            </CardContent>
-          </Card>
-        ))}
+        {statCards.map(([label, value], index) => {
+          const Icon = statCardIcons[index] ?? ClipboardCheck;
+
+          return (
+            <Card key={label} className="bg-card">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                    {label}
+                  </p>
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <Icon className="size-4" aria-hidden="true" />
+                  </span>
+                </div>
+                <p className="mt-2 text-3xl font-bold text-card-foreground">{value}</p>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       <Card className="bg-card">
@@ -258,9 +285,16 @@ export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: b
             </p>
           </div>
           <div className="flex gap-2">
+            <Button asChild variant="outline">
+              <Link href="/trang-chu">
+                <Map data-icon="inline-start" aria-hidden="true" />
+                Bản đồ
+              </Link>
+            </Button>
             {!assignmentMode ? (
               <Button asChild variant="outline">
                 <Link href="/phan-cong">
+                  <ClipboardCheck data-icon="inline-start" aria-hidden="true" />
                   Phân công
                   <ArrowRight data-icon="inline-end" aria-hidden="true" />
                 </Link>
@@ -345,6 +379,22 @@ export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: b
       ) : null}
 
       <div className="grid gap-3">
+        {!isLoading && assignmentMode && assignmentQueue.length === 0 ? (
+          <Card className="bg-card">
+            <CardContent className="grid place-items-center gap-3 p-6 text-center text-sm text-muted-foreground">
+              <ClipboardCheck className="size-9 text-primary" aria-hidden="true" />
+              <span>Chưa có phân công vận hành nào trong hàng đợi hiện tại.</span>
+            </CardContent>
+          </Card>
+        ) : null}
+        {!isLoading && !assignmentMode && queue.length === 0 ? (
+          <Card className="bg-card">
+            <CardContent className="grid place-items-center gap-3 p-6 text-center text-sm text-muted-foreground">
+              <Map className="size-9 text-primary" aria-hidden="true" />
+              <span>Chưa có báo cáo cứu trợ phù hợp với bộ lọc hiện tại.</span>
+            </CardContent>
+          </Card>
+        ) : null}
         {assignmentMode
           ? assignmentQueue.map((assignment) => (
               <Card
@@ -413,6 +463,7 @@ export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: b
                     {assignment.report.id ? (
                       <Button asChild variant="outline">
                         <Link href={`/bao-cao/${assignment.report.id}`}>
+                          <Eye data-icon="inline-start" aria-hidden="true" />
                           Chi tiết
                         </Link>
                       </Button>
@@ -449,7 +500,10 @@ export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: b
               <div className="flex max-w-xl flex-wrap gap-1.5 lg:justify-end">
                 {report.id ? (
                   <Button asChild variant="outline">
-                    <Link href={`/bao-cao/${report.id}`}>Chi tiết</Link>
+                    <Link href={`/bao-cao/${report.id}`}>
+                      <Eye data-icon="inline-start" aria-hidden="true" />
+                      Chi tiết
+                    </Link>
                   </Button>
                 ) : null}
                 {REPORT_STATUS_OPTIONS.map((status) => {
@@ -459,6 +513,7 @@ export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: b
                   const isActive = currentStatus === status;
                   const isSaving = savingStatus === status;
                   const isDisabled = Boolean(savingStatus) || isActive;
+                  const StatusIcon = REPORT_STATUS_ICONS[status];
 
                   return (
                     <Button
@@ -469,9 +524,7 @@ export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: b
                       disabled={isDisabled}
                       className={cn(isActive && "border-primary/20")}
                     >
-                      {status === "verified" ? (
-                        <ClipboardCheck data-icon="inline-start" aria-hidden="true" />
-                      ) : null}
+                      <StatusIcon data-icon="inline-start" aria-hidden="true" />
                       {isSaving ? "Đang lưu..." : getReportStatusLabel(status)}
                     </Button>
                   );

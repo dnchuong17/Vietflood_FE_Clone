@@ -2,7 +2,15 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, CalendarClock, ImageIcon, MapPin, UserRound } from "lucide-react";
+import {
+  ArrowLeftIcon as ArrowLeft,
+  AdjustmentsHorizontalIcon as Sliders,
+  ClockIcon as CalendarClock,
+  ExclamationTriangleIcon as AlertTriangle,
+  MapPinIcon as MapPin,
+  PhotoIcon as ImageIcon,
+  UserIcon as UserRound,
+} from "@heroicons/react/24/solid";
 
 import { LoadingBar } from "@/components/feedback/loading-bar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -194,9 +202,10 @@ export function ReportDetailPanel({ reportId }: { reportId: number }) {
                 ))}
               </div>
             ) : (
-              <p className="mt-2 text-sm text-muted-foreground">
-                Chưa có tệp minh chứng.
-              </p>
+              <div className="mt-2 grid place-items-center gap-2 rounded-md border border-dashed p-3 text-center text-sm text-muted-foreground">
+                <ImageIcon className="size-8 text-primary" aria-hidden="true" />
+                <span>Chưa có tệp minh chứng.</span>
+              </div>
             )}
           </div>
         </CardContent>
@@ -205,7 +214,10 @@ export function ReportDetailPanel({ reportId }: { reportId: number }) {
       <div className="flex flex-col gap-4">
         <Card>
           <CardHeader>
-            <CardTitle>Thông tin vận hành</CardTitle>
+            <div className="flex items-center gap-2">
+              <Sliders className="size-5 text-primary" aria-hidden="true" />
+              <CardTitle>Thông tin vận hành</CardTitle>
+            </div>
           </CardHeader>
           <CardContent className="grid gap-3 text-sm">
             <div>
@@ -217,7 +229,8 @@ export function ReportDetailPanel({ reportId }: { reportId: number }) {
             </div>
             <div>
               <p className="font-semibold text-foreground">Mức độ</p>
-              <p className="mt-1 text-muted-foreground">
+              <p className="mt-1 flex items-center gap-2 text-muted-foreground">
+                <AlertTriangle className="size-4" aria-hidden="true" />
                 {report.severity ?? "-"}
                 {report.isUrgent ? " · khẩn cấp" : ""}
               </p>

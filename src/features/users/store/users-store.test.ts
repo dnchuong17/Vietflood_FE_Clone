@@ -43,4 +43,23 @@ describe("users Zustand store", () => {
 
     expect(useUsersStore.getState().lastSyncedAt).toBeNull();
   });
+
+  it("keeps selected-user report state scoped to the selected user", () => {
+    useUsersStore.getState().selectUser({ id: 7, username: "citizen-a" });
+    useUsersStore.getState().setSelectedUserReports([
+      { id: 11, userId: 7, description: "needs support" },
+    ]);
+    useUsersStore.getState().setSelectedUserReportsError("load failed");
+    useUsersStore.getState().setLoadingSelectedUserReports(true);
+
+    expect(useUsersStore.getState().selectedUserReports).toHaveLength(1);
+    expect(useUsersStore.getState().selectedUserReportsError).toBe("load failed");
+    expect(useUsersStore.getState().isLoadingSelectedUserReports).toBe(true);
+
+    useUsersStore.getState().selectUser({ id: 8, username: "citizen-b" });
+
+    expect(useUsersStore.getState().selectedUserReports).toEqual([]);
+    expect(useUsersStore.getState().selectedUserReportsError).toBeNull();
+    expect(useUsersStore.getState().isLoadingSelectedUserReports).toBe(false);
+  });
 });

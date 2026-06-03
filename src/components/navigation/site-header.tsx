@@ -3,17 +3,17 @@
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, type ComponentType, type SVGProps } from "react";
 import {
-  FileText,
-  HeartHandshake,
-  Home,
-  LogOut,
-  RadioTower,
-  UserRound,
-  UsersRound,
-  type LucideIcon,
-} from "lucide-react";
+  ArrowLeftStartOnRectangleIcon as LogOut,
+  ArrowRightEndOnRectangleIcon as LogIn,
+  DocumentTextIcon as FileText,
+  HomeIcon as Home,
+  LifebuoyIcon as HeartHandshake,
+  RadioIcon as RadioTower,
+  UserCircleIcon as UserRound,
+  UserGroupIcon as UsersRound,
+} from "@heroicons/react/24/solid";
 
 import { useGlobalAlert } from "@/components/feedback/global-alert-provider";
 import { LoadingBar } from "@/components/feedback/loading-bar";
@@ -26,7 +26,9 @@ import { normalizeRole } from "@/features/auth/lib/roles";
 import { siteConfig } from "@/lib/site-config";
 import { cn } from "@/lib/utils";
 
-const TAB_ICONS: Record<string, LucideIcon> = {
+type HeroIcon = ComponentType<SVGProps<SVGSVGElement>>;
+
+const TAB_ICONS: Record<string, HeroIcon> = {
   "/trang-chu": Home,
   "/cuu-tro": HeartHandshake,
   "/bao-cao": FileText,
@@ -86,6 +88,7 @@ export function SiteHeader() {
             >
               {tabs.map((tab) => {
                 const active = isTabActive(tab, pathname);
+                const Icon = TAB_ICONS[tab.href] ?? Home;
                 return (
                   <Link
                     key={tab.href}
@@ -98,7 +101,8 @@ export function SiteHeader() {
                     )}
                     aria-current={active ? "page" : undefined}
                   >
-                    {tab.label}
+                    <Icon className="inline size-4 align-[-0.125em]" aria-hidden="true" />
+                    <span className="ml-1.5">{tab.label}</span>
                   </Link>
                 );
               })}
@@ -128,7 +132,10 @@ export function SiteHeader() {
               </Button>
             ) : (
               <Button asChild size="sm">
-                <Link href="/dang-nhap">Đăng nhập</Link>
+                <Link href="/dang-nhap">
+                  <LogIn data-icon="inline-start" aria-hidden="true" />
+                  Đăng nhập
+                </Link>
               </Button>
             )}
           </div>

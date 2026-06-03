@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import {
+  ArrowRightEndOnRectangleIcon as LogIn,
+  UserPlusIcon as UserPlus,
+} from "@heroicons/react/24/solid";
 
 import { useGlobalAlert } from "@/components/feedback/global-alert-provider";
 import { LoadingBar } from "@/components/feedback/loading-bar";
@@ -10,29 +13,16 @@ import { Button } from "@/components/ui/button";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { register } from "@/features/auth/api/sign-in";
-
-const INITIAL_FORM = {
-  username: "",
-  password: "",
-  email: "",
-  phone: "",
-  first_name: "",
-  middle_name: "",
-  last_name: "",
-  province: "",
-  ward: "",
-  address_line: "",
-};
+import { useAuthFormStore } from "@/features/auth/store/auth-form-store";
 
 export function RegisterForm() {
   const router = useRouter();
   const { showAlert } = useGlobalAlert();
-  const [form, setForm] = useState(INITIAL_FORM);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  function updateField(field: keyof typeof INITIAL_FORM, value: string) {
-    setForm((prev) => ({ ...prev, [field]: value }));
-  }
+  const form = useAuthFormStore((state) => state.register);
+  const isSubmitting = useAuthFormStore((state) => state.isRegisterSubmitting);
+  const updateField = useAuthFormStore((state) => state.setRegisterField);
+  const setIsSubmitting = useAuthFormStore((state) => state.setRegisterSubmitting);
+  const resetRegisterForm = useAuthFormStore((state) => state.resetRegisterForm);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -53,6 +43,7 @@ export function RegisterForm() {
         address_line: form.address_line.trim(),
       });
 
+      resetRegisterForm();
       showAlert({
         title: "Đã tạo tài khoản",
         description: "Bạn có thể đăng nhập bằng tài khoản người dân.",
@@ -177,6 +168,7 @@ export function RegisterForm() {
         </div>
 
         <Button type="submit" className="mt-1 w-full" disabled={isSubmitting}>
+          <UserPlus data-icon="inline-start" aria-hidden="true" />
           {isSubmitting ? "Đang tạo tài khoản..." : "Tạo tài khoản người dân"}
         </Button>
 
@@ -189,7 +181,8 @@ export function RegisterForm() {
 
         <p className="text-center text-sm text-muted-foreground">
           Đã có tài khoản?{" "}
-          <Link href="/dang-nhap" className="font-semibold text-primary">
+          <Link href="/dang-nhap" className="inline-flex items-center gap-1.5 font-semibold text-primary">
+            <LogIn className="size-4" aria-hidden="true" />
             Đăng nhập
           </Link>
         </p>

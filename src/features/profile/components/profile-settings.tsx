@@ -1,21 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ComponentType, type SVGProps } from "react";
 import {
-  BookOpen,
-  CalendarDays,
-  Eye,
-  EyeOff,
-  HelpCircle,
-  KeyRound,
-  Mail,
-  MapPin,
-  Phone,
-  Save,
-  UserCircle,
-  type LucideIcon,
-} from "lucide-react";
+  BellIcon as Bell,
+  BookOpenIcon as BookOpen,
+  CalendarDaysIcon as CalendarDays,
+  CheckIcon as Save,
+  EnvelopeIcon as Mail,
+  EyeIcon as Eye,
+  EyeSlashIcon as EyeOff,
+  KeyIcon as KeyRound,
+  MapPinIcon as MapPin,
+  PhoneIcon as Phone,
+  QuestionMarkCircleIcon as HelpCircle,
+  UserCircleIcon as UserCircle,
+} from "@heroicons/react/24/solid";
 
 import { useGlobalAlert } from "@/components/feedback/global-alert-provider";
 import { LoadingBar } from "@/components/feedback/loading-bar";
@@ -39,17 +39,15 @@ import {
 } from "@/features/auth/lib/api-client";
 import { getAccessToken } from "@/features/auth/lib/auth-storage";
 import { getUserRoleLabel, normalizeRole } from "@/features/auth/lib/roles";
+import { useAuthIdentity } from "@/features/auth/lib/use-auth-identity";
 import type { AuthProfile } from "@/features/auth/types/auth";
-import {
-  searchProvinces,
-  searchWards,
-  type DivisionOption,
-} from "@/features/location/api/vietnam-divisions";
+import { buildProfileHomeSummary } from "@/features/home/lib/profile-home-summary";
+import { searchProvinces, searchWards } from "@/features/location/api/vietnam-divisions";
 import {
   buildChangePasswordPayload,
   validateChangePasswordForm,
-  type ChangePasswordForm,
 } from "@/features/profile/lib/password";
+import { getProfileHomeActions } from "@/features/profile/lib/profile-actions";
 import {
   buildProfileAvatarUrl,
   buildProfileDisplayName,
@@ -57,38 +55,19 @@ import {
   formatProfileDate,
 } from "@/features/profile/lib/profile-summary";
 import { buildAddressSuggestions } from "@/features/reports/lib/address-suggestions";
+import { listReports, type FloodReport } from "@/features/reports/api/reports";
 import { useReportsStore } from "@/features/reports/store/reports-store";
-
-type ProfileForm = {
-  first_name: string;
-  middle_name: string;
-  last_name: string;
-  email: string;
-  phone: string;
-  province: string;
-  ward: string;
-  address_line: string;
-};
-
-type PasswordFieldName = keyof ChangePasswordForm;
-
-const EMPTY_PROFILE: ProfileForm = {
-  first_name: "",
-  middle_name: "",
-  last_name: "",
-  email: "",
-  phone: "",
-  province: "",
-  ward: "",
-  address_line: "",
-};
+import {
+  useProfileStore,
+  type ProfileForm,
+} from "@/features/profile/store/profile-store";
 
 function ProfileInfoItem({
   icon: Icon,
   label,
   value,
 }: {
-  icon: LucideIcon;
+  icon: ComponentType<SVGProps<SVGSVGElement>>;
   label: string;
   value: string;
 }) {
@@ -105,29 +84,57 @@ function ProfileInfoItem({
 
 export function ProfileSettings() {
   const { showAlert } = useGlobalAlert();
+  const identity = useAuthIdentity();
+  const identityRole = normalizeRole(identity?.role);
   const reports = useReportsStore((state) => state.reports);
-  const [profile, setProfile] = useState<AuthProfile | null>(null);
-  const [form, setForm] = useState<ProfileForm>(EMPTY_PROFILE);
-  const [passwordForm, setPasswordForm] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: "",
-  });
-  const [visiblePasswords, setVisiblePasswords] = useState<
-    Record<PasswordFieldName, boolean>
-  >({
-    currentPassword: false,
-    newPassword: false,
-    confirmPassword: false,
-  });
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
-  const [selectedProvinceCode, setSelectedProvinceCode] = useState<number | null>(null);
-  const [provinceOptions, setProvinceOptions] = useState<DivisionOption[]>([]);
-  const [wardOptions, setWardOptions] = useState<DivisionOption[]>([]);
-  const [isLoadingProvinces, setIsLoadingProvinces] = useState(false);
-  const [isLoadingWards, setIsLoadingWards] = useState(false);
+  const [summaryReports, setSummaryReports] = useState<FloodReport[]>([]);
+  const [isLoadingSummary, setIsLoadingSummary] = useState(false);
+  const profile = useProfileStore((state) => state.profile);
+  const form = useProfileStore((state) => state.form);
+  const passwordForm = useProfileStore((state) => state.passwordForm);
+  const visiblePasswords = useProfileStore((state) => state.visiblePasswords);
+  const isLoading = useProfileStore((state) => state.isLoading);
+  const isSaving = useProfileStore((state) => state.isSaving);
+  const isChangingPassword = useProfileStore(
+    (state) => state.isChangingPassword,
+  );
+  const selectedProvinceCode = useProfileStore(
+    (state) => state.selectedProvinceCode,
+  );
+  const provinceOptions = useProfileStore((state) => state.provinceOptions);
+  const wardOptions = useProfileStore((state) => state.wardOptions);
+  const isLoadingProvinces = useProfileStore(
+    (state) => state.isLoadingProvinces,
+  );
+  const isLoadingWards = useProfileStore((state) => state.isLoadingWards);
+  const setProfile = useProfileStore((state) => state.setProfile);
+  const setFormField = useProfileStore((state) => state.setFormField);
+  const setPasswordField = useProfileStore((state) => state.setPasswordField);
+  const resetPasswordForm = useProfileStore((state) => state.resetPasswordForm);
+  const togglePasswordVisibility = useProfileStore(
+    (state) => state.togglePasswordVisibility,
+  );
+  const setLoading = useProfileStore((state) => state.setLoading);
+  const setSaving = useProfileStore((state) => state.setSaving);
+  const setChangingPassword = useProfileStore(
+    (state) => state.setChangingPassword,
+  );
+  const setSelectedProvinceCode = useProfileStore(
+    (state) => state.setSelectedProvinceCode,
+  );
+  const setProvinceOptions = useProfileStore(
+    (state) => state.setProvinceOptions,
+  );
+  const setWardOptions = useProfileStore((state) => state.setWardOptions);
+  const setLoadingProvinces = useProfileStore(
+    (state) => state.setLoadingProvinces,
+  );
+  const setLoadingWards = useProfileStore((state) => state.setLoadingWards);
+  const handleProvinceInput = useProfileStore(
+    (state) => state.handleProvinceInput,
+  );
+  const selectProvince = useProfileStore((state) => state.selectProvince);
+  const selectWard = useProfileStore((state) => state.selectWard);
 
   async function loadProfile() {
     const token = getAccessToken();
@@ -136,7 +143,7 @@ export function ProfileSettings() {
     }
 
     try {
-      setIsLoading(true);
+      setLoading(true);
       const response = await apiRequest(apiPath("/auth/profile"), {
         method: "GET",
         credentials: "include",
@@ -146,16 +153,6 @@ export function ProfileSettings() {
         "Không thể tải hồ sơ.",
       );
       setProfile(data);
-      setForm({
-        first_name: data.first_name ?? "",
-        middle_name: data.middle_name ?? "",
-        last_name: data.last_name ?? "",
-        email: data.email ?? "",
-        phone: data.phone ?? "",
-        province: data.province ?? "",
-        ward: data.ward ?? "",
-        address_line: data.address_line ?? "",
-      });
     } catch (error) {
       showAlert({
         title: "Không thể tải hồ sơ",
@@ -164,7 +161,7 @@ export function ProfileSettings() {
         variant: "error",
       });
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   }
 
@@ -175,9 +172,42 @@ export function ProfileSettings() {
 
   useEffect(() => {
     let isCurrent = true;
+
+    async function loadSummaryReports() {
+      if (!identityRole) {
+        setSummaryReports([]);
+        return;
+      }
+
+      try {
+        setIsLoadingSummary(true);
+        const loadedReports = await listReports(identityRole);
+        if (isCurrent) {
+          setSummaryReports(loadedReports);
+        }
+      } catch {
+        if (isCurrent) {
+          setSummaryReports([]);
+        }
+      } finally {
+        if (isCurrent) {
+          setIsLoadingSummary(false);
+        }
+      }
+    }
+
+    void loadSummaryReports();
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [identityRole]);
+
+  useEffect(() => {
+    let isCurrent = true;
     const timeoutId = window.setTimeout(async () => {
       try {
-        setIsLoadingProvinces(true);
+        setLoadingProvinces(true);
         const options = await searchProvinces(form.province);
         if (isCurrent) {
           setProvinceOptions(options);
@@ -188,7 +218,7 @@ export function ProfileSettings() {
         }
       } finally {
         if (isCurrent) {
-          setIsLoadingProvinces(false);
+          setLoadingProvinces(false);
         }
       }
     }, 180);
@@ -197,7 +227,7 @@ export function ProfileSettings() {
       isCurrent = false;
       window.clearTimeout(timeoutId);
     };
-  }, [form.province]);
+  }, [form.province, setLoadingProvinces, setProvinceOptions]);
 
   useEffect(() => {
     if (!selectedProvinceCode) {
@@ -208,7 +238,7 @@ export function ProfileSettings() {
     let isCurrent = true;
     const timeoutId = window.setTimeout(async () => {
       try {
-        setIsLoadingWards(true);
+        setLoadingWards(true);
         const options = await searchWards(selectedProvinceCode, form.ward);
         if (isCurrent) {
           setWardOptions(options);
@@ -219,7 +249,7 @@ export function ProfileSettings() {
         }
       } finally {
         if (isCurrent) {
-          setIsLoadingWards(false);
+          setLoadingWards(false);
         }
       }
     }, 180);
@@ -228,7 +258,12 @@ export function ProfileSettings() {
       isCurrent = false;
       window.clearTimeout(timeoutId);
     };
-  }, [form.ward, selectedProvinceCode]);
+  }, [
+    form.ward,
+    selectedProvinceCode,
+    setLoadingWards,
+    setWardOptions,
+  ]);
 
   const normalizedProvinceValue = form.province.trim().toLocaleLowerCase("vi-VN");
   const normalizedWardValue = form.ward.trim().toLocaleLowerCase("vi-VN");
@@ -256,6 +291,15 @@ export function ProfileSettings() {
       }),
     [form.address_line, form.province, form.ward, reports],
   );
+  const summary = useMemo(
+    () => buildProfileHomeSummary({ identity, reports: summaryReports }),
+    [identity, summaryReports],
+  );
+  const profileHomeRole = identityRole ?? normalizeRole(profile?.role) ?? "citizen";
+  const profileHomeActions = useMemo(
+    () => getProfileHomeActions(profileHomeRole),
+    [profileHomeRole],
+  );
 
   useEffect(() => {
     if (selectedProvinceCode || !normalizedProvinceValue) {
@@ -268,32 +312,21 @@ export function ProfileSettings() {
     if (exactProvince) {
       setSelectedProvinceCode(exactProvince.code);
     }
-  }, [normalizedProvinceValue, provinceOptions, selectedProvinceCode]);
+  }, [
+    normalizedProvinceValue,
+    provinceOptions,
+    selectedProvinceCode,
+    setSelectedProvinceCode,
+  ]);
 
   function updateField<T extends keyof ProfileForm>(field: T, value: ProfileForm[T]) {
-    setForm((prev) => ({ ...prev, [field]: value }));
-  }
-
-  function handleProvinceInput(value: string) {
-    setSelectedProvinceCode(null);
-    setWardOptions([]);
-    setForm((prev) => ({ ...prev, province: value, ward: "" }));
-  }
-
-  function selectProvince(option: DivisionOption) {
-    setSelectedProvinceCode(option.code);
-    setWardOptions([]);
-    setForm((prev) => ({ ...prev, province: option.name, ward: "" }));
-  }
-
-  function selectWard(option: DivisionOption) {
-    setForm((prev) => ({ ...prev, ward: option.name }));
+    setFormField(field, value);
   }
 
   async function handleSaveProfile(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     try {
-      setIsSaving(true);
+      setSaving(true);
       const response = await apiPut(apiPath("/auth/update"), form, {
         credentials: "include",
       });
@@ -312,7 +345,7 @@ export function ProfileSettings() {
         variant: "error",
       });
     } finally {
-      setIsSaving(false);
+      setSaving(false);
     }
   }
 
@@ -329,7 +362,7 @@ export function ProfileSettings() {
     }
 
     try {
-      setIsChangingPassword(true);
+      setChangingPassword(true);
       const response = await apiPut(
         apiPath("/auth/change-password"),
         buildChangePasswordPayload(passwordForm),
@@ -343,11 +376,7 @@ export function ProfileSettings() {
         );
       }
       await parseJsonResponse<unknown>(response, "Không thể đổi mật khẩu.");
-      setPasswordForm({
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: "",
-      });
+      resetPasswordForm();
       showAlert({
         title: "Đã đổi mật khẩu",
         description: "Hãy dùng mật khẩu mới trong lần đăng nhập tiếp theo.",
@@ -363,7 +392,7 @@ export function ProfileSettings() {
         variant: "error",
       });
     } finally {
-      setIsChangingPassword(false);
+      setChangingPassword(false);
     }
   }
 
@@ -388,6 +417,42 @@ export function ProfileSettings() {
       <div className="flex flex-col gap-4">
         <Card>
           <CardHeader>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <CardTitle>Tổng quan cá nhân</CardTitle>
+                <CardDescription>{summary.greeting}</CardDescription>
+              </div>
+              <Badge variant="secondary">
+                {isLoadingSummary ? "Đang đồng bộ" : "Đã đồng bộ"}
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-md border p-3">
+                <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+                  <CalendarDays className="size-4 text-primary" aria-hidden="true" />
+                  Công việc đang mở
+                </div>
+                <p className="mt-2 text-2xl font-bold text-card-foreground">
+                  {summary.openTasks}
+                </p>
+              </div>
+              <div className="rounded-md border p-3">
+                <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+                  <Bell className="size-4 text-primary" aria-hidden="true" />
+                  Cảnh báo chưa đọc
+                </div>
+                <p className="mt-2 text-2xl font-bold text-card-foreground">
+                  {summary.unreadAlerts}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <div className="flex items-center gap-4">
               <div
                 aria-label={`Ảnh đại diện của ${displayName}`}
@@ -398,7 +463,8 @@ export function ProfileSettings() {
               <div className="min-w-0">
                 <CardTitle className="truncate">{displayName}</CardTitle>
                 <CardDescription>{profile?.username ?? missingValue}</CardDescription>
-                <Badge variant="secondary" className="mt-2">
+                <Badge variant="secondary" className="mt-2 gap-1.5">
+                  <UserCircle className="size-3.5" aria-hidden="true" />
                   {profileRole}
                 </Badge>
               </div>
@@ -442,7 +508,10 @@ export function ProfileSettings() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Hồ sơ</CardTitle>
+            <div className="flex items-center gap-2">
+              <UserCircle className="size-5 text-primary" aria-hidden="true" />
+              <CardTitle>Hồ sơ</CardTitle>
+            </div>
             <CardDescription>
               Chỉnh sửa thông tin liên hệ và địa chỉ của tài khoản.
             </CardDescription>
@@ -579,6 +648,34 @@ export function ProfileSettings() {
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
+              <BookOpen className="size-5 text-primary" aria-hidden="true" />
+              <CardTitle>Hành động nhanh</CardTitle>
+            </div>
+            <CardDescription>
+              Mở nhanh các luồng chính tương tự trang hồ sơ trên di động.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2">
+            {profileHomeActions.map((action) => (
+              <Link
+                key={action.href}
+                href={action.href}
+                className="rounded-md border p-3 text-sm transition hover:bg-accent hover:text-accent-foreground"
+              >
+                <span className="font-semibold text-foreground">
+                  {action.label}
+                </span>
+                <span className="mt-1 block text-xs text-muted-foreground">
+                  {action.description}
+                </span>
+              </Link>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
               <KeyRound className="size-5 text-primary" aria-hidden="true" />
               <CardTitle>Mật khẩu</CardTitle>
             </div>
@@ -592,10 +689,7 @@ export function ProfileSettings() {
                     type={visiblePasswords.currentPassword ? "text" : "password"}
                     value={passwordForm.currentPassword}
                     onChange={(event) =>
-                      setPasswordForm((prev) => ({
-                        ...prev,
-                        currentPassword: event.target.value,
-                      }))
+                      setPasswordField("currentPassword", event.target.value)
                     }
                     required
                     disabled={isChangingPassword}
@@ -610,10 +704,7 @@ export function ProfileSettings() {
                         : "Hiện mật khẩu hiện tại"
                     }
                     onClick={() =>
-                      setVisiblePasswords((prev) => ({
-                        ...prev,
-                        currentPassword: !prev.currentPassword,
-                      }))
+                      togglePasswordVisibility("currentPassword")
                     }
                     disabled={isChangingPassword}
                   >
@@ -631,10 +722,7 @@ export function ProfileSettings() {
                     minLength={6}
                     value={passwordForm.newPassword}
                     onChange={(event) =>
-                      setPasswordForm((prev) => ({
-                        ...prev,
-                        newPassword: event.target.value,
-                      }))
+                      setPasswordField("newPassword", event.target.value)
                     }
                     required
                     disabled={isChangingPassword}
@@ -649,10 +737,7 @@ export function ProfileSettings() {
                         : "Hiện mật khẩu mới"
                     }
                     onClick={() =>
-                      setVisiblePasswords((prev) => ({
-                        ...prev,
-                        newPassword: !prev.newPassword,
-                      }))
+                      togglePasswordVisibility("newPassword")
                     }
                     disabled={isChangingPassword}
                   >
@@ -669,10 +754,7 @@ export function ProfileSettings() {
                     type={visiblePasswords.confirmPassword ? "text" : "password"}
                     value={passwordForm.confirmPassword}
                     onChange={(event) =>
-                      setPasswordForm((prev) => ({
-                        ...prev,
-                        confirmPassword: event.target.value,
-                      }))
+                      setPasswordField("confirmPassword", event.target.value)
                     }
                     required
                     disabled={isChangingPassword}
@@ -687,10 +769,7 @@ export function ProfileSettings() {
                         : "Hiện mật khẩu xác nhận"
                     }
                     onClick={() =>
-                      setVisiblePasswords((prev) => ({
-                        ...prev,
-                        confirmPassword: !prev.confirmPassword,
-                      }))
+                      togglePasswordVisibility("confirmPassword")
                     }
                     disabled={isChangingPassword}
                   >
@@ -703,6 +782,7 @@ export function ProfileSettings() {
                 </Field>
               </FieldGroup>
               <Button type="submit" variant="outline" disabled={isChangingPassword}>
+                <KeyRound data-icon="inline-start" aria-hidden="true" />
                 {isChangingPassword ? "Đang đổi..." : "Đổi mật khẩu"}
               </Button>
             </form>

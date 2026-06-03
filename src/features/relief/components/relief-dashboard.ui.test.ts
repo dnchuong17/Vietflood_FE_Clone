@@ -29,4 +29,8 @@ describe("relief dashboard UI", () => {
     expect(source).toContain("Hàng chờ trực tiếp");
     expect(source).toContain("Sẵn tuyến đường");
   });
+
+  it("offers relief staff a direct Windy map entry point like mobile", () => {
+    expect(source).toContain('<Link href="/trang-chu">');
+  });
 });

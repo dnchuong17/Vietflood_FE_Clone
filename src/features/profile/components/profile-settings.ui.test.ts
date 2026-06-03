@@ -44,4 +44,20 @@ describe("profile settings UI", () => {
     expect(source).toContain("addressSuggestions");
     expect(source).toContain("updateField(\"address_line\", suggestion)");
   });
+
+  it("shows the mobile profile-home report summary on the profile route", () => {
+    expect(source).toContain("buildProfileHomeSummary");
+    expect(source).toContain("useAuthIdentity");
+    expect(source).toContain("listReports");
+    expect(source).toContain("summary.openTasks");
+    expect(source).toContain("summary.unreadAlerts");
+  });
+
+  it("renders mobile-like profile-home quick actions by role", () => {
+    expect(source).toContain("getProfileHomeActions");
+    expect(source).toContain("profileHomeActions");
+    expect(source).toContain("Hành động nhanh");
+    expect(source).toContain("action.href");
+    expect(source).toContain("action.description");
+  });
 });

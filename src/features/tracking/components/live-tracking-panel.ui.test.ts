@@ -10,6 +10,7 @@ describe("live tracking panel UI", () => {
     expect(source).toContain("@/components/ui/badge");
     expect(source).toContain("@/components/ui/card");
     expect(source).toContain("@/components/ui/alert");
+    expect(source).toContain("@/components/feedback/loading-bar");
   });
 
   it("keeps the tracking workflow localized for operators", () => {
@@ -17,5 +18,11 @@ describe("live tracking panel UI", () => {
     expect(source).toContain("Dừng");
     expect(source).toContain("Đang kết nối");
     expect(source).toContain("đang hoạt động");
+  });
+
+  it("shows BarLoader feedback while refreshing tracking snapshots", () => {
+    expect(source).toContain("<LoadingBar");
+    expect(source).toContain('title="Đang tải vị trí trực tiếp..."');
+    expect(source).toContain("isSnapshotLoading");
   });
 });

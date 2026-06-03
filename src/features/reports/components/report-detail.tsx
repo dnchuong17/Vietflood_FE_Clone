@@ -2,16 +2,21 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ComponentType, type SVGProps } from "react";
 import {
-  ArrowLeft,
-  ExternalLink,
-  ImageIcon,
-  MapPin,
-  RefreshCw,
-  Route,
-  UserRound,
-} from "lucide-react";
+  ArrowLeftIcon as ArrowLeft,
+  ArrowPathIcon as RefreshCw,
+  ArrowTopRightOnSquareIcon as ExternalLink,
+  CheckCircleIcon as CheckCircle2,
+  ClockIcon as Clock,
+  ExclamationTriangleIcon as AlertTriangle,
+  MapPinIcon as MapPin,
+  PaperAirplaneIcon as Route,
+  PhotoIcon as ImageIcon,
+  ShieldCheckIcon as ShieldCheck,
+  UserIcon as UserRound,
+  XCircleIcon as XCircle,
+} from "@heroicons/react/24/solid";
 
 import { useGlobalAlert } from "@/components/feedback/global-alert-provider";
 import { LoadingBar } from "@/components/feedback/loading-bar";
@@ -82,6 +87,16 @@ function statusBadgeVariant(
 
   return "default";
 }
+
+const REPORT_STATUS_ICONS: Record<
+  ReportStatus,
+  ComponentType<SVGProps<SVGSVGElement>>
+> = {
+  pending: Clock,
+  verified: ShieldCheck,
+  resolved: CheckCircle2,
+  rejected: XCircle,
+};
 
 function categoryText(report: FloodReport): string {
   const categories = Array.isArray(report.category)
@@ -294,7 +309,10 @@ export function ReportDetail({ reportId }: { reportId: string }) {
             </div>
             <div className="flex flex-wrap gap-2">
               {report.isUrgent ? (
-                <Badge variant="critical">Khẩn cấp</Badge>
+                <Badge variant="critical" className="gap-1.5">
+                  <AlertTriangle className="size-3.5" aria-hidden="true" />
+                  Khẩn cấp
+                </Badge>
               ) : null}
               <Badge variant={statusBadgeVariant(status)}>
                 {getReportStatusLabel(status)}
@@ -327,6 +345,7 @@ export function ReportDetail({ reportId }: { reportId: string }) {
                 {REPORT_STATUS_OPTIONS.map((option) => {
                   const isActive = option === status;
                   const isSaving = option === savingStatus;
+                  const StatusIcon = REPORT_STATUS_ICONS[option];
 
                   return (
                     <Button
@@ -337,6 +356,7 @@ export function ReportDetail({ reportId }: { reportId: string }) {
                       disabled={Boolean(savingStatus) || isActive}
                       onClick={() => void handleStatusChange(option)}
                     >
+                      <StatusIcon data-icon="inline-start" aria-hidden="true" />
                       {isSaving ? "Đang lưu..." : getReportStatusLabel(option)}
                     </Button>
                   );
@@ -436,8 +456,9 @@ export function ReportDetail({ reportId }: { reportId: string }) {
               ))}
             </div>
           ) : (
-            <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
-              Báo cáo này chưa có minh chứng.
+            <div className="grid place-items-center gap-3 rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+              <ImageIcon className="size-9 text-primary" aria-hidden="true" />
+              <span>Báo cáo này chưa có minh chứng.</span>
             </div>
           )}
         </CardContent>

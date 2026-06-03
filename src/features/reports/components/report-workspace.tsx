@@ -1,19 +1,26 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ComponentType, type SVGProps } from "react";
 import {
-  AlertTriangle,
-  CheckCircle2,
-  ClipboardList,
-  Clock3,
-  Edit3,
-  LocateFixed,
-  Plus,
-  RefreshCw,
-  ShieldCheck,
-  XCircle,
-} from "lucide-react";
+  ArrowPathIcon as RefreshCw,
+  CheckCircleIcon as CheckCircle2,
+  ClipboardDocumentListIcon as ClipboardList,
+  ClockIcon as Clock3,
+  CursorArrowRaysIcon as LocateFixed,
+  EyeIcon as Eye,
+  ExclamationTriangleIcon as AlertTriangle,
+  MagnifyingGlassIcon as Search,
+  MapPinIcon as MapPin,
+  PaperAirplaneIcon as Send,
+  PencilSquareIcon as Edit3,
+  PhotoIcon as ImageIcon,
+  PlusIcon as Plus,
+  ShieldCheckIcon as ShieldCheck,
+  UserIcon as UserRound,
+  XCircleIcon as XCircle,
+  XMarkIcon as X,
+} from "@heroicons/react/24/solid";
 
 import { useGlobalAlert } from "@/components/feedback/global-alert-provider";
 import { LoadingBar } from "@/components/feedback/loading-bar";
@@ -126,6 +133,16 @@ function statusBadgeVariant(
   }
   return "default";
 }
+
+const REPORT_STATUS_ICONS: Record<
+  ReportStatus,
+  ComponentType<SVGProps<SVGSVGElement>>
+> = {
+  pending: Clock3,
+  verified: ShieldCheck,
+  resolved: CheckCircle2,
+  rejected: XCircle,
+};
 
 function toFormValues(report: FloodReport): ReportFormValues {
   return {
@@ -344,7 +361,10 @@ function ReportForm({
       className="grid gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
     >
       <div>
-        <span className="text-sm font-semibold text-slate-700">Loại báo cáo</span>
+        <span className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
+          <ClipboardList className="size-4 text-sky-700" aria-hidden="true" />
+          Loại báo cáo
+        </span>
         <div className="mt-2 flex flex-wrap gap-2">
           {CATEGORY_OPTIONS.map((option) => (
             <label
@@ -550,10 +570,14 @@ function ReportForm({
             checked={values.isUrgent}
             onChange={(event) => setField("isUrgent", event.target.checked)}
           />
+          <AlertTriangle className="size-4 text-amber-600" aria-hidden="true" />
           Báo cáo khẩn cấp
         </label>
         <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
-          Tệp minh chứng
+          <span className="inline-flex items-center gap-2">
+            <ImageIcon className="size-4 text-sky-700" aria-hidden="true" />
+            Tệp minh chứng
+          </span>
           <input
             type="file"
             multiple
@@ -570,6 +594,7 @@ function ReportForm({
           className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
           disabled={isSubmitting}
         >
+          <X className="mr-2 inline size-4 align-[-0.125em]" aria-hidden="true" />
           Huỷ
         </button>
         <button
@@ -577,6 +602,7 @@ function ReportForm({
           className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-bold text-white hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-70"
           disabled={isSubmitting}
         >
+          <Send className="mr-2 inline size-4 align-[-0.125em]" aria-hidden="true" />
           {isSubmitting ? "Đang lưu..." : submitLabel}
         </button>
       </div>
@@ -839,12 +865,19 @@ export function ReportWorkspace() {
       <div className="grid gap-3 rounded-lg border bg-card p-4 shadow-sm md:grid-cols-[1fr_auto_auto] md:items-end">
         <Field>
           <FieldLabel htmlFor="report-search">Tìm kiếm</FieldLabel>
-          <Input
-            id="report-search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Mã, vị trí, loại báo cáo, mô tả"
-          />
+          <div className="relative">
+            <Search
+              className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+              aria-hidden="true"
+            />
+            <Input
+              id="report-search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Mã, vị trí, loại báo cáo, mô tả"
+              className="pl-9"
+            />
+          </div>
         </Field>
         <Field>
           <FieldLabel>Trạng thái</FieldLabel>
@@ -919,8 +952,9 @@ export function ReportWorkspace() {
       ) : null}
 
       {!isLoading && filteredReports.length === 0 ? (
-        <div className="rounded-lg border border-slate-200 bg-white p-6 text-center text-slate-600">
-          Không tìm thấy báo cáo.
+        <div className="grid place-items-center gap-3 rounded-lg border border-slate-200 bg-white p-6 text-center text-slate-600">
+          <ClipboardList className="size-9 text-sky-700" aria-hidden="true" />
+          <span>Không tìm thấy báo cáo.</span>
         </div>
       ) : null}
 
@@ -949,17 +983,26 @@ export function ReportWorkspace() {
             </p>
             <dl className="mt-3 grid gap-2 text-sm text-muted-foreground">
               <div className="flex gap-2">
-                <dt className="w-24 font-semibold text-muted-foreground">Địa chỉ</dt>
+                <dt className="flex w-24 items-center gap-1.5 font-semibold text-muted-foreground">
+                  <MapPin className="size-4 shrink-0" aria-hidden="true" />
+                  Địa chỉ
+                </dt>
                 <dd>{addressText(report) || "-"}</dd>
               </div>
               <div className="flex gap-2">
-                <dt className="w-24 font-semibold text-muted-foreground">Toạ độ</dt>
+                <dt className="flex w-24 items-center gap-1.5 font-semibold text-muted-foreground">
+                  <LocateFixed className="size-4 shrink-0" aria-hidden="true" />
+                  Toạ độ
+                </dt>
                 <dd>
                   {report.lat ?? "-"}, {report.lng ?? "-"}
                 </dd>
               </div>
               <div className="flex gap-2">
-                <dt className="w-24 font-semibold text-muted-foreground">Người báo</dt>
+                <dt className="flex w-24 items-center gap-1.5 font-semibold text-muted-foreground">
+                  <UserRound className="size-4 shrink-0" aria-hidden="true" />
+                  Người báo
+                </dt>
                 <dd>{report.user?.username ?? report.userId ?? "-"}</dd>
               </div>
             </dl>
@@ -968,7 +1011,10 @@ export function ReportWorkspace() {
               <div className="flex flex-wrap gap-2">
                 {report.id ? (
                   <Button asChild variant="outline">
-                    <Link href={`/bao-cao/${report.id}`}>Chi tiết</Link>
+                    <Link href={`/bao-cao/${report.id}`}>
+                      <Eye data-icon="inline-start" aria-hidden="true" />
+                      Chi tiết
+                    </Link>
                   </Button>
                 ) : null}
               {canEditReport(report, identity, { assumeCurrentUserReport }) ? (
@@ -995,6 +1041,7 @@ export function ReportWorkspace() {
                     const isActive = currentStatus === status;
                     const isSaving = savingStatus === status;
                     const isDisabled = Boolean(savingStatus) || isActive;
+                    const StatusIcon = REPORT_STATUS_ICONS[status];
 
                     return (
                       <Button
@@ -1005,6 +1052,7 @@ export function ReportWorkspace() {
                         onClick={() => void handleStatusChange(report, status)}
                         disabled={isDisabled}
                       >
+                        <StatusIcon data-icon="inline-start" aria-hidden="true" />
                         {isSaving ? "Đang lưu..." : getReportStatusLabel(status)}
                       </Button>
                     );

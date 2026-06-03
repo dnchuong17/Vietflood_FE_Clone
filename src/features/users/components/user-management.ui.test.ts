@@ -22,4 +22,12 @@ describe("user management UI", () => {
     expect(source).not.toContain("bg-white");
     expect(source).not.toContain("text-slate");
   });
+
+  it("shows mobile-like selected-user report history for relief and admin", () => {
+    expect(source).toContain("listReports");
+    expect(source).toContain("filterReportsByUserId");
+    expect(source).toContain("selectedUserReports");
+    expect(source).toContain("Báo cáo của người dùng");
+    expect(source).toContain('href={`/bao-cao/${report.id}`}');
+  });
 });

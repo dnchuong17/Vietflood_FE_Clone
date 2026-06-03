@@ -1,14 +1,14 @@
 import {
-  ClipboardList,
-  LifeBuoy,
-  ListChecks,
-  Map,
-  Navigation,
-  ShieldCheck,
-  UserCog,
-  UserRound,
-  UsersRound,
-} from "lucide-react";
+  ClipboardDocumentListIcon as ClipboardList,
+  Cog6ToothIcon as UserCog,
+  LifebuoyIcon as LifeBuoy,
+  ListBulletIcon as ListChecks,
+  MapIcon as Map,
+  PaperAirplaneIcon as Navigation,
+  ShieldCheckIcon as ShieldCheck,
+  UserGroupIcon as UsersRound,
+  UserIcon as UserRound,
+} from "@heroicons/react/24/solid";
 
 import { Badge } from "@/components/ui/badge";
 import {
@@ -43,7 +43,8 @@ export function UserGuide() {
       <section className="rounded-lg border border-sky-200 bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div className="flex max-w-3xl flex-col gap-2">
-            <Badge className="w-fit" variant="secondary">
+            <Badge className="w-fit gap-1.5" variant="secondary">
+              <LifeBuoy className="size-3.5" aria-hidden="true" />
               Hướng dẫn đồng bộ với ứng dụng di động
             </Badge>
             <h2 className="text-2xl font-bold tracking-normal text-slate-950">
@@ -54,7 +55,8 @@ export function UserGuide() {
               vai trò trong phạm vi người dân, đội cứu trợ và quản trị viên.
             </p>
           </div>
-          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">
+          <div className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">
+            <ListChecks className="size-4" aria-hidden="true" />
             {GUIDE_SECTIONS.length} khu vực hướng dẫn
           </div>
         </div>
