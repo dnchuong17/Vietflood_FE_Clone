@@ -132,7 +132,7 @@ export function LiveTrackingPanel() {
       setSnapshotHint(
         hasSnapshot
           ? null
-          : "Chưa có vị trí đang chia sẻ. Đang chờ cập nhật trực tiếp qua socket.",
+          : "Chưa có vị trí đang chia sẻ. Đang chờ cập nhật từ kết nối trực tiếp.",
       );
     },
     [applyTrackingSnapshot, finishSnapshotRequest, setSnapshotHint],
@@ -146,7 +146,7 @@ export function LiveTrackingPanel() {
 
       setSnapshotLoading(true);
       socketRef.current?.emit("request-locations");
-      setSnapshotHint("Đã gửi yêu cầu đồng bộ qua socket. Đang chờ cập nhật trực tiếp.");
+      setSnapshotHint("Đã gửi yêu cầu đồng bộ qua kết nối trực tiếp. Đang chờ cập nhật.");
 
       if (snapshotTimeoutRef.current !== null) {
         window.clearTimeout(snapshotTimeoutRef.current);
@@ -158,7 +158,7 @@ export function LiveTrackingPanel() {
       if (showFeedback) {
         showAlert({
           title: "Đã yêu cầu làm mới",
-          description: "Đang chờ máy chủ gửi ảnh chụp qua socket nếu có.",
+          description: "Đang chờ máy chủ gửi ảnh chụp theo dõi nếu có.",
           variant: "info",
         });
       }
@@ -495,7 +495,7 @@ export function LiveTrackingPanel() {
           {canMonitor && isSnapshotLoading ? (
             <LoadingBar
               title="Đang tải vị trí trực tiếp..."
-              description="Đang đồng bộ ảnh chụp theo dõi và chờ sự kiện socket mới."
+              description="Đang đồng bộ ảnh chụp theo dõi và chờ cập nhật trực tiếp mới."
               className="mt-3"
             />
           ) : null}

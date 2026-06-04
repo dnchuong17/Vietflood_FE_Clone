@@ -8,6 +8,7 @@ export type ReportFormValues = {
   lng: string;
   severity: string;
   isUrgent: boolean;
+  isLocationManuallyEdited?: boolean;
   files?: FileList | null;
 };
 
@@ -26,10 +27,12 @@ export function buildReportFormData(values: ReportFormValues): FormData {
   formData.append("province", values.province);
   formData.append("ward", values.ward);
   formData.append("addressLine", values.addressLine);
-  formData.append("lat", values.lat);
-  formData.append("lng", values.lng);
-  formData.append("latitude", values.lat);
-  formData.append("longitude", values.lng);
+  if (!values.isLocationManuallyEdited) {
+    formData.append("lat", values.lat);
+    formData.append("lng", values.lng);
+    formData.append("latitude", values.lat);
+    formData.append("longitude", values.lng);
+  }
   formData.append("severity", values.severity);
   formData.append("isUrgent", String(values.isUrgent));
 

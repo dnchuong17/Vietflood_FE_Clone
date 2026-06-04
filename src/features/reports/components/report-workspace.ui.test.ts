@@ -40,6 +40,14 @@ describe("report workspace UI", () => {
     expect(source).toContain("Phường/Xã đã chọn");
   });
 
+  it("tracks manual location edits so stale GPS coordinates are not submitted", () => {
+    expect(source).toContain("isLocationManuallyEdited: true");
+    expect(source).toContain("isLocationManuallyEdited: false");
+    expect(source).toContain("setManualLocationField(\"addressLine\"");
+    expect(source).toContain("setCoordinateField(\"lat\"");
+    expect(source).toContain("setCoordinateField(\"lng\"");
+  });
+
   it("shows mobile-like report overview counts and sync state", () => {
     expect(source).toContain("@/features/reports/lib/overview");
     expect(source).toContain("buildReportsOverviewSummary");

@@ -33,4 +33,27 @@ describe("report FormData builder", () => {
       ]),
     );
   });
+
+  it("omits stale GPS coordinates after manual location edits", () => {
+    const formData = buildReportFormData({
+      categories: ["flood"],
+      description: "Flooded street",
+      province: "Da Nang",
+      ward: "Hai Chau",
+      addressLine: "99 Tran Phu",
+      lat: "16.0544",
+      lng: "108.2022",
+      severity: "4",
+      isUrgent: true,
+      isLocationManuallyEdited: true,
+      files: null,
+    });
+
+    const keys = entriesOf(formData).map(([key]) => key);
+
+    expect(keys).not.toContain("lat");
+    expect(keys).not.toContain("lng");
+    expect(keys).not.toContain("latitude");
+    expect(keys).not.toContain("longitude");
+  });
 });

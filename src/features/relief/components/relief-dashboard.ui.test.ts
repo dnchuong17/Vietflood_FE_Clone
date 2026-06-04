@@ -33,4 +33,13 @@ describe("relief dashboard UI", () => {
   it("offers relief staff a direct Windy map entry point like mobile", () => {
     expect(source).toContain('<Link href="/trang-chu">');
   });
+
+  it("renders assignment deadlines in the operational assignment cards", () => {
+    expect(source).toContain("assignment.deadlineLabel");
+  });
+
+  it("renders the mobile-like reassignment action for active assignments", () => {
+    expect(source).toContain("assignment.reassignStatus");
+    expect(source).toContain("assignment.reassignActionLabel");
+  });
 });

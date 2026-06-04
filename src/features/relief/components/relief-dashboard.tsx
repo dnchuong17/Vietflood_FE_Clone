@@ -426,6 +426,10 @@ export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: b
                         <MapPin className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                         <span className="truncate">{assignment.location}</span>
                       </span>
+                      <span className="inline-flex min-w-0 items-center gap-2">
+                        <Clock className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                        <span className="truncate">{assignment.deadlineLabel}</span>
+                      </span>
                     </div>
                     <div className="mt-4">
                       <div className="mb-1 flex items-center justify-between gap-3 text-xs font-semibold text-muted-foreground">
@@ -445,6 +449,21 @@ export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: b
                   </div>
 
                   <div className="flex flex-wrap gap-2 xl:justify-end">
+                    {assignment.reassignStatus ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() =>
+                          void setStatus(assignment.report, assignment.reassignStatus!)
+                        }
+                        disabled={Boolean(
+                          assignment.report.id &&
+                            savingStatusByReportId[assignment.report.id],
+                        )}
+                      >
+                        {assignment.reassignActionLabel}
+                      </Button>
+                    ) : null}
                     {assignment.nextStatus ? (
                       <Button
                         type="button"

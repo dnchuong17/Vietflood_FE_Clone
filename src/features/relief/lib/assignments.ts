@@ -18,6 +18,9 @@ export type OperationalAssignment = {
   status: AssignmentStatus;
   statusLabel: string;
   progress: number;
+  deadlineLabel: string;
+  reassignStatus: ReportStatus | null;
+  reassignActionLabel: string | null;
   nextStatus: ReportStatus | null;
   nextActionLabel: string | null;
 };
@@ -126,6 +129,49 @@ function getProgress(status: AssignmentStatus): number {
   return 10;
 }
 
+function getDeadlineOffsetDays(priority: AssignmentPriority): number {
+  if (priority === "urgent") {
+    return 0;
+  }
+
+  if (priority === "high") {
+    return 1;
+  }
+
+  if (priority === "medium") {
+    return 2;
+  }
+
+  return 3;
+}
+
+function parseReportDate(report: FloodReport): Date | null {
+  const rawDate = report.createdAt ?? report.created_at;
+  if (!rawDate) {
+    return null;
+  }
+
+  const parsed = new Date(rawDate);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function formatDate(date: Date): string {
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  return `${day}/${month}/${date.getUTCFullYear()}`;
+}
+
+function getDeadlineLabel(report: FloodReport, priority: AssignmentPriority): string {
+  const baseDate = parseReportDate(report);
+  if (!baseDate) {
+    return "Hạn: chưa xác định";
+  }
+
+  const deadline = new Date(baseDate);
+  deadline.setUTCDate(deadline.getUTCDate() + getDeadlineOffsetDays(priority));
+  return `Hạn: ${formatDate(deadline)}`;
+}
+
 function getNextStep(status: AssignmentStatus): {
   nextStatus: ReportStatus | null;
   nextActionLabel: string | null;
@@ -139,6 +185,17 @@ function getNextStep(status: AssignmentStatus): {
   }
 
   return { nextStatus: null, nextActionLabel: null };
+}
+
+function getReassignStep(status: AssignmentStatus): {
+  reassignStatus: ReportStatus | null;
+  reassignActionLabel: string | null;
+} {
+  if (status === "completed") {
+    return { reassignStatus: null, reassignActionLabel: null };
+  }
+
+  return { reassignStatus: "pending", reassignActionLabel: "Phân công lại" };
 }
 
 function getTitle(report: FloodReport): string {
@@ -176,6 +233,7 @@ export function mapReportToAssignment(report: FloodReport): OperationalAssignmen
   const status = getAssignmentStatus(reportStatus);
   const priority = getAssignmentPriority(report);
   const nextStep = getNextStep(status);
+  const reassignStep = getReassignStep(status);
 
   return {
     id: String(
@@ -197,6 +255,8 @@ export function mapReportToAssignment(report: FloodReport): OperationalAssignmen
     status,
     statusLabel: getStatusLabel(status),
     progress: getProgress(status),
+    deadlineLabel: getDeadlineLabel(report, priority),
+    ...reassignStep,
     ...nextStep,
   };
 }

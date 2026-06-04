@@ -92,6 +92,7 @@ const EMPTY_FORM: ReportFormValues = {
   lng: "",
   severity: "3",
   isUrgent: false,
+  isLocationManuallyEdited: false,
   files: null,
 };
 
@@ -159,6 +160,7 @@ function toFormValues(report: FloodReport): ReportFormValues {
     lng: report.lng === undefined ? "" : String(report.lng),
     severity: report.severity === undefined ? "3" : String(report.severity),
     isUrgent: Boolean(report.isUrgent),
+    isLocationManuallyEdited: false,
     files: null,
   };
 }
@@ -190,6 +192,28 @@ function ReportForm({
     value: ReportFormValues[T],
   ) {
     setValues((prev) => ({ ...prev, [field]: value }));
+  }
+
+  function setManualLocationField<T extends "province" | "ward" | "addressLine">(
+    field: T,
+    value: ReportFormValues[T],
+  ) {
+    setValues((prev) => ({
+      ...prev,
+      [field]: value,
+      isLocationManuallyEdited: true,
+    }));
+  }
+
+  function setCoordinateField<T extends "lat" | "lng">(
+    field: T,
+    value: ReportFormValues[T],
+  ) {
+    setValues((prev) => ({
+      ...prev,
+      [field]: value,
+      isLocationManuallyEdited: false,
+    }));
   }
 
   useEffect(() => {
@@ -283,6 +307,7 @@ function ReportForm({
       ...prev,
       province: value,
       ward: "",
+      isLocationManuallyEdited: true,
     }));
     setSelectedProvinceCode(null);
     setWardOptions([]);
@@ -293,17 +318,18 @@ function ReportForm({
       ...prev,
       province: option.name,
       ward: "",
+      isLocationManuallyEdited: true,
     }));
     setSelectedProvinceCode(option.code);
     setWardOptions([]);
   }
 
   function handleWardInput(value: string) {
-    setField("ward", value);
+    setManualLocationField("ward", value);
   }
 
   function selectWard(option: DivisionOption) {
-    setField("ward", option.name);
+    setManualLocationField("ward", option.name);
   }
 
   function toggleCategory(category: string) {
@@ -332,6 +358,7 @@ function ReportForm({
           ...prev,
           lat: String(position.coords.latitude),
           lng: String(position.coords.longitude),
+          isLocationManuallyEdited: false,
         }));
       },
       () => {
@@ -513,9 +540,9 @@ function ReportForm({
 
       <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
         Địa chỉ
-        <input
-          value={values.addressLine}
-          onChange={(event) => setField("addressLine", event.target.value)}
+          <input
+            value={values.addressLine}
+            onChange={(event) => setManualLocationField("addressLine", event.target.value)}
           className="rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
           placeholder="Số nhà, tên đường"
         />
@@ -525,7 +552,7 @@ function ReportForm({
               <button
                 key={suggestion}
                 type="button"
-                onClick={() => setField("addressLine", suggestion)}
+                onClick={() => setManualLocationField("addressLine", suggestion)}
                 className="rounded-full border border-sky-200 px-3 py-1 text-xs font-semibold text-sky-700 hover:bg-sky-50"
               >
                 {suggestion}
@@ -539,7 +566,7 @@ function ReportForm({
           Vĩ độ
           <input
             value={values.lat}
-            onChange={(event) => setField("lat", event.target.value)}
+            onChange={(event) => setCoordinateField("lat", event.target.value)}
             className="rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
             required
           />
@@ -548,7 +575,7 @@ function ReportForm({
           Kinh độ
           <input
             value={values.lng}
-            onChange={(event) => setField("lng", event.target.value)}
+            onChange={(event) => setCoordinateField("lng", event.target.value)}
             className="rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
             required
           />

@@ -28,6 +28,7 @@ describe("operational assignment helpers", () => {
       contact: "0900000000",
       location: "Ward 1, TP.HCM",
       nextStatus: "verified",
+      reassignStatus: "pending",
     });
   });
 
@@ -36,6 +37,7 @@ describe("operational assignment helpers", () => {
       id: 9,
       status: "verified",
       severity: 4,
+      createdAt: "2026-04-18T00:00:00.000Z",
       category: ["flood"],
       userId: 7,
     });
@@ -45,6 +47,20 @@ describe("operational assignment helpers", () => {
     expect(assignment.progress).toBe(50);
     expect(assignment.reporter).toBe("User #7");
     expect(assignment.nextStatus).toBe("resolved");
+    expect(assignment.deadlineLabel).toBe("Hạn: 19/04/2026");
+    expect(assignment.reassignStatus).toBe("pending");
+    expect(assignment.reassignActionLabel).toBe("Phân công lại");
+  });
+
+  it("does not offer reassignment for completed assignments", () => {
+    const assignment = mapReportToAssignment({
+      id: 11,
+      status: "resolved",
+    });
+
+    expect(assignment.status).toBe("completed");
+    expect(assignment.reassignStatus).toBeNull();
+    expect(assignment.reassignActionLabel).toBeNull();
   });
 
   it("summarizes and filters active operational assignments", () => {

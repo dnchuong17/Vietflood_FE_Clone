@@ -1,9 +1,11 @@
 import type { SignInResponse } from "../types/auth";
+import { useAuthStore } from "../store/auth-store";
 import { normalizeRole, type UserRole } from "./roles";
 
 const ACCESS_TOKEN_KEY = "vietflood_access_token";
 const REFRESH_TOKEN_KEY = "vietflood_refresh_token";
 const ACCESS_TOKEN_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24; // 1 day
+const REFRESH_TOKEN_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 30; // 30 days
 
 type TokenPayload = {
   username?: string;
@@ -49,6 +51,10 @@ function emitAuthChange(): void {
   window.dispatchEvent(new Event("vietflood-auth-change"));
 }
 
+function refreshAuthStoreFromStorage(): void {
+  useAuthStore.getState().refreshIdentity(getAuthIdentity);
+}
+
 export function persistAuthTokens(tokens: SignInResponse): void {
   if (typeof window === "undefined") {
     return;
@@ -62,11 +68,16 @@ export function persistAuthTokens(tokens: SignInResponse): void {
   // Backward-compatible fallback for old sessions.
   window.localStorage.setItem(ACCESS_TOKEN_KEY, tokens.accessToken);
 
-  // Store refresh token if provided
   if (tokens.refresh_token) {
-    window.localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refresh_token);
+    setCookie(
+      REFRESH_TOKEN_KEY,
+      tokens.refresh_token,
+      REFRESH_TOKEN_COOKIE_MAX_AGE_SECONDS,
+    );
+    window.localStorage.removeItem(REFRESH_TOKEN_KEY);
   }
 
+  refreshAuthStoreFromStorage();
   emitAuthChange();
 }
 
@@ -76,10 +87,12 @@ export function clearAuthTokens(): void {
   }
 
   clearCookie(ACCESS_TOKEN_KEY);
+  clearCookie(REFRESH_TOKEN_KEY);
   window.localStorage.removeItem(ACCESS_TOKEN_KEY);
   window.localStorage.removeItem(REFRESH_TOKEN_KEY);
   // Remove legacy refresh token storage if it exists from older builds.
   window.localStorage.removeItem("vietflood_refresh_token");
+  refreshAuthStoreFromStorage();
   emitAuthChange();
 }
 
@@ -98,7 +111,9 @@ export function getRefreshToken(): string | null {
     return null;
   }
 
-  return window.localStorage.getItem(REFRESH_TOKEN_KEY);
+  return (
+    getCookie(REFRESH_TOKEN_KEY) ?? window.localStorage.getItem(REFRESH_TOKEN_KEY)
+  );
 }
 
 export function updateAccessToken(accessToken: string): void {
@@ -108,6 +123,7 @@ export function updateAccessToken(accessToken: string): void {
 
   setCookie(ACCESS_TOKEN_KEY, accessToken, ACCESS_TOKEN_COOKIE_MAX_AGE_SECONDS);
   window.localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+  refreshAuthStoreFromStorage();
   emitAuthChange();
 }
 
@@ -116,7 +132,12 @@ export function updateRefreshToken(refreshToken: string): void {
     return;
   }
 
-  window.localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+  setCookie(
+    REFRESH_TOKEN_KEY,
+    refreshToken,
+    REFRESH_TOKEN_COOKIE_MAX_AGE_SECONDS,
+  );
+  window.localStorage.removeItem(REFRESH_TOKEN_KEY);
   emitAuthChange();
 }
 
