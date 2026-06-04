@@ -25,4 +25,11 @@ describe("live tracking panel UI", () => {
     expect(source).toContain('title="Đang tải vị trí trực tiếp..."');
     expect(source).toContain("isSnapshotLoading");
   });
+
+  it("uses the mobile-compatible socket tracking contract instead of REST snapshots", () => {
+    expect(source).toContain('socketRef.current?.emit("request-locations")');
+    expect(source).not.toContain('/tracking/locations');
+    expect(source).toContain('socket.on("receive-location"');
+    expect(source).toContain('socket.on("user-disconnected"');
+  });
 });

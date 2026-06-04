@@ -62,6 +62,53 @@ describe("tracking helpers", () => {
     ]);
   });
 
+  it("normalizes mobile-compatible realtime events and snapshot maps", () => {
+    expect(
+      normalizeTrackingLocations({
+        id: "socket-a",
+        latitude: 16.05,
+        longitude: 108.2,
+        timestamp: 1746547265000,
+        displayName: "Responder Lan",
+        username: "lan.tran",
+      }),
+    ).toEqual([
+      {
+        id: "socket-a",
+        socketId: "socket-a",
+        latitude: 16.05,
+        longitude: 108.2,
+        accuracy: undefined,
+        heading: undefined,
+        speed: undefined,
+        timestamp: 1746547265000,
+        updatedAt: "2025-05-06T16:01:05.000Z",
+        displayName: "Responder Lan",
+        username: "lan.tran",
+        userId: undefined,
+      },
+    ]);
+
+    expect(
+      normalizeTrackingLocations({
+        locations: {
+          "socket-b": {
+            latitude: "16.0544",
+            longitude: "108.2022",
+            displayName: "Relief One",
+          },
+        },
+      }),
+    ).toEqual([
+      expect.objectContaining({
+        socketId: "socket-b",
+        latitude: 16.0544,
+        longitude: 108.2022,
+        displayName: "Relief One",
+      }),
+    ]);
+  });
+
   it("derives a stable tracking location id", () => {
     expect(getTrackingLocationId({ id: "id-1" })).toBe("id-1");
     expect(getTrackingLocationId({ socketId: "socket-1" })).toBe("socket-1");

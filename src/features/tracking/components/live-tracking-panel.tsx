@@ -23,7 +23,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useGlobalAlert } from "@/components/feedback/global-alert-provider";
-import { apiGet, apiPath, parseJsonResponse } from "@/features/auth/lib/api-client";
 import { getAccessToken } from "@/features/auth/lib/auth-storage";
 import { normalizeRole } from "@/features/auth/lib/roles";
 import { useAuthIdentity } from "@/features/auth/lib/use-auth-identity";
@@ -94,6 +93,7 @@ export function LiveTrackingPanel() {
   const canMonitor = role === "relief" || role === "admin";
   const socketRef = useRef<Socket | null>(null);
   const watchRef = useRef<number | null>(null);
+  const snapshotTimeoutRef = useRef<number | null>(null);
   const isConnected = useTrackingStore((state) => state.isConnected);
   const isSharing = useTrackingStore((state) => state.isSharing);
   const lastShared = useTrackingStore((state) => state.lastShared);
@@ -117,60 +117,53 @@ export function LiveTrackingPanel() {
   );
   const removeLocation = useTrackingStore((state) => state.removeLocation);
 
+  const finishSnapshotRequest = useCallback(() => {
+    if (snapshotTimeoutRef.current !== null) {
+      window.clearTimeout(snapshotTimeoutRef.current);
+      snapshotTimeoutRef.current = null;
+    }
+    setSnapshotLoading(false);
+  }, [setSnapshotLoading]);
+
+  const handleTrackingSnapshot = useCallback(
+    (payload: unknown) => {
+      const hasSnapshot = applyTrackingSnapshot(payload);
+      finishSnapshotRequest();
+      setSnapshotHint(
+        hasSnapshot
+          ? null
+          : "Chưa có vị trí đang chia sẻ. Đang chờ cập nhật trực tiếp qua socket.",
+      );
+    },
+    [applyTrackingSnapshot, finishSnapshotRequest, setSnapshotHint],
+  );
+
   const refreshTrackingSnapshot = useCallback(
-    async (showFeedback = false) => {
+    (showFeedback = false) => {
       if (!canMonitor) {
         return;
       }
 
       setSnapshotLoading(true);
       socketRef.current?.emit("request-locations");
+      setSnapshotHint("Đã gửi yêu cầu đồng bộ qua socket. Đang chờ cập nhật trực tiếp.");
 
-      try {
-        const response = await apiGet(apiPath("/tracking/locations"), {
-          credentials: "include",
-          cache: "no-store",
+      if (snapshotTimeoutRef.current !== null) {
+        window.clearTimeout(snapshotTimeoutRef.current);
+      }
+      snapshotTimeoutRef.current = window.setTimeout(() => {
+        finishSnapshotRequest();
+      }, 1200);
+
+      if (showFeedback) {
+        showAlert({
+          title: "Đã yêu cầu làm mới",
+          description: "Đang chờ máy chủ gửi ảnh chụp qua socket nếu có.",
+          variant: "info",
         });
-        const payload = await parseJsonResponse<unknown>(
-          response,
-          "Endpoint ảnh chụp theo dõi hiện không khả dụng.",
-        );
-        const hasSnapshot = applyTrackingSnapshot(payload);
-        setSnapshotHint(
-          hasSnapshot
-            ? null
-            : "Ảnh chụp không có vị trí đang chia sẻ. Đang chờ cập nhật trực tiếp.",
-        );
-
-        if (showFeedback) {
-          showAlert({
-            title: "Đã làm mới theo dõi",
-            description: hasSnapshot
-              ? "Đã tải các vị trí chia sẻ mới nhất."
-              : "Không có vị trí đang chia sẻ.",
-            variant: "info",
-          });
-        }
-      } catch (error) {
-        setSnapshotHint(
-          "Dịch vụ ảnh chụp chưa khả dụng trên máy chủ hiện tại. Màn hình này vẫn hiển thị các cập nhật trực tiếp mới.",
-        );
-
-        if (showFeedback) {
-          showAlert({
-            title: "Không thể tải ảnh chụp",
-            description:
-              error instanceof Error
-                ? error.message
-                : "Đang chờ sự kiện vị trí trực tiếp.",
-            variant: "info",
-          });
-        }
-      } finally {
-        setSnapshotLoading(false);
       }
     },
-    [applyTrackingSnapshot, canMonitor, setSnapshotHint, setSnapshotLoading, showAlert],
+    [canMonitor, finishSnapshotRequest, setSnapshotHint, setSnapshotLoading, showAlert],
   );
 
   useEffect(() => {
@@ -200,8 +193,7 @@ export function LiveTrackingPanel() {
     socket.on("connect", () => {
       setConnected(true);
       setSocketHint(null);
-      socket.emit("request-locations");
-      void refreshTrackingSnapshot(false);
+      refreshTrackingSnapshot(false);
     });
     socket.on("disconnect", () => setConnected(false));
     socket.on("connect_error", (error) => {
@@ -214,9 +206,9 @@ export function LiveTrackingPanel() {
         upsertLocation(location);
       }
     });
-    socket.on("tracking-snapshot", applyTrackingSnapshot);
-    socket.on("tracking-locations", applyTrackingSnapshot);
-    socket.on("locations", applyTrackingSnapshot);
+    socket.on("tracking-snapshot", handleTrackingSnapshot);
+    socket.on("tracking-locations", handleTrackingSnapshot);
+    socket.on("locations", handleTrackingSnapshot);
     socket.on("user-disconnected", (payload: unknown) => {
       const [disconnected] = normalizeTrackingLocations([payload]);
       const socketId =
@@ -248,12 +240,14 @@ export function LiveTrackingPanel() {
         navigator.geolocation.clearWatch(watchRef.current);
         watchRef.current = null;
       }
+      finishSnapshotRequest();
       socket.removeAllListeners();
       socket.disconnect();
       socketRef.current = null;
     };
   }, [
-    applyTrackingSnapshot,
+    finishSnapshotRequest,
+    handleTrackingSnapshot,
     refreshTrackingSnapshot,
     removeLocation,
     setConnected,

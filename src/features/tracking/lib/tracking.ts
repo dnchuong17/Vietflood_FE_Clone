@@ -218,6 +218,11 @@ export function normalizeTrackingLocations(payload: unknown): TrackedLocation[] 
     return normalizeTrackingLocations(record.data);
   }
 
+  const singleLocation = normalizeTrackingLocation(record);
+  if (singleLocation) {
+    return [singleLocation];
+  }
+
   const mapRecord = asRecord(record.locations) ?? asRecord(record.data) ?? record;
   return Object.entries(mapRecord)
     .map(([socketId, item]) => normalizeTrackingLocation(item, socketId))
