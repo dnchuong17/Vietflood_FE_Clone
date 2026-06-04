@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildGoogleMapsDirectionsUrl,
+  getTrackingDisconnectId,
   getTrackingLocationId,
   normalizeTrackingLocations,
 } from "./tracking";
@@ -113,5 +114,14 @@ describe("tracking helpers", () => {
     expect(getTrackingLocationId({ id: "id-1" })).toBe("id-1");
     expect(getTrackingLocationId({ socketId: "socket-1" })).toBe("socket-1");
     expect(getTrackingLocationId({ userId: 42 })).toBe("42");
+  });
+
+  it("extracts disconnected socket ids from backend event shapes", () => {
+    expect(getTrackingDisconnectId("socket-a")).toBe("socket-a");
+    expect(getTrackingDisconnectId({ id: "socket-b" })).toBe("socket-b");
+    expect(getTrackingDisconnectId({ socketId: "socket-c" })).toBe("socket-c");
+    expect(getTrackingDisconnectId({ clientId: "socket-d" })).toBe("socket-d");
+    expect(getTrackingDisconnectId({ userId: 42 })).toBeUndefined();
+    expect(getTrackingDisconnectId({ message: "ignored" })).toBeUndefined();
   });
 });

@@ -32,4 +32,23 @@ describe("tracking Zustand store", () => {
     useTrackingStore.getState().removeLocation("socket-a");
     expect(useTrackingStore.getState().locations).toEqual([]);
   });
+
+  it("keeps existing live locations when an optional socket snapshot is empty", () => {
+    useTrackingStore.getState().upsertLocation({
+      socketId: "socket-a",
+      latitude: 10.2,
+      longitude: 106.2,
+    });
+
+    const applied = useTrackingStore.getState().applyTrackingSnapshot({ locations: [] });
+
+    expect(applied).toBe(false);
+    expect(useTrackingStore.getState().locations).toEqual([
+      expect.objectContaining({
+        socketId: "socket-a",
+        latitude: 10.2,
+        longitude: 106.2,
+      }),
+    ]);
+  });
 });

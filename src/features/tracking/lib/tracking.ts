@@ -146,6 +146,24 @@ export function getTrackingLocationId(location: TrackedLocation): string | undef
   );
 }
 
+export function getTrackingDisconnectId(payload: unknown): string | undefined {
+  const directValue = toOptionalString(payload);
+  if (directValue) {
+    return directValue;
+  }
+
+  const record = asRecord(payload);
+  if (!record) {
+    return undefined;
+  }
+
+  return (
+    toOptionalString(record.socketId) ??
+    toOptionalString(record.id) ??
+    toOptionalString(record.clientId)
+  );
+}
+
 export function normalizeTrackingLocation(
   value: unknown,
   fallbackSocketId?: string,

@@ -31,6 +31,7 @@ import {
   buildGoogleMapsPointUrl,
   getLat,
   getLng,
+  getTrackingDisconnectId,
   getTrackingLocationId,
   hasValidCoordinate,
   normalizeTrackingLocations,
@@ -210,13 +211,7 @@ export function LiveTrackingPanel() {
     socket.on("tracking-locations", handleTrackingSnapshot);
     socket.on("locations", handleTrackingSnapshot);
     socket.on("user-disconnected", (payload: unknown) => {
-      const [disconnected] = normalizeTrackingLocations([payload]);
-      const socketId =
-        typeof payload === "string"
-          ? payload
-          : disconnected
-            ? getTrackingLocationId(disconnected)
-            : undefined;
+      const socketId = getTrackingDisconnectId(payload);
 
       if (!socketId) {
         return;
