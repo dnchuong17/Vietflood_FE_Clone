@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildReportFormData } from "./form-data";
+import { buildReportFormData, type ReportFormValues } from "./form-data";
 
 function entriesOf(formData: FormData) {
   return Array.from(formData.entries()).map(([key, value]) => [
@@ -10,7 +10,7 @@ function entriesOf(formData: FormData) {
 }
 
 describe("report FormData builder", () => {
-  it("submits both web and mobile coordinate aliases", () => {
+  it("submits backend coordinates without user-controlled severity or urgency", () => {
     const formData = buildReportFormData({
       categories: ["flood"],
       description: "Flooded street",
@@ -19,22 +19,24 @@ describe("report FormData builder", () => {
       addressLine: "12 Bach Dang",
       lat: "16.0544",
       lng: "108.2022",
-      severity: "4",
-      isUrgent: true,
       files: null,
-    });
+    } as ReportFormValues);
+    const entries = entriesOf(formData);
+    const keys = entries.map(([key]) => key);
 
-    expect(entriesOf(formData)).toEqual(
+    expect(entries).toEqual(
       expect.arrayContaining([
         ["lat", "16.0544"],
         ["lng", "108.2022"],
-        ["latitude", "16.0544"],
-        ["longitude", "108.2022"],
       ]),
     );
+    expect(keys).not.toContain("latitude");
+    expect(keys).not.toContain("longitude");
+    expect(keys).not.toContain("severity");
+    expect(keys).not.toContain("isUrgent");
   });
 
-  it("omits stale GPS coordinates after manual location edits", () => {
+  it("keeps internal GPS coordinates after manual location edits", () => {
     const formData = buildReportFormData({
       categories: ["flood"],
       description: "Flooded street",
@@ -43,16 +45,19 @@ describe("report FormData builder", () => {
       addressLine: "99 Tran Phu",
       lat: "16.0544",
       lng: "108.2022",
-      severity: "4",
-      isUrgent: true,
       isLocationManuallyEdited: true,
       files: null,
-    });
+    } as ReportFormValues);
 
-    const keys = entriesOf(formData).map(([key]) => key);
+    const entries = entriesOf(formData);
+    const keys = entries.map(([key]) => key);
 
-    expect(keys).not.toContain("lat");
-    expect(keys).not.toContain("lng");
+    expect(entries).toEqual(
+      expect.arrayContaining([
+        ["lat", "16.0544"],
+        ["lng", "108.2022"],
+      ]),
+    );
     expect(keys).not.toContain("latitude");
     expect(keys).not.toContain("longitude");
   });

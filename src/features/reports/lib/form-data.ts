@@ -6,8 +6,6 @@ export type ReportFormValues = {
   addressLine: string;
   lat: string;
   lng: string;
-  severity: string;
-  isUrgent: boolean;
   isLocationManuallyEdited?: boolean;
   files?: FileList | null;
 };
@@ -27,14 +25,10 @@ export function buildReportFormData(values: ReportFormValues): FormData {
   formData.append("province", values.province);
   formData.append("ward", values.ward);
   formData.append("addressLine", values.addressLine);
-  if (!values.isLocationManuallyEdited) {
-    formData.append("lat", values.lat);
-    formData.append("lng", values.lng);
-    formData.append("latitude", values.lat);
-    formData.append("longitude", values.lng);
+  if (values.lat.trim() && values.lng.trim()) {
+    formData.append("lat", values.lat.trim());
+    formData.append("lng", values.lng.trim());
   }
-  formData.append("severity", values.severity);
-  formData.append("isUrgent", String(values.isUrgent));
 
   Array.from(values.files ?? []).forEach((file) => {
     formData.append("files", file);

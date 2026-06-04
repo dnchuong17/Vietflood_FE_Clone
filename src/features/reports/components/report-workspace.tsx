@@ -90,8 +90,6 @@ const EMPTY_FORM: ReportFormValues = {
   addressLine: "",
   lat: "",
   lng: "",
-  severity: "3",
-  isUrgent: false,
   isLocationManuallyEdited: false,
   files: null,
 };
@@ -158,8 +156,6 @@ function toFormValues(report: FloodReport): ReportFormValues {
     addressLine: report.addressLine ?? "",
     lat: report.lat === undefined ? "" : String(report.lat),
     lng: report.lng === undefined ? "" : String(report.lng),
-    severity: report.severity === undefined ? "3" : String(report.severity),
-    isUrgent: Boolean(report.isUrgent),
     isLocationManuallyEdited: false,
     files: null,
   };
@@ -202,17 +198,6 @@ function ReportForm({
       ...prev,
       [field]: value,
       isLocationManuallyEdited: true,
-    }));
-  }
-
-  function setCoordinateField<T extends "lat" | "lng">(
-    field: T,
-    value: ReportFormValues[T],
-  ) {
-    setValues((prev) => ({
-      ...prev,
-      [field]: value,
-      isLocationManuallyEdited: false,
     }));
   }
 
@@ -284,6 +269,7 @@ function ReportForm({
     [reports, values.addressLine, values.province, values.ward],
   );
   const selectedLocationParts = [values.province.trim(), values.ward.trim()].filter(Boolean);
+  const hasGpsCoordinates = Boolean(values.lat.trim() && values.lng.trim());
   const canEditWard = Boolean(selectedProvinceCode || values.province.trim());
   const normalizedProvinceValue = values.province.trim().toLocaleLowerCase("vi-VN");
   const normalizedWardValue = values.ward.trim().toLocaleLowerCase("vi-VN");
@@ -364,7 +350,7 @@ function ReportForm({
       () => {
         showAlert({
           title: "Vị trí bị chặn",
-          description: "Hãy cho phép truy cập vị trí hoặc nhập toạ độ thủ công.",
+          description: "Hãy cho phép truy cập vị trí hoặc tiếp tục gửi báo cáo không có tọa độ.",
           variant: "error",
         });
       },
@@ -524,17 +510,6 @@ function ReportForm({
             ) : null}
           </Field>
 
-          <Field>
-            <FieldLabel htmlFor="report-severity">Mức độ</FieldLabel>
-            <Input
-              id="report-severity"
-              value={values.severity}
-              onChange={(event) => setField("severity", event.target.value)}
-              min={1}
-              max={5}
-              type="number"
-            />
-          </Field>
         </div>
       </div>
 
@@ -561,25 +536,15 @@ function ReportForm({
           </div>
         ) : null}
       </label>
-      <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto] md:items-end">
-        <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
-          Vĩ độ
-          <input
-            value={values.lat}
-            onChange={(event) => setCoordinateField("lat", event.target.value)}
-            className="rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
-            required
-          />
-        </label>
-        <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
-          Kinh độ
-          <input
-            value={values.lng}
-            onChange={(event) => setCoordinateField("lng", event.target.value)}
-            className="rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
-            required
-          />
-        </label>
+      <div className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 md:grid-cols-[1fr_auto] md:items-center">
+        <div className="grid gap-1 text-sm text-slate-700">
+          <span className="font-semibold">Tọa độ GPS</span>
+          <span className="text-xs text-slate-600">
+            {hasGpsCoordinates
+              ? "Đã ghi nhận tọa độ từ thiết bị."
+              : "Chưa có tọa độ GPS; báo cáo vẫn có thể gửi bằng địa chỉ đã nhập."}
+          </span>
+        </div>
         <button
           type="button"
           onClick={fillCurrentLocation}
@@ -590,16 +555,7 @@ function ReportForm({
         </button>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2">
-        <label className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700">
-          <input
-            type="checkbox"
-            checked={values.isUrgent}
-            onChange={(event) => setField("isUrgent", event.target.checked)}
-          />
-          <AlertTriangle className="size-4 text-amber-600" aria-hidden="true" />
-          Báo cáo khẩn cấp
-        </label>
+      <div className="grid gap-3">
         <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
           <span className="inline-flex items-center gap-2">
             <ImageIcon className="size-4 text-sky-700" aria-hidden="true" />

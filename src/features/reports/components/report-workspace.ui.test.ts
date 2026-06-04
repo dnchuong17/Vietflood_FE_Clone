@@ -40,12 +40,21 @@ describe("report workspace UI", () => {
     expect(source).toContain("Phường/Xã đã chọn");
   });
 
-  it("tracks manual location edits so stale GPS coordinates are not submitted", () => {
+  it("tracks manual location edits while keeping GPS coordinates internal", () => {
     expect(source).toContain("isLocationManuallyEdited: true");
     expect(source).toContain("isLocationManuallyEdited: false");
     expect(source).toContain("setManualLocationField(\"addressLine\"");
-    expect(source).toContain("setCoordinateField(\"lat\"");
-    expect(source).toContain("setCoordinateField(\"lng\"");
+    expect(source).toContain("lat: String(position.coords.latitude)");
+    expect(source).toContain("lng: String(position.coords.longitude)");
+  });
+
+  it("does not expose severity, urgency, latitude, or longitude as user inputs", () => {
+    expect(source).not.toContain('id="report-severity"');
+    expect(source).not.toContain("Báo cáo khẩn cấp");
+    expect(source).not.toContain("Vĩ độ");
+    expect(source).not.toContain("Kinh độ");
+    expect(source).not.toContain("setField(\"isUrgent\"");
+    expect(source).not.toContain("setCoordinateField");
   });
 
   it("shows mobile-like report overview counts and sync state", () => {
