@@ -3,6 +3,7 @@ import { Be_Vietnam_Pro, Merriweather } from "next/font/google";
 import { GlobalAlertProvider } from "@/components/feedback/global-alert-provider";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { VietnamDivisionsPrefetch } from "@/features/location/components/vietnam-divisions-prefetch";
 
 import "./globals.css";
 
@@ -43,6 +44,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <VietnamDivisionsPrefetch />
           <TooltipProvider>
             <GlobalAlertProvider>{children}</GlobalAlertProvider>
           </TooltipProvider>
