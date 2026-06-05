@@ -1126,13 +1126,15 @@ export function ReportWorkspace() {
                   {report.lat ?? "-"}, {report.lng ?? "-"}
                 </dd>
               </div>
-              <div className="flex gap-2">
-                <dt className="flex w-24 items-center gap-1.5 font-semibold text-muted-foreground">
-                  <UserRound className="size-4 shrink-0" aria-hidden="true" />
-                  Người báo
-                </dt>
-                <dd>{report.user?.username ?? report.userId ?? "-"}</dd>
-              </div>
+              {identity?.role !== "citizen" && (
+                <div className="flex gap-2">
+                  <dt className="flex w-24 items-center gap-1.5 font-semibold text-muted-foreground">
+                    <UserRound className="size-4 shrink-0" aria-hidden="true" />
+                    Người báo
+                  </dt>
+                  <dd>{report.user?.username ?? report.userId ?? "-"}</dd>
+                </div>
+              )}
             </dl>
 
             <div className="mt-4 flex flex-wrap items-center justify-between gap-2">

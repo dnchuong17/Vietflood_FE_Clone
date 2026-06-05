@@ -168,18 +168,20 @@ export function ReportDetailPanel({ reportId }: { reportId: number }) {
                   : "Chưa có toạ độ hợp lệ"}
               </p>
             </div>
-            <div className="rounded-lg border bg-muted/40 p-3">
-              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                <UserRound className="size-4 text-primary" aria-hidden="true" />
-                Người báo
+            {identity?.role !== "citizen" && (
+              <div className="rounded-lg border bg-muted/40 p-3">
+                <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                  <UserRound className="size-4 text-primary" aria-hidden="true" />
+                  Người báo
+                </div>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  {detail.reporter.name}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {detail.reporter.contact}
+                </p>
               </div>
-              <p className="mt-2 text-sm text-muted-foreground">
-                {detail.reporter.name}
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {detail.reporter.contact}
-              </p>
-            </div>
+            )}
           </div>
 
           <div className="rounded-lg border bg-muted/40 p-3">

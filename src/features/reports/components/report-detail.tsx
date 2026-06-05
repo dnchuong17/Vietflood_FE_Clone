@@ -413,19 +413,21 @@ export function ReportDetail({ reportId }: { reportId: string }) {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <UserRound className="size-4 text-primary" aria-hidden="true" />
-              Người báo
-            </CardTitle>
-            <CardDescription>Thông tin liên hệ từ backend.</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            <DetailMetric label="Tên" value={reporter.name} />
-            <DetailMetric label="Liên hệ" value={reporter.contact} />
-          </CardContent>
-        </Card>
+        {identity?.role !== "citizen" && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <UserRound className="size-4 text-primary" aria-hidden="true" />
+                Người báo
+              </CardTitle>
+              <CardDescription>Thông tin liên hệ từ backend.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3">
+              <DetailMetric label="Tên" value={reporter.name} />
+              <DetailMetric label="Liên hệ" value={reporter.contact} />
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       <Card>
