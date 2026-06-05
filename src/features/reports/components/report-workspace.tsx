@@ -23,6 +23,7 @@ import {
 } from "@heroicons/react/24/solid";
 
 import { useGlobalAlert } from "@/components/feedback/global-alert-provider";
+import { ConfirmDialog } from "@/components/feedback/confirm-dialog";
 import { LoadingBar } from "@/components/feedback/loading-bar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -42,6 +43,12 @@ import {
   searchWards,
   type DivisionOption,
 } from "@/features/location/api/vietnam-divisions";
+import {
+  geocodeReportLocation,
+  reverseGeocodeLocation,
+  type GeocodingAttribution,
+  type GeocodingResult,
+} from "@/features/location/api/geocoding";
 import { useAuthIdentity } from "@/features/auth/lib/use-auth-identity";
 import { canManageReports, normalizeRole } from "@/features/auth/lib/roles";
 import {
@@ -161,6 +168,38 @@ function toFormValues(report: FloodReport): ReportFormValues {
   };
 }
 
+function stripReportCoordinates(values: ReportFormValues): ReportFormValues {
+  return {
+    ...values,
+    lat: "",
+    lng: "",
+    isLocationManuallyEdited: false,
+  };
+}
+
+function applyGeocodingResultToValues(
+  values: ReportFormValues,
+  result: GeocodingResult,
+): ReportFormValues {
+  return {
+    ...values,
+    province: result.province?.name ?? values.province,
+    ward: result.ward?.name ?? values.ward,
+    addressLine: result.addressLine ?? values.addressLine,
+    lat: result.coordinates ? String(result.coordinates.lat) : values.lat,
+    lng: result.coordinates ? String(result.coordinates.lng) : values.lng,
+    isLocationManuallyEdited: false,
+  };
+}
+
+function formatLocationAttribution(
+  attribution: GeocodingAttribution | null,
+): string {
+  return attribution
+    ? `${attribution.provider} - ${attribution.license}`
+    : "OpenStreetMap Nominatim";
+}
+
 function ReportForm({
   initialValues,
   reports,
@@ -182,6 +221,10 @@ function ReportForm({
   const [wardOptions, setWardOptions] = useState<DivisionOption[]>([]);
   const [isLoadingProvinces, setIsLoadingProvinces] = useState(false);
   const [isLoadingWards, setIsLoadingWards] = useState(false);
+  const [pendingCoordinatesFallback, setPendingCoordinatesFallback] =
+    useState<ReportFormValues | null>(null);
+  const [locationAttribution, setLocationAttribution] =
+    useState<GeocodingAttribution | null>(null);
 
   function setField<T extends keyof ReportFormValues>(
     field: T,
@@ -287,6 +330,7 @@ function ReportForm({
       ),
     [normalizedWardValue, wardOptions],
   );
+  const locationAttributionLabel = formatLocationAttribution(locationAttribution);
 
   function handleProvinceInput(value: string) {
     setValues((prev) => ({
@@ -328,6 +372,36 @@ function ReportForm({
     });
   }
 
+  async function applyReverseGeocode(position: GeolocationPosition) {
+    const coordinates = {
+      lat: position.coords.latitude,
+      lng: position.coords.longitude,
+    };
+
+    setValues((prev) => ({
+      ...prev,
+      lat: String(position.coords.latitude),
+      lng: String(position.coords.longitude),
+      isLocationManuallyEdited: false,
+    }));
+
+    try {
+      const result = await reverseGeocodeLocation(coordinates);
+      setValues((prev) => applyGeocodingResultToValues(prev, result));
+      setSelectedProvinceCode(result.province?.code ?? null);
+      setLocationAttribution(result.attribution);
+    } catch (error) {
+      showAlert({
+        title: "Không thể tự điền địa chỉ",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Đã giữ tọa độ GPS nhưng không thể lấy tỉnh/phường.",
+        variant: "error",
+      });
+    }
+  }
+
   function fillCurrentLocation() {
     if (!navigator.geolocation) {
       showAlert({
@@ -340,12 +414,7 @@ function ReportForm({
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        setValues((prev) => ({
-          ...prev,
-          lat: String(position.coords.latitude),
-          lng: String(position.coords.longitude),
-          isLocationManuallyEdited: false,
-        }));
+        void applyReverseGeocode(position);
       },
       () => {
         showAlert({
@@ -358,21 +427,78 @@ function ReportForm({
     );
   }
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function resolveReportLocationBeforeSubmit(
+    nextValues: ReportFormValues,
+  ): Promise<ReportFormValues> {
+    if (!nextValues.isLocationManuallyEdited) {
+      return nextValues;
+    }
+
+    const result = await geocodeReportLocation({
+      province: nextValues.province,
+      ward: nextValues.ward,
+      addressLine: nextValues.addressLine,
+    });
+
+    if (!result.coordinates) {
+      throw new Error("Không thể tìm tọa độ cho địa chỉ này.");
+    }
+
+    const resolvedValues = applyGeocodingResultToValues(nextValues, result);
+    setValues(resolvedValues);
+    setSelectedProvinceCode(result.province?.code ?? selectedProvinceCode);
+    setLocationAttribution(result.attribution);
+    return resolvedValues;
+  }
+
+  async function submitPendingCoordinatesFallback() {
+    if (!pendingCoordinatesFallback) {
+      return;
+    }
+
     try {
       setIsSubmitting(true);
-      await onSubmit(values);
+      await onSubmit(pendingCoordinatesFallback);
+      setPendingCoordinatesFallback(null);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setIsSubmitting(true);
+    let resolvedValues: ReportFormValues;
+
+    try {
+      resolvedValues = await resolveReportLocationBeforeSubmit(values);
+    } catch (error) {
+      setPendingCoordinatesFallback(stripReportCoordinates(values));
+      showAlert({
+        title: "Không thể xác định tọa độ",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Bạn có thể kiểm tra lại địa chỉ hoặc xác nhận gửi không có tọa độ.",
+        variant: "error",
+      });
+      setIsSubmitting(false);
+      return;
+    }
+
+    try {
+      await onSubmit(resolvedValues);
     } finally {
       setIsSubmitting(false);
     }
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="grid gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
-    >
+    <>
+      <form
+        onSubmit={handleSubmit}
+        className="grid gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
+      >
       <div>
         <span className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
           <ClipboardList className="size-4 text-sky-700" aria-hidden="true" />
@@ -544,6 +670,14 @@ function ReportForm({
               ? "Đã ghi nhận tọa độ từ thiết bị."
               : "Chưa có tọa độ GPS; báo cáo vẫn có thể gửi bằng địa chỉ đã nhập."}
           </span>
+          <a
+            href="https://www.openstreetmap.org/copyright"
+            target="_blank"
+            rel="noreferrer"
+            className="text-xs font-medium text-sky-700 underline-offset-2 hover:underline"
+          >
+            Dữ liệu địa lý: {locationAttributionLabel} / OpenStreetMap
+          </a>
         </div>
         <button
           type="button"
@@ -589,7 +723,18 @@ function ReportForm({
           {isSubmitting ? "Đang lưu..." : submitLabel}
         </button>
       </div>
-    </form>
+      </form>
+      <ConfirmDialog
+        isOpen={Boolean(pendingCoordinatesFallback)}
+        title="Gửi báo cáo không có tọa độ?"
+        description="Không thể geocode địa chỉ hiện tại. Nếu tiếp tục, báo cáo vẫn có tỉnh/phường/địa chỉ nhưng không có lat/lng."
+        confirmLabel="Gửi không tọa độ"
+        cancelLabel="Kiểm tra lại"
+        isConfirming={isSubmitting}
+        onCancel={() => setPendingCoordinatesFallback(null)}
+        onConfirm={() => void submitPendingCoordinatesFallback()}
+      />
+    </>
   );
 }
 

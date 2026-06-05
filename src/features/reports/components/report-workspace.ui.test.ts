@@ -48,6 +48,17 @@ describe("report workspace UI", () => {
     expect(source).toContain("lng: String(position.coords.longitude)");
   });
 
+  it("uses backend geocoding for GPS prefill and edited-address submit fallback", () => {
+    expect(source).toContain("@/features/location/api/geocoding");
+    expect(source).toContain("reverseGeocodeLocation");
+    expect(source).toContain("geocodeReportLocation");
+    expect(source).toContain("@/components/feedback/confirm-dialog");
+    expect(source).toContain("ConfirmDialog");
+    expect(source).toContain("pendingCoordinatesFallback");
+    expect(source).toContain("resolveReportLocationBeforeSubmit");
+    expect(source).toContain("OpenStreetMap");
+  });
+
   it("does not expose severity, urgency, latitude, or longitude as user inputs", () => {
     expect(source).not.toContain('id="report-severity"');
     expect(source).not.toContain("Báo cáo khẩn cấp");
