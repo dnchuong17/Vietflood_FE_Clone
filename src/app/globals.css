@@ -6,6 +6,8 @@
 
 :root {
   --navbar-height: 72px;
+  --font-body: "Segoe UI", Arial, Helvetica, sans-serif;
+  --font-heading: Georgia, "Times New Roman", serif;
   --background: oklch(0.985 0.01 230);
   --foreground: oklch(0.18 0.02 240);
   --card: oklch(1 0 0);
