@@ -8,6 +8,7 @@ export type AppTab = {
 
 const CITIZEN_TABS: AppTab[] = [
   { href: "/trang-chu", label: "Bản đồ", match: ["/trang-chu"] },
+  { href: "/chat", label: "Trợ lý", match: ["/chat"] },
   { href: "/bao-cao", label: "Báo cáo", match: ["/bao-cao"] },
   { href: "/theo-doi", label: "Theo dõi", match: ["/theo-doi"] },
   { href: "/ho-so", label: "Hồ sơ", match: ["/ho-so"] },
@@ -15,6 +16,7 @@ const CITIZEN_TABS: AppTab[] = [
 
 const OPERATIONAL_TABS: AppTab[] = [
   { href: "/cuu-tro", label: "Cứu trợ", match: ["/cuu-tro", "/phan-cong"] },
+  { href: "/chat", label: "Trợ lý", match: ["/chat"] },
   { href: "/bao-cao", label: "Báo cáo", match: ["/bao-cao"] },
   { href: "/theo-doi", label: "Theo dõi", match: ["/theo-doi"] },
   { href: "/nguoi-dung", label: "Người dùng", match: ["/nguoi-dung"] },

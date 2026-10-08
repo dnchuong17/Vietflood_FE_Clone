@@ -7,6 +7,7 @@ import { useState, type ComponentType, type SVGProps } from "react";
 import {
   ArrowLeftStartOnRectangleIcon as LogOut,
   ArrowRightEndOnRectangleIcon as LogIn,
+  ChatBubbleLeftRightIcon,
   DocumentTextIcon as FileText,
   HomeIcon as Home,
   LifebuoyIcon as HeartHandshake,
@@ -35,6 +36,7 @@ const TAB_ICONS: Record<string, HeroIcon> = {
   "/theo-doi": RadioTower,
   "/nguoi-dung": UsersRound,
   "/ho-so": UserRound,
+  "/chat": ChatBubbleLeftRightIcon,
 };
 
 export function SiteHeader() {

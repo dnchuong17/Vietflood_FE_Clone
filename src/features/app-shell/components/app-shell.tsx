@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, type ComponentType, type SVGProps } from "react";
 import {
   BookOpenIcon,
+  ChatBubbleLeftRightIcon,
   ClipboardDocumentCheckIcon,
   DocumentTextIcon,
   HomeIcon,
@@ -36,6 +37,7 @@ const ROUTE_TITLE_ICONS: Record<string, HeroIcon> = {
   "/phan-cong": ClipboardDocumentCheckIcon,
   "/nguoi-dung": UserGroupIcon,
   "/ho-so": UserCircleIcon,
+  "/chat": ChatBubbleLeftRightIcon,
   "/huong-dan": BookOpenIcon,
 };
 

@@ -7,6 +7,7 @@ describe("role-aware app tabs", () => {
     expect(getDefaultRouteForRole("citizen")).toBe("/trang-chu");
     expect(getTabsForRole("citizen").map((tab) => tab.href)).toEqual([
       "/trang-chu",
+      "/chat",
       "/bao-cao",
       "/theo-doi",
       "/ho-so",
@@ -17,6 +18,7 @@ describe("role-aware app tabs", () => {
     expect(getDefaultRouteForRole("relief")).toBe("/cuu-tro");
     expect(getTabsForRole("relief").map((tab) => tab.href)).toEqual([
       "/cuu-tro",
+      "/chat",
       "/bao-cao",
       "/theo-doi",
       "/nguoi-dung",
