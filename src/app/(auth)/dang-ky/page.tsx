@@ -8,8 +8,9 @@ export const metadata = {
 export default function RegisterPage() {
   return (
     <AuthFormCard
-      title="Tạo tài khoản người dân"
-      description="Đăng ký để tạo báo cáo, xem báo cáo của bạn và chia sẻ vị trí trực tiếp khi cần."
+      mode="register"
+      title="Tạo tài khoản"
+      description="Tạo tài khoản người dân để báo cáo tình hình và nhận hỗ trợ khi cần."
     >
       <RegisterForm />
     </AuthFormCard>

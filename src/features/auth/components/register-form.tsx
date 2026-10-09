@@ -1,11 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  ArrowRightEndOnRectangleIcon as LogIn,
-  UserPlusIcon as UserPlus,
-} from "@heroicons/react/24/solid";
+  ArrowRightIcon,
+  EyeIcon,
+  EyeSlashIcon,
+} from "@heroicons/react/24/outline";
 
 import { useGlobalAlert } from "@/components/feedback/global-alert-provider";
 import { LoadingBar } from "@/components/feedback/loading-bar";
@@ -14,6 +16,7 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { register } from "@/features/auth/api/sign-in";
 import { useAuthFormStore } from "@/features/auth/store/auth-form-store";
+import styles from "./auth-experience.module.css";
 
 export function RegisterForm() {
   const router = useRouter();
@@ -23,6 +26,7 @@ export function RegisterForm() {
   const updateField = useAuthFormStore((state) => state.setRegisterField);
   const setIsSubmitting = useAuthFormStore((state) => state.setRegisterSubmitting);
   const resetRegisterForm = useAuthFormStore((state) => state.resetRegisterForm);
+  const [showPassword, setShowPassword] = useState(false);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -65,111 +69,70 @@ export function RegisterForm() {
   }
 
   return (
-    <form className="mt-5" onSubmit={handleSubmit}>
-      <FieldGroup className="gap-3">
-        <div className="grid gap-3 sm:grid-cols-2">
+    <form className={styles.form} onSubmit={handleSubmit}>
+      <FieldGroup className={styles.fields}>
+        <p className={styles.sectionLabel}>Thông tin tài khoản</p>
+        <div className={styles.fieldGrid}>
           <Field>
-            <FieldLabel htmlFor="register-first-name">Tên</FieldLabel>
-            <Input
-              id="register-first-name"
-              value={form.first_name}
-              onChange={(event) => updateField("first_name", event.target.value)}
-              required
-            />
+            <FieldLabel className={styles.fieldLabel} htmlFor="register-first-name">Tên</FieldLabel>
+            <div className={styles.inputShell}><Input className={styles.input} id="register-first-name" name="given-name" autoComplete="given-name" placeholder="Tên của bạn" value={form.first_name} onChange={(event) => updateField("first_name", event.target.value)} required /></div>
           </Field>
 
           <Field>
-            <FieldLabel htmlFor="register-last-name">Họ</FieldLabel>
-            <Input
-              id="register-last-name"
-              value={form.last_name}
-              onChange={(event) => updateField("last_name", event.target.value)}
-              required
-            />
+            <FieldLabel className={styles.fieldLabel} htmlFor="register-last-name">Họ</FieldLabel>
+            <div className={styles.inputShell}><Input className={styles.input} id="register-last-name" name="family-name" autoComplete="family-name" placeholder="Họ của bạn" value={form.last_name} onChange={(event) => updateField("last_name", event.target.value)} required /></div>
           </Field>
         </div>
 
         <Field>
-          <FieldLabel htmlFor="register-username">Tên đăng nhập</FieldLabel>
-          <Input
-            id="register-username"
-            value={form.username}
-            onChange={(event) => updateField("username", event.target.value)}
-            autoComplete="username"
-            required
-          />
+          <FieldLabel className={styles.fieldLabel} htmlFor="register-username">Tên đăng nhập</FieldLabel>
+          <div className={styles.inputShell}><Input className={styles.input} id="register-username" name="username" value={form.username} onChange={(event) => updateField("username", event.target.value)} autoComplete="username" placeholder="Tên dùng để đăng nhập" required /></div>
         </Field>
 
         <Field>
-          <FieldLabel htmlFor="register-password">Mật khẩu</FieldLabel>
-          <Input
-            id="register-password"
-            value={form.password}
-            onChange={(event) => updateField("password", event.target.value)}
-            type="password"
-            autoComplete="new-password"
-            minLength={6}
-            required
-          />
+          <FieldLabel className={styles.fieldLabel} htmlFor="register-password">Mật khẩu</FieldLabel>
+          <div className={styles.inputShell}>
+            <Input className={styles.input} id="register-password" name="new-password" value={form.password} onChange={(event) => updateField("password", event.target.value)} type={showPassword ? "text" : "password"} autoComplete="new-password" placeholder="Tối thiểu 6 ký tự" minLength={6} required />
+            <button type="button" className={styles.eyeButton} onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"} aria-pressed={showPassword}>
+              {showPassword ? <EyeSlashIcon aria-hidden="true" /> : <EyeIcon aria-hidden="true" />}
+            </button>
+          </div>
         </Field>
 
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className={styles.sectionDivider} aria-hidden="true" />
+        <p className={styles.sectionLabel}>Liên hệ & khu vực</p>
+        <div className={styles.fieldGrid}>
           <Field>
-            <FieldLabel htmlFor="register-email">Địa chỉ thư điện tử</FieldLabel>
-            <Input
-              id="register-email"
-              value={form.email}
-              onChange={(event) => updateField("email", event.target.value)}
-              type="email"
-              autoComplete="email"
-              required
-            />
+            <FieldLabel className={styles.fieldLabel} htmlFor="register-email">Email</FieldLabel>
+            <div className={styles.inputShell}><Input className={styles.input} id="register-email" name="email" value={form.email} onChange={(event) => updateField("email", event.target.value)} type="email" autoComplete="email" placeholder="ban@example.com" required /></div>
           </Field>
 
           <Field>
-            <FieldLabel htmlFor="register-phone">Số điện thoại</FieldLabel>
-            <Input
-              id="register-phone"
-              value={form.phone}
-              onChange={(event) => updateField("phone", event.target.value)}
-              autoComplete="tel"
-              required
-            />
+            <FieldLabel className={styles.fieldLabel} htmlFor="register-phone">Số điện thoại</FieldLabel>
+            <div className={styles.inputShell}><Input className={styles.input} id="register-phone" name="tel" value={form.phone} onChange={(event) => updateField("phone", event.target.value)} type="tel" autoComplete="tel" placeholder="Số điện thoại liên hệ" required /></div>
           </Field>
         </div>
 
         <Field>
-          <FieldLabel htmlFor="register-address">Địa chỉ</FieldLabel>
-          <Input
-            id="register-address"
-            value={form.address_line}
-            onChange={(event) => updateField("address_line", event.target.value)}
-          />
+          <FieldLabel className={styles.fieldLabel} htmlFor="register-address">Địa chỉ <span>(không bắt buộc)</span></FieldLabel>
+          <div className={styles.inputShell}><Input className={styles.input} id="register-address" name="street-address" value={form.address_line} onChange={(event) => updateField("address_line", event.target.value)} autoComplete="street-address" placeholder="Số nhà, tên đường" /></div>
         </Field>
 
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className={styles.fieldGrid}>
           <Field>
-            <FieldLabel htmlFor="register-province">Tỉnh/Thành phố</FieldLabel>
-            <Input
-              id="register-province"
-              value={form.province}
-              onChange={(event) => updateField("province", event.target.value)}
-            />
+            <FieldLabel className={styles.fieldLabel} htmlFor="register-province">Tỉnh/Thành phố <span>(không bắt buộc)</span></FieldLabel>
+            <div className={styles.inputShell}><Input className={styles.input} id="register-province" name="address-level1" value={form.province} onChange={(event) => updateField("province", event.target.value)} autoComplete="address-level1" placeholder="Tỉnh, thành phố" /></div>
           </Field>
 
           <Field>
-            <FieldLabel htmlFor="register-ward">Phường/Xã</FieldLabel>
-            <Input
-              id="register-ward"
-              value={form.ward}
-              onChange={(event) => updateField("ward", event.target.value)}
-            />
+            <FieldLabel className={styles.fieldLabel} htmlFor="register-ward">Phường/Xã <span>(không bắt buộc)</span></FieldLabel>
+            <div className={styles.inputShell}><Input className={styles.input} id="register-ward" name="address-level3" value={form.ward} onChange={(event) => updateField("ward", event.target.value)} placeholder="Phường, xã" /></div>
           </Field>
         </div>
 
-        <Button type="submit" className="mt-1 w-full" disabled={isSubmitting}>
-          <UserPlus data-icon="inline-start" aria-hidden="true" />
-          {isSubmitting ? "Đang tạo tài khoản..." : "Tạo tài khoản người dân"}
+        <Button type="submit" className={styles.primaryButton} disabled={isSubmitting}>
+          <span>{isSubmitting ? "Đang tạo tài khoản..." : "Tạo tài khoản người dân"}</span>
+          <span className={styles.buttonIcon}><ArrowRightIcon aria-hidden="true" /></span>
         </Button>
 
         {isSubmitting ? (
@@ -179,12 +142,9 @@ export function RegisterForm() {
           />
         ) : null}
 
-        <p className="text-center text-sm text-muted-foreground">
+        <p className={styles.switchRow}>
           Đã có tài khoản?{" "}
-          <Link href="/dang-nhap" className="inline-flex items-center gap-1.5 font-semibold text-primary">
-            <LogIn className="size-4" aria-hidden="true" />
-            Đăng nhập
-          </Link>
+          <Link href="/dang-nhap" className={styles.switchLink}>Đăng nhập</Link>
         </p>
       </FieldGroup>
     </form>

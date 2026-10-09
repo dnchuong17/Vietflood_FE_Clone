@@ -8,7 +8,7 @@ export const metadata = {
 
 export default function ChatPage() {
   return (
-    <AppShell title="Trợ lý VietFlood">
+    <AppShell>
       <ChatWorkspace />
     </AppShell>
   );

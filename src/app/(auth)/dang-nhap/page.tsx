@@ -8,8 +8,9 @@ export const metadata = {
 export default function LoginPage() {
   return (
     <AuthFormCard
+      mode="login"
       title="Đăng nhập"
-      description="Truy cập VietFlood bằng tài khoản người dân, đội cứu trợ hoặc quản trị viên."
+      description="Tiếp tục theo dõi thông tin và quản lý hoạt động của bạn trên VietFlood."
     >
       <LoginForm />
     </AuthFormCard>

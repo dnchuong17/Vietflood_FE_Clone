@@ -1,44 +1,68 @@
 import type { ReactNode } from "react";
-import { ShieldCheckIcon } from "@heroicons/react/24/solid";
+import { ArrowUpRightIcon, MapPinIcon, ShieldCheckIcon } from "@heroicons/react/24/outline";
 
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import styles from "./auth-experience.module.css";
 
 type AuthFormCardProps = {
-    title: string;
-    description: string;
-    note?: string;
-    children: ReactNode;
+  title: string;
+  description: string;
+  mode: "login" | "register";
+  note?: string;
+  children: ReactNode;
 };
 
-export function AuthFormCard({ title, description, note, children }: AuthFormCardProps) {
-    return (
-        <div className="mx-auto grid w-[min(1120px,92vw)] place-items-center py-6">
-            <Card className="mx-auto w-full max-w-xl shadow-[0_18px_60px_rgba(4,20,47,0.12)]">
-                <CardHeader className="items-center text-center">
-                    <span className="flex size-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                        <ShieldCheckIcon className="size-5" aria-hidden="true" />
-                    </span>
-                    <CardTitle className="[font-family:var(--font-heading)] text-[clamp(1.4rem,2.5vw,2rem)]">
-                        {title}
-                    </CardTitle>
-                    <CardDescription>{description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                {children}
+export function AuthFormCard({ title, description, mode, note, children }: AuthFormCardProps) {
+  const isRegister = mode === "register";
 
-                {note ? (
-                    <p className="mt-1.5 text-center text-sm italic text-muted-foreground">
-                        {note}
-                    </p>
-                ) : null}
-                </CardContent>
-            </Card>
-        </div>
-    );
+  return (
+    <div className={styles.frame}>
+      <div className={styles.frameInner}>
+        <aside className={styles.story} aria-label="Giới thiệu VietFlood">
+          <div className={styles.storyTop}>
+            <span className={styles.storyIndex}>VIETFLOOD / {isRegister ? "02" : "01"}</span>
+            <span className={styles.storyTag}><span aria-hidden="true" /> Nền tảng cộng đồng</span>
+          </div>
+
+          <div className={styles.storyBody}>
+            <span className={styles.eyebrow}>CHỦ ĐỘNG TRƯỚC MÙA NƯỚC</span>
+            <h2>{isRegister ? <>Một tài khoản.<br /><em>Thêm sự an tâm.</em></> : <>Hiểu tình hình.<br /><em>Hành động kịp thời.</em></>}</h2>
+            <p>{isRegister
+              ? "Tham gia cộng đồng để gửi báo cáo, theo dõi diễn biến và chia sẻ vị trí khi cần hỗ trợ."
+              : "Từ bản đồ ngập đến báo cáo của bạn, mọi thông tin cần thiết nằm trong một không gian rõ ràng."}</p>
+          </div>
+
+          <div className={styles.contour} aria-hidden="true">
+            <span className={styles.contourCore} />
+            <span className={styles.contourRingOne} />
+            <span className={styles.contourRingTwo} />
+            <span className={styles.contourRingThree} />
+            <span className={styles.contourRingFour} />
+            <span className={styles.contourRingFive} />
+          </div>
+
+          <div className={styles.storyBottom}>
+            <div className={styles.signalCard}>
+              <span className={styles.signalIcon}><MapPinIcon aria-hidden="true" /></span>
+              <span><strong>Bản đồ & báo cáo</strong><small>Nắm bắt tình hình quanh bạn</small></span>
+              <ArrowUpRightIcon className={styles.signalArrow} aria-hidden="true" />
+            </div>
+            <p><ShieldCheckIcon aria-hidden="true" /> Dữ liệu của bạn được dùng để hỗ trợ cộng đồng.</p>
+          </div>
+        </aside>
+
+        <Card className={styles.formCard}>
+          <CardHeader className={styles.formHeader}>
+            <span className={styles.formEyebrow}>{isRegister ? "BẮT ĐẦU VỚI VIETFLOOD" : "CHÀO MỪNG TRỞ LẠI"}</span>
+            <CardTitle className={styles.formTitle}>{title}</CardTitle>
+            <CardDescription className={styles.formDescription}>{description}</CardDescription>
+          </CardHeader>
+          <CardContent className={styles.formContent}>
+            {children}
+            {note ? <p className={styles.note}>{note}</p> : null}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
 }

@@ -1,11 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  ArrowRightEndOnRectangleIcon as LogIn,
-  UserPlusIcon as UserPlus,
-} from "@heroicons/react/24/solid";
+  ArrowRightIcon,
+  EyeIcon,
+  EyeSlashIcon,
+} from "@heroicons/react/24/outline";
 
 import { useGlobalAlert } from "@/components/feedback/global-alert-provider";
 import { LoadingBar } from "@/components/feedback/loading-bar";
@@ -20,6 +22,7 @@ import {
 } from "@/features/auth/lib/auth-storage";
 import { normalizeRole } from "@/features/auth/lib/roles";
 import { useAuthFormStore } from "@/features/auth/store/auth-form-store";
+import styles from "./auth-experience.module.css";
 
 export function LoginForm() {
   const router = useRouter();
@@ -29,6 +32,7 @@ export function LoginForm() {
   const setLoginField = useAuthFormStore((state) => state.setLoginField);
   const setIsSubmitting = useAuthFormStore((state) => state.setLoginSubmitting);
   const resetLoginForm = useAuthFormStore((state) => state.resetLoginForm);
+  const [showPassword, setShowPassword] = useState(false);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -75,37 +79,48 @@ export function LoginForm() {
   }
 
   return (
-    <form className="mt-5" onSubmit={handleSubmit}>
-      <FieldGroup className="gap-3">
+    <form className={styles.form} onSubmit={handleSubmit}>
+      <FieldGroup className={styles.fields}>
         <Field>
-          <FieldLabel htmlFor="login-username">Tên đăng nhập</FieldLabel>
-          <Input
-            id="login-username"
-            name="username"
-            type="text"
-            autoComplete="username"
-            value={login.loginName}
-            onChange={(event) => setLoginField("loginName", event.target.value)}
-            required
-          />
+          <FieldLabel className={styles.fieldLabel} htmlFor="login-username">Tên đăng nhập</FieldLabel>
+          <div className={styles.inputShell}>
+            <Input
+              className={styles.input}
+              id="login-username"
+              name="username"
+              type="text"
+              autoComplete="username"
+              placeholder="Nhập tên đăng nhập"
+              value={login.loginName}
+              onChange={(event) => setLoginField("loginName", event.target.value)}
+              required
+            />
+          </div>
         </Field>
 
         <Field>
-          <FieldLabel htmlFor="login-password">Mật khẩu</FieldLabel>
-          <Input
-            id="login-password"
-            name="password"
-            type="password"
-            autoComplete="current-password"
-            value={login.secret}
-            onChange={(event) => setLoginField("secret", event.target.value)}
-            required
-          />
+          <FieldLabel className={styles.fieldLabel} htmlFor="login-password">Mật khẩu</FieldLabel>
+          <div className={styles.inputShell}>
+            <Input
+              className={styles.input}
+              id="login-password"
+              name="password"
+              type={showPassword ? "text" : "password"}
+              autoComplete="current-password"
+              placeholder="Nhập mật khẩu"
+              value={login.secret}
+              onChange={(event) => setLoginField("secret", event.target.value)}
+              required
+            />
+            <button type="button" className={styles.eyeButton} onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"} aria-pressed={showPassword}>
+              {showPassword ? <EyeSlashIcon aria-hidden="true" /> : <EyeIcon aria-hidden="true" />}
+            </button>
+          </div>
         </Field>
 
-        <Button type="submit" className="mt-1 w-full" disabled={isSubmitting}>
-          <LogIn data-icon="inline-start" aria-hidden="true" />
-          {isSubmitting ? "Đang đăng nhập..." : "Đăng nhập"}
+        <Button type="submit" className={styles.primaryButton} disabled={isSubmitting}>
+          <span>{isSubmitting ? "Đang đăng nhập..." : "Đăng nhập"}</span>
+          <span className={styles.buttonIcon}><ArrowRightIcon aria-hidden="true" /></span>
         </Button>
 
         {isSubmitting ? (
@@ -115,12 +130,9 @@ export function LoginForm() {
           />
         ) : null}
 
-        <p className="text-center text-sm text-muted-foreground">
+        <p className={styles.switchRow}>
           Cần tài khoản người dân?{" "}
-          <Link href="/dang-ky" className="inline-flex items-center gap-1.5 font-semibold text-primary">
-            <UserPlus className="size-4" aria-hidden="true" />
-            Đăng ký
-          </Link>
+          <Link href="/dang-ky" className={styles.switchLink}>Tạo tài khoản</Link>
         </p>
       </FieldGroup>
     </form>
