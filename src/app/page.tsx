@@ -1,20 +1,18 @@
 import Link from "next/link";
 import {
-  ArrowRightIcon as ArrowRight,
-  ArrowRightEndOnRectangleIcon as LogIn,
   BellAlertIcon as Siren,
   ClipboardDocumentListIcon as ClipboardList,
   CursorArrowRaysIcon as LocateFixed,
   MapPinIcon as MapPinned,
   ShieldCheckIcon as ShieldCheck,
   SignalIcon as RadioTower,
-  UserPlusIcon as UserPlus,
   UsersIcon as Users,
 } from "@heroicons/react/24/solid";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { LandingAuthActions } from "@/features/auth/components/landing-auth-actions";
 import {
   Card,
   CardContent,
@@ -153,18 +151,7 @@ export default function LandingPage() {
           </nav>
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            <Button asChild variant="ghost" className="hidden sm:inline-flex">
-              <Link href="/dang-nhap">
-                <LogIn data-icon="inline-start" aria-hidden="true" />
-                Đăng nhập
-              </Link>
-            </Button>
-            <Button asChild>
-              <Link href="/dang-ky">
-                <UserPlus data-icon="inline-start" aria-hidden="true" />
-                Tạo tài khoản
-              </Link>
-            </Button>
+            <LandingAuthActions placement="header" />
           </div>
         </div>
       </header>
@@ -185,13 +172,7 @@ export default function LandingPage() {
               lý người dùng và theo dõi trực tiếp giúp hiện trường luôn rõ ràng.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
-              <Button asChild size="lg">
-                <Link href="/dang-nhap">
-                  <LogIn data-icon="inline-start" aria-hidden="true" />
-                  Đăng nhập
-                  <ArrowRight data-icon="inline-end" aria-hidden="true" />
-                </Link>
-              </Button>
+              <LandingAuthActions placement="hero" />
               <Button asChild size="lg" variant="outline">
                 <Link href="/trang-chu">
                   Mở bản đồ Windy
@@ -375,18 +356,7 @@ export default function LandingPage() {
                 thái và hỗ trợ vị trí trực tiếp cho lực lượng đang phản ứng.
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
-                <Button asChild>
-                  <Link href="/dang-ky">
-                    <UserPlus data-icon="inline-start" aria-hidden="true" />
-                    Bắt đầu với vai trò người dân
-                  </Link>
-                </Button>
-                <Button asChild variant="outline">
-                  <Link href="/dang-nhap">
-                    <LogIn data-icon="inline-start" aria-hidden="true" />
-                    Mở bảng điều phối
-                  </Link>
-                </Button>
+                <LandingAuthActions placement="workflow" />
               </div>
             </LandingReveal>
             <LandingReveal delay={0.08} direction="left">
