@@ -10,6 +10,7 @@ import {
 } from "@heroicons/react/24/solid";
 
 import { Badge } from "@/components/ui/badge";
+import { MotionReveal } from "@/components/motion/gsap-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Tabs,
@@ -70,7 +71,7 @@ export function OverviewDashboard() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid gap-3 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)]">
+      <MotionReveal className="grid gap-3 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)]">
         <Card>
           <CardContent className="flex h-full flex-col justify-between gap-3 p-4">
             <div>
@@ -117,9 +118,9 @@ export function OverviewDashboard() {
             </p>
           </CardContent>
         </Card>
-      </div>
+      </MotionReveal>
 
-      <Tabs defaultValue="users" className="gap-4">
+      <MotionReveal><Tabs defaultValue="users" className="gap-4">
         <TabsList aria-label="Tổng quan hệ thống">
           <TabsTrigger value="users">
             <UserGroupIcon data-icon="inline-start" aria-hidden="true" />
@@ -137,7 +138,7 @@ export function OverviewDashboard() {
         <TabsContent value="reports">
           <ReportsOverview />
         </TabsContent>
-      </Tabs>
+      </Tabs></MotionReveal>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { MotionPresence } from "@/components/motion/gsap-motion";
 import {
     CheckCircleIcon,
     ExclamationTriangleIcon,
@@ -57,6 +58,7 @@ function AlertIcon({ variant }: { variant: AlertVariant }) {
 
 export function GlobalAlertProvider({ children }: { children: React.ReactNode }) {
     const [alert, setAlert] = useState<AlertState | null>(null);
+    const [displayAlert, setDisplayAlert] = useState<AlertState | null>(null);
     const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const clearDismissTimer = useCallback(() => {
@@ -75,12 +77,14 @@ export function GlobalAlertProvider({ children }: { children: React.ReactNode })
         ({ title, description, variant = "info", durationMs = DEFAULT_DURATION_MS }: ShowAlertOptions) => {
             clearDismissTimer();
 
-            setAlert({
+            const nextAlert = {
                 id: Date.now(),
                 title,
                 description,
                 variant,
-            });
+            };
+            setDisplayAlert(nextAlert);
+            setAlert(nextAlert);
 
             timeoutRef.current = setTimeout(() => {
                 setAlert(null);
@@ -102,23 +106,27 @@ export function GlobalAlertProvider({ children }: { children: React.ReactNode })
         <GlobalAlertContext.Provider value={contextValue}>
             {children}
 
-            {alert ? (
-                <div
+            <MotionPresence
+                    open={!!alert}
+                    mode="toast"
+                    onExitComplete={() => setDisplayAlert(null)}
                     className="pointer-events-none fixed right-4 z-60 w-[min(26rem,calc(100%-2rem))]"
-                    style={{ top: "max(1rem, env(safe-area-inset-top))" }}
                 >
+                {displayAlert ? (
                     <div
-                        key={alert.id}
+                        key={displayAlert.id}
+                        data-motion-panel
                         role="status"
                         aria-live="polite"
-                        className={`pointer-events-auto w-full rounded-2xl border px-4 py-3 shadow-2xl backdrop-blur-sm animate-in slide-in-from-top-2 fade-in duration-200 ${getVariantClasses(alert.variant)}`}
+                        className={`pointer-events-auto w-full rounded-2xl border px-4 py-3 shadow-2xl backdrop-blur-sm ${getVariantClasses(displayAlert.variant)}`}
+                        style={{ marginTop: "max(1rem, env(safe-area-inset-top))" }}
                     >
                         <div className="flex items-start justify-between gap-3">
                             <div className="flex min-w-0 items-start gap-2">
-                                <AlertIcon variant={alert.variant} />
+                                <AlertIcon variant={displayAlert.variant} />
                                 <div className="space-y-0.5">
-                                {alert.title ? <p className="m-0 text-sm font-semibold">{alert.title}</p> : null}
-                                <p className="m-0 text-sm">{alert.description}</p>
+                                {displayAlert.title ? <p className="m-0 text-sm font-semibold">{displayAlert.title}</p> : null}
+                                <p className="m-0 text-sm">{displayAlert.description}</p>
                                 </div>
                             </div>
                             <button
@@ -131,8 +139,8 @@ export function GlobalAlertProvider({ children }: { children: React.ReactNode })
                             </button>
                         </div>
                     </div>
-                </div>
-            ) : null}
+                ) : null}
+            </MotionPresence>
         </GlobalAlertContext.Provider>
     );
 }

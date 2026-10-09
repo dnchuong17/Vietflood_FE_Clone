@@ -1,198 +1,85 @@
 "use client";
 
-import {
-  motion,
-  useReducedMotion,
-  type HTMLMotionProps,
-  type Variants,
-} from "framer-motion";
+import { useGSAP } from "@gsap/react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useRef, type HTMLAttributes } from "react";
 
+import { prefersReducedMotion } from "@/components/motion/gsap-motion";
 import { cn } from "@/lib/utils";
 
-type LandingMotionProps = HTMLMotionProps<"div"> & {
+gsap.registerPlugin(ScrollTrigger);
+
+type LandingMotionProps = HTMLAttributes<HTMLDivElement> & {
   delay?: number;
   direction?: "up" | "down" | "left" | "right" | "none";
 };
 
-type LandingProgressBarProps = Omit<
-  HTMLMotionProps<"div">,
-  "style"
-> & {
-  width: string;
+const offsets = {
+  up: { x: 0, y: 22 }, down: { x: 0, y: -22 },
+  left: { x: 22, y: 0 }, right: { x: -22, y: 0 }, none: { x: 0, y: 0 },
 };
 
-const offsetByDirection = {
-  up: { y: 22 },
-  down: { y: -22 },
-  left: { x: 22 },
-  right: { x: -22 },
-  none: {},
-} as const;
-
-const staggerVariants: Variants = {
-  hidden: {},
-  show: {
-    transition: {
-      delayChildren: 0.08,
-      staggerChildren: 0.08,
-    },
-  },
-};
-
-const itemVariants: Variants = {
-  hidden: { opacity: 0, y: 18 },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.42, ease: [0.22, 1, 0.36, 1] },
-  },
-};
-
-export function LandingHeroMotion({
-  children,
-  className,
-  delay = 0,
-  direction = "up",
-  ...props
-}: LandingMotionProps) {
-  const shouldReduceMotion = useReducedMotion();
-
-  return (
-    <motion.div
-      data-motion="landing-hero"
-      data-motion-policy="prefers-reduced-motion"
-      className={className}
-      initial={
-        shouldReduceMotion
-          ? false
-          : { opacity: 0, scale: 0.98, ...offsetByDirection[direction] }
-      }
-      animate={
-        shouldReduceMotion
-          ? undefined
-          : { opacity: 1, scale: 1, x: 0, y: 0 }
-      }
-      transition={{ delay, duration: 0.56, ease: [0.22, 1, 0.36, 1] }}
-      {...props}
-    >
-      {children}
-    </motion.div>
-  );
+export function LandingHeroMotion({ children, className, delay = 0, direction = "up", ...props }: LandingMotionProps) {
+  const ref = useRef<HTMLDivElement>(null);
+  useGSAP(() => {
+    if (!ref.current || prefersReducedMotion()) return;
+    gsap.fromTo(ref.current, { autoAlpha: 0, scale: 0.98, ...offsets[direction] }, {
+      autoAlpha: 1, scale: 1, x: 0, y: 0, duration: 0.56, delay, ease: "power2.out", clearProps: "all",
+    });
+  }, { scope: ref, dependencies: [delay, direction], revertOnUpdate: true });
+  return <div ref={ref} data-motion="landing-hero" data-motion-policy="prefers-reduced-motion" className={className} {...props}>{children}</div>;
 }
 
-export function LandingReveal({
-  children,
-  className,
-  delay = 0,
-  direction = "up",
-  ...props
-}: LandingMotionProps) {
-  const shouldReduceMotion = useReducedMotion();
-
-  return (
-    <motion.div
-      data-motion="landing-reveal"
-      data-motion-policy="prefers-reduced-motion"
-      className={className}
-      initial={
-        shouldReduceMotion
-          ? false
-          : { opacity: 0, ...offsetByDirection[direction] }
-      }
-      whileInView={
-        shouldReduceMotion ? undefined : { opacity: 1, x: 0, y: 0 }
-      }
-      viewport={{ once: true, margin: "-80px" }}
-      transition={{ delay, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      {...props}
-    >
-      {children}
-    </motion.div>
-  );
+export function LandingReveal({ children, className, delay = 0, direction = "up", ...props }: LandingMotionProps) {
+  const ref = useRef<HTMLDivElement>(null);
+  useGSAP(() => {
+    const element = ref.current;
+    if (!element || prefersReducedMotion()) return;
+    gsap.fromTo(element, { autoAlpha: 0, ...offsets[direction] }, {
+      autoAlpha: 1, x: 0, y: 0, duration: 0.5, delay, ease: "power2.out", clearProps: "all",
+      scrollTrigger: { trigger: element, start: "top 92%", once: true },
+    });
+  }, { scope: ref, dependencies: [delay, direction], revertOnUpdate: true });
+  return <div ref={ref} data-motion="landing-reveal" data-motion-policy="prefers-reduced-motion" className={className} {...props}>{children}</div>;
 }
 
-export function LandingStagger({
-  children,
-  className,
-  ...props
-}: HTMLMotionProps<"div">) {
-  const shouldReduceMotion = useReducedMotion();
-
-  return (
-    <motion.div
-      data-motion="landing-stagger"
-      data-motion-policy="prefers-reduced-motion"
-      className={className}
-      variants={shouldReduceMotion ? undefined : staggerVariants}
-      initial={shouldReduceMotion ? false : "hidden"}
-      whileInView={shouldReduceMotion ? undefined : "show"}
-      viewport={{ once: true, margin: "-80px" }}
-      {...props}
-    >
-      {children}
-    </motion.div>
-  );
+export function LandingStagger({ children, className, ...props }: HTMLAttributes<HTMLDivElement>) {
+  const ref = useRef<HTMLDivElement>(null);
+  useGSAP(() => {
+    const element = ref.current;
+    if (!element || prefersReducedMotion()) return;
+    const items = element.querySelectorAll<HTMLElement>("[data-motion='landing-item']");
+    gsap.fromTo(items, { autoAlpha: 0, y: 18 }, {
+      autoAlpha: 1, y: 0, duration: 0.42, stagger: 0.08, ease: "power2.out", clearProps: "all",
+      scrollTrigger: { trigger: element, start: "top 92%", once: true },
+    });
+  }, { scope: ref });
+  return <div ref={ref} data-motion="landing-stagger" data-motion-policy="prefers-reduced-motion" className={className} {...props}>{children}</div>;
 }
 
-export function LandingMotionItem({
-  children,
-  className,
-  ...props
-}: HTMLMotionProps<"div">) {
-  const shouldReduceMotion = useReducedMotion();
-
-  return (
-    <motion.div
-      data-motion="landing-item"
-      className={className}
-      variants={shouldReduceMotion ? undefined : itemVariants}
-      whileHover={shouldReduceMotion ? undefined : { y: -4 }}
-      transition={{ duration: 0.2, ease: "easeOut" }}
-      {...props}
-    >
-      {children}
-    </motion.div>
-  );
+export function LandingMotionItem({ children, className, ...props }: HTMLAttributes<HTMLDivElement>) {
+  return <div data-motion="landing-item" className={className} {...props}>{children}</div>;
 }
 
-export function LandingPulseMarker({
-  className,
-  ...props
-}: HTMLMotionProps<"div">) {
-  const shouldReduceMotion = useReducedMotion();
-
-  return (
-    <motion.div
-      data-motion="landing-pulse-marker"
-      className={cn("absolute size-3 rounded-full", className)}
-      animate={
-        shouldReduceMotion
-          ? undefined
-          : { opacity: [1, 0.72, 1], scale: [1, 1.26, 1] }
-      }
-      transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
-      {...props}
-    />
-  );
+export function LandingPulseMarker({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
+  const ref = useRef<HTMLDivElement>(null);
+  useGSAP(() => {
+    if (!ref.current || prefersReducedMotion()) return;
+    gsap.to(ref.current, { opacity: 0.72, scale: 1.26, duration: 0.9, repeat: -1, yoyo: true, ease: "sine.inOut" });
+  }, { scope: ref });
+  return <div ref={ref} data-motion="landing-pulse-marker" className={cn("absolute size-3 rounded-full", className)} {...props} />;
 }
 
-export function LandingProgressBar({
-  className,
-  width,
-  ...props
-}: LandingProgressBarProps) {
-  const shouldReduceMotion = useReducedMotion();
-
-  return (
-    <motion.div
-      data-motion="landing-progress"
-      className={cn("h-1.5 rounded-full bg-primary", className)}
-      initial={shouldReduceMotion ? false : { width: 0 }}
-      whileInView={shouldReduceMotion ? undefined : { width }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-      style={shouldReduceMotion ? { width } : undefined}
-      {...props}
-    />
-  );
+export function LandingProgressBar({ className, width, ...props }: HTMLAttributes<HTMLDivElement> & { width: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useGSAP(() => {
+    const element = ref.current;
+    if (!element || prefersReducedMotion()) return;
+    gsap.fromTo(element, { scaleX: 0, transformOrigin: "left center" }, {
+      scaleX: 1, duration: 0.6, ease: "power2.out", clearProps: "transform",
+      scrollTrigger: { trigger: element, start: "top 95%", once: true },
+    });
+  }, { scope: ref });
+  return <div ref={ref} data-motion="landing-progress" className={cn("h-1.5 rounded-full bg-primary", className)} style={{ width }} {...props} />;
 }

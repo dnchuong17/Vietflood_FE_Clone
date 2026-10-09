@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { motion, useReducedMotion } from "framer-motion";
+import { useGSAP } from "@gsap/react";
+import gsap from "gsap";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, type ComponentType, type SVGProps } from "react";
+import { useRef, useState, type ComponentType, type SVGProps } from "react";
 import {
   ArrowLeftStartOnRectangleIcon as LogOut,
   ArrowRightEndOnRectangleIcon as LogIn,
@@ -18,6 +19,7 @@ import {
 
 import { useGlobalAlert } from "@/components/feedback/global-alert-provider";
 import { LoadingBar } from "@/components/feedback/loading-bar";
+import { prefersReducedMotion } from "@/components/motion/gsap-motion";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { getTabsForRole, isTabActive } from "@/features/app-shell/lib/tabs";
@@ -46,7 +48,14 @@ export function SiteHeader() {
   const identity = useAuthIdentity();
   const role = normalizeRole(identity?.role);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const shouldReduceMotion = useReducedMotion();
+  const headerRef = useRef<HTMLElement>(null);
+
+  useGSAP(() => {
+    if (!headerRef.current || prefersReducedMotion()) return;
+    gsap.fromTo(headerRef.current, { autoAlpha: 0, y: -8 }, {
+      autoAlpha: 1, y: 0, duration: 0.24, ease: "power2.out", clearProps: "all",
+    });
+  }, { scope: headerRef });
 
   function handleLogout() {
     setIsLoggingOut(true);
@@ -65,13 +74,11 @@ export function SiteHeader() {
 
   return (
     <>
-      <motion.header
+      <header
+        ref={headerRef}
         className="sticky top-0 z-20 border-b shadow-sm bg-background/85 backdrop-blur-xl"
         data-motion="site-header"
         data-motion-policy="prefers-reduced-motion"
-        initial={shouldReduceMotion ? false : { opacity: 0, y: -8 }}
-        animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
-        transition={{ duration: 0.24, ease: "easeOut" }}
       >
         <div className="mx-auto grid h-[var(--navbar-height)] max-w-7xl grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 px-3 sm:gap-3 sm:px-4">
           <Link
@@ -142,7 +149,7 @@ export function SiteHeader() {
             )}
           </div>
         </div>
-      </motion.header>
+      </header>
 
       {isLoggingOut ? (
         <LoadingBar

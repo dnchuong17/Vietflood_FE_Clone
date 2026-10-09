@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import {
     CheckIcon,
     ExclamationTriangleIcon,
@@ -8,6 +8,7 @@ import {
 } from "@heroicons/react/24/solid";
 
 import { LoadingBar } from "@/components/feedback/loading-bar";
+import { MotionPresence } from "@/components/motion/gsap-motion";
 
 type ConfirmDialogProps = {
     isOpen: boolean;
@@ -32,9 +33,48 @@ export function ConfirmDialog({
     isConfirming = false,
     danger = false,
 }: ConfirmDialogProps) {
-    if (!isOpen) {
-        return null;
-    }
+    const dialogRef = useRef<HTMLDivElement>(null);
+    const cancelButtonRef = useRef<HTMLButtonElement>(null);
+    const onCancelRef = useRef(onCancel);
+    const isConfirmingRef = useRef(isConfirming);
+
+    useEffect(() => {
+        onCancelRef.current = onCancel;
+        isConfirmingRef.current = isConfirming;
+    }, [onCancel, isConfirming]);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        cancelButtonRef.current?.focus({ preventScroll: true });
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === "Escape" && !isConfirmingRef.current) {
+                event.preventDefault();
+                onCancelRef.current();
+                return;
+            }
+            if (event.key !== "Tab") return;
+            const controls = Array.from(dialogRef.current?.querySelectorAll<HTMLButtonElement>("button:not([disabled])") ?? []);
+            if (!controls.length) return;
+            const first = controls[0];
+            const last = controls[controls.length - 1];
+            if (!dialogRef.current?.contains(document.activeElement)) {
+                event.preventDefault();
+                first.focus();
+            } else if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        };
+        document.addEventListener("keydown", onKeyDown);
+        return () => {
+            document.removeEventListener("keydown", onKeyDown);
+            previousFocus?.focus({ preventScroll: true });
+        };
+    }, [isOpen]);
 
     const confirmButtonClass = danger
         ? "rounded-lg bg-rose-600 px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
@@ -44,7 +84,8 @@ export function ConfirmDialog({
     const borderClass = danger ? "border-rose-200" : "border-teal-200";
 
     return (
-        <div
+        <MotionPresence
+            open={isOpen}
             className="fixed inset-0 z-60 flex items-center justify-center bg-slate-950/55 px-4"
             onClick={() => {
                 if (!isConfirming) {
@@ -53,6 +94,8 @@ export function ConfirmDialog({
             }}
         >
             <div
+                ref={dialogRef}
+                data-motion-panel
                 className={`w-full max-w-md rounded-2xl border bg-white p-5 shadow-2xl ${borderClass}`}
                 role="alertdialog"
                 aria-modal="true"
@@ -78,6 +121,7 @@ export function ConfirmDialog({
 
                 <div className="mt-5 flex items-center justify-end gap-2">
                     <button
+                        ref={cancelButtonRef}
                         type="button"
                         className="rounded-lg border border-slate-300 px-3.5 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
                         onClick={onCancel}
@@ -97,6 +141,6 @@ export function ConfirmDialog({
                     </button>
                 </div>
             </div>
-        </div>
+        </MotionPresence>
     );
 }

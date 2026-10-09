@@ -1,5 +1,7 @@
 "use client";
 
+import { useGSAP } from "@gsap/react";
+import gsap from "gsap";
 import {
   useCallback,
   useEffect,
@@ -24,6 +26,7 @@ import {
 } from "@heroicons/react/24/outline";
 
 import { Button } from "@/components/ui/button";
+import { MotionPresence, prefersReducedMotion } from "@/components/motion/gsap-motion";
 import {
   ChatApiError,
   deleteChatSession,
@@ -85,6 +88,7 @@ export function ChatWorkspace() {
   const [errorAction, setErrorAction] = useState<"sessions" | "messages" | "older" | "send" | "delete" | null>(null);
   const [retryDraft, setRetryDraft] = useState<string | null>(null);
   const [sessionToDelete, setSessionToDelete] = useState<ChatSession | null>(null);
+  const [displaySessionToDelete, setDisplaySessionToDelete] = useState<ChatSession | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const isDeletingRef = useRef(false);
   const [isAtBottom, setIsAtBottom] = useState(true);
@@ -102,6 +106,28 @@ export function ChatWorkspace() {
   const shouldFollowRef = useRef(true);
   const prependScrollRef = useRef<{ top: number; height: number } | null>(null);
   const copyTimeoutRef = useRef<number | null>(null);
+  const newMessageSequenceRef = useRef(0);
+  const newMessageIdsRef = useRef<Set<string>>(new Set());
+
+  useGSAP(() => {
+    if (prefersReducedMotion()) {
+      newMessageIdsRef.current.clear();
+      return;
+    }
+    const list = messageListRef.current;
+    if (!list) return;
+    for (const message of messages) {
+      if (!newMessageIdsRef.current.has(message.id)) continue;
+      const node = Array.from(list.querySelectorAll<HTMLElement>("[data-chat-message-id]"))
+        .find((element) => element.dataset.chatMessageId === message.id);
+      if (node) {
+        newMessageIdsRef.current.delete(message.id);
+        gsap.fromTo(node, { autoAlpha: 0, y: 10 }, {
+          autoAlpha: 1, y: 0, duration: 0.28, ease: "power2.out", clearProps: "all",
+        });
+      }
+    }
+  }, { scope: messageListRef, dependencies: [messages] });
 
   const loadSessions = useCallback(async (append = false) => {
     if (append && !sessionsCursorRef.current) return;
@@ -122,7 +148,9 @@ export function ChatWorkspace() {
   }, []);
 
   useEffect(() => {
-    void loadSessions();
+    let canceled = false;
+    queueMicrotask(() => { if (!canceled) void loadSessions(); });
+    return () => { canceled = true; };
   }, [loadSessions]);
 
   useEffect(() => {
@@ -229,8 +257,7 @@ export function ChatWorkspace() {
   const scrollToLatest = (smooth = false) => {
     const list = messageListRef.current;
     if (!list) return;
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    list.scrollTo({ top: list.scrollHeight, behavior: smooth && !reduceMotion ? "smooth" : "auto" });
+    list.scrollTo({ top: list.scrollHeight, behavior: smooth && !prefersReducedMotion() ? "smooth" : "auto" });
     shouldFollowRef.current = true;
     setIsAtBottom(true);
   };
@@ -320,7 +347,8 @@ export function ChatWorkspace() {
     }
 
     const submittedSessionId = activeSessionId;
-    const clientMessageId = `user-${Date.now()}`;
+    const clientMessageId = `user-local-${++newMessageSequenceRef.current}`;
+    newMessageIdsRef.current.add(clientMessageId);
     setIsSending(true);
     setDraft("");
     setError(null);
@@ -339,10 +367,12 @@ export function ChatWorkspace() {
       if (activeSessionRef.current !== submittedSessionId) return;
       activeSessionRef.current = reply.sessionId;
       setActiveSessionId(reply.sessionId);
+      const assistantMessageId = `assistant-local-${++newMessageSequenceRef.current}`;
+      newMessageIdsRef.current.add(assistantMessageId);
       setMessages((current) => [
         ...current,
         {
-          id: `assistant-${now}`,
+          id: assistantMessageId,
           role: "assistant",
           kind: "legacy",
           content: reply.answer,
@@ -488,7 +518,7 @@ export function ChatWorkspace() {
                     <span className="block truncate text-sm font-semibold">{session.title || "Cuộc trò chuyện mới"}</span>
                     <span className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground"><ClockIcon className="size-3.5" aria-hidden="true" />{formatSessionDate(session.updatedAt || session.createdAt)}</span>
                   </button>
-                  <Button type="button" variant="ghost" size="icon" className="size-11 shrink-0 text-muted-foreground hover:text-destructive lg:opacity-0 lg:group-hover:opacity-100 lg:focus-visible:opacity-100" onClick={() => { if (mobile) setIsHistoryOpen(false); setSessionToDelete(session); }} disabled={isSending || isDeleting} aria-label={`Xóa hội thoại: ${session.title}`}>
+                  <Button type="button" variant="ghost" size="icon" className="size-11 shrink-0 text-muted-foreground hover:text-destructive lg:opacity-0 lg:group-hover:opacity-100 lg:focus-visible:opacity-100" onClick={() => { if (mobile) setIsHistoryOpen(false); setDisplaySessionToDelete(session); setSessionToDelete(session); }} disabled={isSending || isDeleting} aria-label={`Xóa hội thoại: ${session.title}`}>
                     <TrashIcon className="size-4" aria-hidden="true" />
                   </Button>
                 </div>
@@ -511,14 +541,12 @@ export function ChatWorkspace() {
         {historyPanel(false)}
       </aside>
 
-      {isHistoryOpen ? (
-        <div className="absolute inset-0 z-30 lg:hidden">
-          <button type="button" className={cn(styles.historyScrim, "absolute inset-0 bg-foreground/35")} onClick={() => setIsHistoryOpen(false)} aria-label="Đóng lịch sử hội thoại" />
-          <aside ref={historyDialogRef} role="dialog" aria-modal="true" aria-label="Lịch sử hội thoại" className={cn(styles.historySheet, "absolute inset-y-0 left-0 flex w-[min(88vw,340px)] flex-col border-r border-border bg-sidebar shadow-2xl")}>
+      <MotionPresence open={isHistoryOpen} mode="sheet" className="absolute inset-0 z-30 lg:hidden">
+          <button type="button" className="absolute inset-0 bg-foreground/35" onClick={() => setIsHistoryOpen(false)} aria-label="Đóng lịch sử hội thoại" />
+          <aside ref={historyDialogRef} data-motion-panel role="dialog" aria-modal="true" aria-label="Lịch sử hội thoại" className="absolute inset-y-0 left-0 flex w-[min(88vw,340px)] flex-col border-r border-border bg-sidebar shadow-2xl">
             {historyPanel(true)}
           </aside>
-        </div>
-      ) : null}
+      </MotionPresence>
 
       <div className="flex min-h-0 min-w-0 flex-col">
         <header className="flex min-h-[76px] items-center justify-between gap-3 border-b border-border/70 px-3 sm:px-6">
@@ -580,7 +608,7 @@ export function ChatWorkspace() {
                   const isUser = message.role === "user";
                   const feedback = copyFeedback?.id === message.id ? copyFeedback.text : null;
                   return (
-                    <article key={message.id} className={cn("flex gap-2.5 sm:gap-3", isUser ? "justify-end" : "justify-start")}>
+                    <article key={message.id} data-chat-message-id={message.id} className={cn("flex gap-2.5 sm:gap-3", isUser ? "justify-end" : "justify-start")}>
                       {!isUser ? <span className="mt-1 flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><ChatBubbleLeftRightIcon className="size-4" aria-hidden="true" /></span> : null}
                       <div className={cn("min-w-0 max-w-[88%] sm:max-w-[76%]", isUser ? "text-right" : "text-left")}>
                         <div className={cn("inline-block rounded-2xl px-4 py-3 text-left text-sm leading-6 shadow-sm sm:px-5", isUser ? "rounded-br-md bg-primary text-primary-foreground" : "rounded-bl-md border border-border bg-card text-card-foreground")}>
@@ -654,18 +682,18 @@ export function ChatWorkspace() {
           </form>
         </footer>
       </div>
-      {sessionToDelete && typeof document !== "undefined" ? createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/45 px-4" onMouseDown={(event) => { if (event.target === event.currentTarget && !isDeleting) setSessionToDelete(null); }}>
-          <div ref={deleteDialogRef} role="alertdialog" aria-modal="true" aria-labelledby="chat-delete-title" aria-describedby="chat-delete-description" className="w-full max-w-md rounded-2xl border border-border bg-card p-6 text-card-foreground shadow-2xl">
+      {typeof document !== "undefined" ? createPortal(
+        <MotionPresence open={!!sessionToDelete} onExitComplete={() => setDisplaySessionToDelete(null)} className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/45 px-4" onMouseDown={(event) => { if (event.target === event.currentTarget && !isDeleting) setSessionToDelete(null); }}>
+          {displaySessionToDelete ? <div ref={deleteDialogRef} data-motion-panel role="alertdialog" aria-modal="true" aria-labelledby="chat-delete-title" aria-describedby="chat-delete-description" className="w-full max-w-md rounded-2xl border border-border bg-card p-6 text-card-foreground shadow-2xl">
             <div className="mb-4 flex size-11 items-center justify-center rounded-xl bg-destructive/10 text-destructive"><TrashIcon className="size-5" aria-hidden="true" /></div>
             <h2 id="chat-delete-title" className="text-lg font-bold">Xóa cuộc trò chuyện?</h2>
-            <p id="chat-delete-description" className="mt-2 text-sm leading-6 text-muted-foreground">Tin nhắn trong <strong className="text-card-foreground">{sessionToDelete.title || "cuộc trò chuyện này"}</strong> sẽ bị xóa vĩnh viễn.</p>
+            <p id="chat-delete-description" className="mt-2 text-sm leading-6 text-muted-foreground">Tin nhắn trong <strong className="text-card-foreground">{displaySessionToDelete.title || "cuộc trò chuyện này"}</strong> sẽ bị xóa vĩnh viễn.</p>
             <div className="mt-6 flex flex-wrap justify-end gap-2">
               <Button ref={deleteCancelRef} type="button" variant="outline" className={cn("min-h-11", isDeleting && "opacity-50")} onClick={() => { if (!isDeleting) setSessionToDelete(null); }} aria-disabled={isDeleting}>Hủy</Button>
               <Button type="button" variant="destructive" className={cn("min-h-11", isDeleting && "opacity-60")} onClick={() => { if (!isDeleting) void confirmDelete(); }} aria-disabled={isDeleting}>{isDeleting ? "Đang xóa..." : "Xóa hội thoại"}</Button>
             </div>
-          </div>
-        </div>, document.body,
+          </div> : null}
+        </MotionPresence>, document.body,
       ) : null}
     </section>
   );

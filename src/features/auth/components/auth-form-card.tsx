@@ -16,7 +16,7 @@ export function AuthFormCard({ title, description, mode, note, children }: AuthF
   const isRegister = mode === "register";
 
   return (
-    <div className={styles.frame}>
+    <div className={styles.frame} data-auth-motion="frame">
       <div className={styles.frameInner}>
         <aside className={styles.story} aria-label="Giới thiệu VietFlood">
           <div className={styles.storyTop}>
@@ -24,7 +24,7 @@ export function AuthFormCard({ title, description, mode, note, children }: AuthF
             <span className={styles.storyTag}><span aria-hidden="true" /> Nền tảng cộng đồng</span>
           </div>
 
-          <div className={styles.storyBody}>
+          <div className={styles.storyBody} data-auth-motion="story">
             <span className={styles.eyebrow}>CHỦ ĐỘNG TRƯỚC MÙA NƯỚC</span>
             <h2>{isRegister ? <>Một tài khoản.<br /><em>Thêm sự an tâm.</em></> : <>Hiểu tình hình.<br /><em>Hành động kịp thời.</em></>}</h2>
             <p>{isRegister

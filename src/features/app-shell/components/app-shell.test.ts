@@ -28,8 +28,8 @@ describe("app navigation chrome", () => {
 
   it("includes the dark-mode toggle and motion entry shell", () => {
     expect(siteHeaderSource).toContain("ThemeToggle");
-    expect(appShellSource).toContain("motion");
-    expect(appShellSource).toContain("prefers-reduced-motion");
+    expect(appShellSource).toContain("<MotionEnter");
+    expect(appShellSource).toContain("@/components/motion/gsap-motion");
   });
 
   it("shows BarLoader feedback while restoring protected route access", () => {
@@ -39,8 +39,8 @@ describe("app navigation chrome", () => {
   });
 
   it("uses motion-safe animation on the shared site header", () => {
-    expect(siteHeaderSource).toContain('from "framer-motion"');
-    expect(siteHeaderSource).toContain("useReducedMotion");
+    expect(siteHeaderSource).toContain('from "@gsap/react"');
+    expect(siteHeaderSource).toContain("useGSAP");
     expect(siteHeaderSource).toContain('data-motion="site-header"');
     expect(siteHeaderSource).toContain("prefers-reduced-motion");
   });

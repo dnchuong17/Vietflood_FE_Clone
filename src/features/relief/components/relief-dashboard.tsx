@@ -20,6 +20,7 @@ import {
 
 import { useGlobalAlert } from "@/components/feedback/global-alert-provider";
 import { LoadingBar } from "@/components/feedback/loading-bar";
+import { MotionReveal } from "@/components/motion/gsap-motion";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -250,7 +251,7 @@ export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: b
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <MotionReveal className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         {statCards.map(([label, value], index) => {
           const Icon = statCardIcons[index] ?? ClipboardCheck;
 
@@ -270,9 +271,9 @@ export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: b
             </Card>
           );
         })}
-      </div>
+      </MotionReveal>
 
-      <Card className="bg-card">
+      <MotionReveal><Card className="bg-card">
         <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
           <div>
             <h2 className="text-lg font-bold text-card-foreground">
@@ -310,7 +311,7 @@ export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: b
             </Button>
           </div>
         </CardContent>
-      </Card>
+      </Card></MotionReveal>
 
       {!assignmentMode ? (
         <Card className="bg-card">

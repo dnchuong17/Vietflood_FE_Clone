@@ -1,6 +1,5 @@
 "use client";
 
-import { motion, useReducedMotion } from "framer-motion";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, type ComponentType, type SVGProps } from "react";
 import {
@@ -16,6 +15,7 @@ import {
 } from "@heroicons/react/24/solid";
 
 import { LoadingBar } from "@/components/feedback/loading-bar";
+import { MotionEnter } from "@/components/motion/gsap-motion";
 import type { UserRole } from "@/features/auth/lib/roles";
 import { getUserRoleLabel, normalizeRole } from "@/features/auth/lib/roles";
 import { useAuthIdentityState } from "@/features/auth/lib/use-auth-identity";
@@ -45,7 +45,6 @@ export function AppShell({ children, allowedRoles, title }: AppShellProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { identity, hasRestoredIdentity } = useAuthIdentityState();
-  const shouldReduceMotion = useReducedMotion();
   const role = normalizeRole(identity?.role);
   const isAllowed = role && (!allowedRoles || allowedRoles.includes(role));
   const TitleIcon = title
@@ -85,12 +84,8 @@ export function AppShell({ children, allowedRoles, title }: AppShellProps) {
 
   return (
     <div className="min-h-screen bg-background pb-24 pt-[var(--navbar-height)] text-foreground lg:pb-8">
-      <motion.div
+      <MotionEnter
         className="w-full px-4 py-4 mx-auto max-w-7xl"
-        data-motion-policy="prefers-reduced-motion"
-        initial={shouldReduceMotion ? false : { opacity: 0, y: 10 }}
-        animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
-        transition={{ duration: 0.28, ease: "easeOut" }}
       >
         {title ? (
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
@@ -113,7 +108,7 @@ export function AppShell({ children, allowedRoles, title }: AppShellProps) {
           </div>
         ) : null}
         {children}
-      </motion.div>
+      </MotionEnter>
     </div>
   );
 }

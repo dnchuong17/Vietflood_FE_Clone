@@ -19,6 +19,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { MotionReveal } from "@/components/motion/gsap-motion";
 import { getUserRoleLabel } from "@/features/auth/lib/roles";
 import { GUIDE_SECTIONS, ROLE_GUIDES } from "../lib/guide-content";
 
@@ -40,7 +41,7 @@ const ROLE_ICONS = {
 export function UserGuide() {
   return (
     <div className="flex flex-col gap-5">
-      <section className="rounded-lg border border-sky-200 bg-white p-5 shadow-sm">
+      <MotionReveal><section className="rounded-lg border border-sky-200 bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div className="flex max-w-3xl flex-col gap-2">
             <Badge className="w-fit gap-1.5" variant="secondary">
@@ -60,9 +61,9 @@ export function UserGuide() {
             {GUIDE_SECTIONS.length} khu vực hướng dẫn
           </div>
         </div>
-      </section>
+      </section></MotionReveal>
 
-      <section className="grid gap-4 lg:grid-cols-3">
+      <MotionReveal><section className="grid gap-4 lg:grid-cols-3">
         {ROLE_GUIDES.map((guide) => {
           const Icon = ROLE_ICONS[guide.role];
 
@@ -93,9 +94,9 @@ export function UserGuide() {
             </Card>
           );
         })}
-      </section>
+      </section></MotionReveal>
 
-      <section className="grid gap-4 xl:grid-cols-2">
+      <MotionReveal><section className="grid gap-4 xl:grid-cols-2">
         {GUIDE_SECTIONS.map((section, index) => {
           const Icon = SECTION_ICONS[index] ?? ListChecks;
 
@@ -126,7 +127,7 @@ export function UserGuide() {
             </Card>
           );
         })}
-      </section>
+      </section></MotionReveal>
     </div>
   );
 }

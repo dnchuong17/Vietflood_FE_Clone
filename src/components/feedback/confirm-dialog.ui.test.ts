@@ -11,4 +11,11 @@ describe("confirm dialog UI", () => {
     expect(source).toContain('title="Đang xử lý..."');
     expect(source).toContain("isConfirming ? (");
   });
+
+  it("keeps the dialog mounted for its exit and returns keyboard focus", () => {
+    expect(source).toContain("<MotionPresence");
+    expect(source).toContain("data-motion-panel");
+    expect(source).toContain('event.key === "Escape"');
+    expect(source).toContain("previousFocus?.focus");
+  });
 });

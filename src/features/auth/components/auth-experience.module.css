@@ -44,7 +44,6 @@
 .siteHeader {
   min-height: 104px;
   gap: 24px;
-  animation: enter 850ms cubic-bezier(.32, .72, 0, 1) both;
 }
 
 .brand {
@@ -123,7 +122,6 @@
   border-radius: 37px;
   background: rgba(255, 255, 255, .47);
   box-shadow: 0 28px 100px rgba(27, 74, 99, .1), inset 0 1px rgba(255, 255, 255, .85);
-  animation: enter 950ms cubic-bezier(.32, .72, 0, 1) 80ms both;
 }
 
 :global(.dark) .frame {
@@ -181,7 +179,7 @@
 }
 .storyTag span { width: 6px; height: 6px; border-radius: 50%; background: #61dbce; box-shadow: 0 0 0 4px rgba(97,219,206,.12); }
 
-.storyBody { margin-block: 94px 86px; animation: enter 900ms cubic-bezier(.32, .72, 0, 1) 180ms both; }
+.storyBody { margin-block: 94px 86px; }
 .eyebrow,
 .formEyebrow {
   display: inline-flex;
@@ -332,11 +330,6 @@
 
 .siteFooter { min-height: 56px; gap: 18px; color: var(--auth-muted); font-size: .7rem; }
 
-@keyframes enter {
-  from { opacity: 0; transform: translateY(24px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
 @media (max-width: 900px) {
   .frameInner { grid-template-columns: 1fr; }
   .story { min-height: auto; padding: 27px 34px 29px; }
@@ -372,7 +365,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .siteHeader, .frame, .storyBody { animation: none; }
   .headerActions button, .homeLink, .inputShell, .eyeButton, .primaryButton, .buttonIcon { transition: none; }
   .headerActions button:hover, .inputShell:focus-within, .primaryButton:hover, .primaryButton:active, .primaryButton:hover .buttonIcon { transform: none; }
 }

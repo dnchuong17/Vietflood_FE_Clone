@@ -15,7 +15,7 @@ describe("landing page UI", () => {
     expect(source).toContain("text-foreground");
   });
 
-  it("uses shared Framer Motion primitives for the landing animation pass", () => {
+  it("uses shared GSAP primitives for the landing animation pass", () => {
     expect(source).toContain("@/components/motion/landing-motion");
     expect(source).toContain("LandingHeroMotion");
     expect(source).toContain("LandingReveal");
@@ -30,8 +30,8 @@ describe("landing page UI", () => {
 
     const motionSource = readFileSync(motionSourceUrl, "utf8");
 
-    expect(motionSource).toContain("useReducedMotion");
+    expect(motionSource).toContain("useGSAP");
     expect(motionSource).toContain("prefers-reduced-motion");
-    expect(motionSource).toContain("motion.");
+    expect(motionSource).toContain("scrollTrigger");
   });
 });
