@@ -6,9 +6,14 @@ import {
 export type ChatMessage = {
   id: string;
   role: "user" | "assistant";
-  kind: "knowledge" | "first_aid" | "report_guide" | "report_status" | "fallback" | "legacy";
+  kind: "knowledge" | "first_aid" | "report_guide" | "report_status" | "community_reports" | "small_talk" | "action" | "fallback" | "legacy";
   content: string;
-  createdAt: string;
+  createdAt: string | null;
+};
+
+export type ChatAction = {
+  id: string;
+  status: "collecting" | "awaiting_confirmation" | "completed" | "cancelled";
 };
 
 export type ChatSession = {
@@ -25,7 +30,10 @@ export type ChatPage<T> = {
 
 export type ChatMessagesPage = ChatPage<ChatMessage> & {
   session: ChatSession;
+  pendingAction?: ChatAction | null;
 };
+
+export type ChatReply = { answer: string; sessionId: string; action?: ChatAction };
 
 export class ChatApiError extends Error {
   statusCode: number;
@@ -75,7 +83,8 @@ export async function getChatMessages(
 export async function sendChatMessage(
   message: string,
   sessionId?: string,
-): Promise<{ answer: string; sessionId: string }> {
+  decision?: { actionId: string; actionDecision: "confirm" | "cancel" },
+): Promise<ChatReply> {
   const response = await apiRequest(apiPath("/chat"), {
     method: "POST",
     cache: "no-store",
@@ -83,7 +92,7 @@ export async function sendChatMessage(
       "Content-Type": "application/json",
       "Cache-Control": "no-cache",
     },
-    body: JSON.stringify({ message, ...(sessionId ? { sessionId } : {}) }),
+    body: JSON.stringify({ message, ...(sessionId ? { sessionId } : {}), ...decision }),
   });
 
   if (!response.ok) {
@@ -95,7 +104,7 @@ export async function sendChatMessage(
       : payload?.message || "Không gửi được tin nhắn.";
     throw new ChatApiError(response.status, messageText);
   }
-  return response.json() as Promise<{ answer: string; sessionId: string }>;
+  return response.json() as Promise<ChatReply>;
 }
 
 export async function deleteChatSession(sessionId: string): Promise<void> {

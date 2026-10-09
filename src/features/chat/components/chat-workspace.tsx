@@ -34,6 +34,7 @@ import {
   getChatSessions,
   sendChatMessage,
   type ChatMessage,
+  type ChatAction,
   type ChatSession,
 } from "@/features/chat/api/chat";
 import { cn } from "@/lib/utils";
@@ -46,7 +47,8 @@ const STARTER_PROMPTS = [
   "Tôi xem trạng thái báo cáo ở đâu?",
 ];
 
-function formatTime(value: string): string {
+function formatTime(value: string | null): string {
+  if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
   return new Intl.DateTimeFormat("vi-VN", {
@@ -77,6 +79,7 @@ export function ChatWorkspace() {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [messagesCursor, setMessagesCursor] = useState<string | null>(null);
+  const [pendingAction, setPendingAction] = useState<ChatAction | null>(null);
   const [draft, setDraft] = useState("");
   const [isLoadingSessions, setIsLoadingSessions] = useState(true);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
@@ -270,6 +273,7 @@ export function ChatWorkspace() {
     setActiveSessionId(null);
     setMessages([]);
     setMessagesCursor(null);
+    setPendingAction(null);
     setDraft("");
     setError(null);
     setErrorAction(null);
@@ -286,6 +290,7 @@ export function ChatWorkspace() {
     setActiveSessionId(session.sessionId);
     setMessages([]);
     setMessagesCursor(null);
+    setPendingAction(null);
     setIsLoadingMessages(true);
     setError(null);
     setRetryDraft(null);
@@ -297,6 +302,7 @@ export function ChatWorkspace() {
       if (activeSessionRef.current !== session.sessionId) return;
       setMessages(page.items);
       setMessagesCursor(page.nextCursor);
+      setPendingAction(page.pendingAction ?? null);
     } catch (loadError) {
       if (activeSessionRef.current !== session.sessionId) return;
       setError(errorMessage(loadError));
@@ -379,6 +385,7 @@ export function ChatWorkspace() {
           createdAt: now,
         },
       ]);
+      setPendingAction(reply.action && ["collecting", "awaiting_confirmation"].includes(reply.action.status) ? reply.action : null);
       setAnnouncement(`Trợ lý VietFlood: ${reply.answer}`);
       setSessions((current) => {
         const existing = current.find((session) => session.sessionId === reply.sessionId);
@@ -416,6 +423,49 @@ export function ChatWorkspace() {
         setError(errorMessage(sendError));
       }
       setErrorAction("send");
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const decidePendingAction = async (decision: "confirm" | "cancel") => {
+    if (!pendingAction || !activeSessionId || isSending) return;
+    const sessionId = activeSessionId;
+    const action = pendingAction;
+    const text = decision === "confirm" ? "Xác nhận thao tác" : "Hủy thao tác";
+    const clientMessageId = `user-local-${++newMessageSequenceRef.current}`;
+    newMessageIdsRef.current.add(clientMessageId);
+    setIsSending(true);
+    setError(null);
+    setErrorAction(null);
+    setMessages((current) => [...current, {
+      id: clientMessageId, role: "user", kind: "legacy", content: text, createdAt: new Date().toISOString(),
+    }]);
+    try {
+      const reply = await sendChatMessage(text, sessionId, { actionId: action.id, actionDecision: decision });
+      if (activeSessionRef.current !== sessionId) return;
+      const now = new Date().toISOString();
+      const assistantMessageId = `assistant-local-${++newMessageSequenceRef.current}`;
+      newMessageIdsRef.current.add(assistantMessageId);
+      setMessages((current) => [...current, {
+        id: assistantMessageId, role: "assistant", kind: "action", content: reply.answer, createdAt: now,
+      }]);
+      setPendingAction(reply.action && ["collecting", "awaiting_confirmation"].includes(reply.action.status) ? reply.action : null);
+      setAnnouncement(`Trợ lý VietFlood: ${reply.answer}`);
+    } catch (decisionError) {
+      setMessages((current) => current.filter((message) => message.id !== clientMessageId));
+      if (activeSessionRef.current === sessionId) {
+        try {
+          const page = await getChatMessages(sessionId);
+          if (activeSessionRef.current === sessionId) {
+            setMessages(page.items);
+            setMessagesCursor(page.nextCursor);
+            setPendingAction(page.pendingAction ?? null);
+          }
+        } catch { /* Keep the current conversation and report the original request error. */ }
+      }
+      setError(errorMessage(decisionError));
+      setErrorAction("messages");
     } finally {
       setIsSending(false);
     }
@@ -627,6 +677,17 @@ export function ChatWorkspace() {
                     </article>
                   );
                 })}
+                {pendingAction?.status === "collecting" ? (
+                  <p className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm leading-6 text-muted-foreground" role="status">
+                    Thao tác đang chờ thêm thông tin. Hãy nhập thông tin còn thiếu vào ô bên dưới.
+                  </p>
+                ) : null}
+                {pendingAction?.status === "awaiting_confirmation" ? (
+                  <div className="flex flex-wrap gap-2 rounded-xl border border-primary/20 bg-primary/5 p-3" aria-label="Xác nhận thao tác">
+                    <Button type="button" className="min-h-11" disabled={isSending} onClick={() => void decidePendingAction("confirm")}>Xác nhận thực hiện</Button>
+                    <Button type="button" variant="outline" className="min-h-11" disabled={isSending} onClick={() => void decidePendingAction("cancel")}>Hủy thao tác</Button>
+                  </div>
+                ) : null}
                 {isSending ? (
                   <div className="flex items-start gap-2.5" role="status" aria-label="Trợ lý đang trả lời">
                     <span className="mt-1 flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><ChatBubbleLeftRightIcon className="size-4" aria-hidden="true" /></span>
