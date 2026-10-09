@@ -6,8 +6,8 @@
 
 :root {
   --navbar-height: 72px;
-  --font-body: "Segoe UI", Arial, Helvetica, sans-serif;
-  --font-heading: Georgia, "Times New Roman", serif;
+  --font-body: var(--font-be-vietnam-pro), system-ui, sans-serif;
+  --font-heading: var(--font-be-vietnam-pro), system-ui, sans-serif;
   --background: oklch(0.985 0.01 230);
   --foreground: oklch(0.18 0.02 240);
   --card: oklch(1 0 0);
@@ -145,6 +145,28 @@
 
   body {
     @apply min-h-screen bg-background font-sans text-foreground antialiased;
+    font-weight: 400;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-heading);
+  }
+
+  h1 {
+    font-weight: 800;
+    letter-spacing: -0.035em;
+  }
+
+  h2 {
+    font-weight: 700;
+    letter-spacing: -0.025em;
+  }
+
+  h3 {
+    font-weight: 600;
+    letter-spacing: -0.015em;
   }
 
   ::selection {

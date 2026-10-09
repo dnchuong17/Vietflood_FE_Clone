@@ -10,7 +10,7 @@
   overflow: hidden;
   background: #eaf3f6;
   color: var(--auth-ink);
-  font-family: "Avenir Next", "Nunito Sans", ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-body);
 }
 
 .page::before {
