@@ -45,6 +45,25 @@ describe("chat API contract", () => {
     },
   );
 
+  it("sends optional GPS and evidence as multipart only on confirmation", async () => {
+    const payload = { answer: "Đã tạo báo cáo.", sessionId: "session-1" };
+    apiRequest.mockResolvedValue(Response.json(payload));
+    const { sendChatMessage } = await import("./chat");
+    const image = new File(["evidence"], "evidence.png", { type: "image/png" });
+
+    await expect(sendChatMessage("Xác nhận tạo báo cáo", "session-1", {
+      actionId: "action-1", actionDecision: "confirm",
+    }, { latitude: 16.05, longitude: 108.2, files: [image] })).resolves.toEqual(payload);
+    const request = apiRequest.mock.calls.at(-1)?.[1] as RequestInit;
+    expect(request.headers).not.toHaveProperty("Content-Type");
+    expect(request.body).toBeInstanceOf(FormData);
+    const form = request.body as FormData;
+    expect(form.get("latitude")).toBe("16.05");
+    expect(form.get("longitude")).toBe("108.2");
+    expect(form.get("actionDecision")).toBe("confirm");
+    expect(form.get("files")).toBe(image);
+  });
+
   it("decodes paginated history, nullable timestamps and a restored pending action", async () => {
     const payload = {
       session: { sessionId: "session-1", title: "Báo cáo", createdAt: null, updatedAt: "2026-10-09T00:00:00Z" },

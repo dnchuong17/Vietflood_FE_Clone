@@ -14,6 +14,7 @@ export type ChatMessage = {
 export type ChatAction = {
   id: string;
   status: "collecting" | "awaiting_confirmation" | "completed" | "cancelled";
+  intent?: string;
 };
 
 export type ChatSession = {
@@ -84,15 +85,37 @@ export async function sendChatMessage(
   message: string,
   sessionId?: string,
   decision?: { actionId: string; actionDecision: "confirm" | "cancel" },
+  options?: { latitude?: number; longitude?: number; clearLocation?: boolean; files?: File[] },
 ): Promise<ChatReply> {
+  const body = options?.files?.length
+    ? (() => {
+        const form = new FormData();
+        form.append("message", message);
+        if (sessionId) form.append("sessionId", sessionId);
+        if (decision?.actionId) form.append("actionId", decision.actionId);
+        if (decision?.actionDecision) form.append("actionDecision", decision.actionDecision);
+        if (options.latitude !== undefined) form.append("latitude", String(options.latitude));
+        if (options.longitude !== undefined) form.append("longitude", String(options.longitude));
+        if (options.clearLocation) form.append("clearLocation", "true");
+        options.files?.forEach((file) => form.append("files", file));
+        return form;
+      })()
+    : JSON.stringify({
+        message,
+        ...(sessionId ? { sessionId } : {}),
+        ...decision,
+        ...(options?.latitude !== undefined ? { latitude: options.latitude } : {}),
+        ...(options?.longitude !== undefined ? { longitude: options.longitude } : {}),
+        ...(options?.clearLocation ? { clearLocation: true } : {}),
+      });
   const response = await apiRequest(apiPath("/chat"), {
     method: "POST",
     cache: "no-store",
     headers: {
-      "Content-Type": "application/json",
+      ...(options?.files?.length ? {} : { "Content-Type": "application/json" }),
       "Cache-Control": "no-cache",
     },
-    body: JSON.stringify({ message, ...(sessionId ? { sessionId } : {}), ...decision }),
+    body,
   });
 
   if (!response.ok) {

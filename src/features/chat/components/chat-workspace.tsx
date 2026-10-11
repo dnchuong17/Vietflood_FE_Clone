@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
   type FormEvent,
+  type ChangeEvent,
 } from "react";
 import Link from "next/link";
 import { createPortal } from "react-dom";
@@ -20,6 +21,8 @@ import {
   ClipboardDocumentIcon,
   ClockIcon,
   PlusIcon,
+  PaperClipIcon,
+  MapPinIcon,
   Squares2X2Icon,
   TrashIcon,
   XMarkIcon,
@@ -81,6 +84,9 @@ export function ChatWorkspace() {
   const [messagesCursor, setMessagesCursor] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<ChatAction | null>(null);
   const [draft, setDraft] = useState("");
+  const [reportEvidence, setReportEvidence] = useState<File[]>([]);
+  const [reportLocation, setReportLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [clearReportLocation, setClearReportLocation] = useState(false);
   const [isLoadingSessions, setIsLoadingSessions] = useState(true);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [isLoadingOlderMessages, setIsLoadingOlderMessages] = useState(false);
@@ -100,6 +106,7 @@ export function ChatWorkspace() {
   const messageListRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const evidenceInputRef = useRef<HTMLInputElement>(null);
   const historyTriggerRef = useRef<HTMLButtonElement>(null);
   const historyDialogRef = useRef<HTMLElement>(null);
   const deleteDialogRef = useRef<HTMLDivElement>(null);
@@ -274,6 +281,9 @@ export function ChatWorkspace() {
     setMessages([]);
     setMessagesCursor(null);
     setPendingAction(null);
+    setReportEvidence([]);
+    setReportLocation(null);
+    setClearReportLocation(false);
     setDraft("");
     setError(null);
     setErrorAction(null);
@@ -291,6 +301,9 @@ export function ChatWorkspace() {
     setMessages([]);
     setMessagesCursor(null);
     setPendingAction(null);
+    setReportEvidence([]);
+    setReportLocation(null);
+    setClearReportLocation(false);
     setIsLoadingMessages(true);
     setError(null);
     setRetryDraft(null);
@@ -442,7 +455,15 @@ export function ChatWorkspace() {
       id: clientMessageId, role: "user", kind: "legacy", content: text, createdAt: new Date().toISOString(),
     }]);
     try {
-      const reply = await sendChatMessage(text, sessionId, { actionId: action.id, actionDecision: decision });
+      const isReportCreation = action.intent === "create_report";
+      const reply = await sendChatMessage(
+        text,
+        sessionId,
+        { actionId: action.id, actionDecision: decision },
+        decision === "confirm" && isReportCreation
+          ? { latitude: reportLocation?.latitude, longitude: reportLocation?.longitude, clearLocation: clearReportLocation, files: reportEvidence }
+          : undefined,
+      );
       if (activeSessionRef.current !== sessionId) return;
       const now = new Date().toISOString();
       const assistantMessageId = `assistant-local-${++newMessageSequenceRef.current}`;
@@ -451,6 +472,11 @@ export function ChatWorkspace() {
         id: assistantMessageId, role: "assistant", kind: "action", content: reply.answer, createdAt: now,
       }]);
       setPendingAction(reply.action && ["collecting", "awaiting_confirmation"].includes(reply.action.status) ? reply.action : null);
+      if (decision === "cancel" || reply.action?.status === "completed") {
+        setReportEvidence([]);
+        setReportLocation(null);
+        setClearReportLocation(false);
+      }
       setAnnouncement(`Trợ lý VietFlood: ${reply.answer}`);
     } catch (decisionError) {
       setMessages((current) => current.filter((message) => message.id !== clientMessageId));
@@ -469,6 +495,39 @@ export function ChatWorkspace() {
     } finally {
       setIsSending(false);
     }
+  };
+
+  const requestReportLocation = () => {
+    if (!navigator.geolocation) {
+      setError("Trình duyệt này không hỗ trợ lấy vị trí. Bạn vẫn có thể tạo báo cáo bằng địa chỉ.");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setReportLocation({ latitude: position.coords.latitude, longitude: position.coords.longitude });
+        setClearReportLocation(false);
+        setError(null);
+      },
+      () => setError("Không lấy được vị trí. Kiểm tra quyền vị trí hoặc tiếp tục tạo báo cáo không có GPS."),
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+    );
+  };
+
+  const chooseReportEvidence = (event: ChangeEvent<HTMLInputElement>) => {
+    const selected = Array.from(event.currentTarget.files ?? []);
+    event.currentTarget.value = "";
+    if (selected.some((file) => !file.type.startsWith("image/"))) {
+      setError("Chỉ có thể đính kèm tệp hình ảnh vào báo cáo chat.");
+      return;
+    }
+    if (selected.some((file) => file.size > 5 * 1024 * 1024)) {
+      setError("Mỗi ảnh đính kèm phải nhỏ hơn hoặc bằng 5 MB.");
+      return;
+    }
+    setReportEvidence((current) => {
+      return [...current, ...selected].slice(0, 5);
+    });
+    if (reportEvidence.length + selected.length > 5) setError("Một báo cáo có thể đính kèm tối đa 5 ảnh.");
   };
 
   const retryMessage = () => {
@@ -712,6 +771,35 @@ export function ChatWorkspace() {
         <p className="sr-only" role="status">{copyFeedback?.text ?? ""}</p>
 
         <footer className="border-t border-border/70 bg-card px-3 py-3 sm:px-6 sm:py-4">
+          {pendingAction?.intent === "create_report" ? (
+            <section className="mx-auto mb-3 max-w-3xl rounded-xl border border-primary/20 bg-primary/5 p-3" aria-label="Tùy chọn báo cáo">
+              <p className="text-sm font-semibold">Thông tin tùy chọn cho báo cáo</p>
+              <p className="mt-1 text-xs text-muted-foreground">GPS và ảnh chỉ được gửi khi bạn xác nhận tạo báo cáo.</p>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <Button type="button" variant="outline" size="sm" disabled={isSending} onClick={requestReportLocation}>
+                  <MapPinIcon data-icon="inline-start" aria-hidden="true" />
+                  {reportLocation ? "Đã thêm GPS" : "Chia sẻ GPS"}
+                </Button>
+                <Button type="button" variant="outline" size="sm" disabled={isSending} onClick={() => evidenceInputRef.current?.click()}>
+                  <PaperClipIcon data-icon="inline-start" aria-hidden="true" />
+                  Thêm ảnh ({reportEvidence.length}/5)
+                </Button>
+                <input ref={evidenceInputRef} type="file" accept="image/*" multiple className="sr-only" onChange={chooseReportEvidence} aria-label="Chọn ảnh minh chứng" />
+                {reportLocation ? <span className="text-xs text-muted-foreground">Vị trí đã lấy từ thiết bị</span> : null}
+                {reportLocation ? <Button type="button" variant="ghost" size="sm" disabled={isSending} onClick={() => { setReportLocation(null); setClearReportLocation(true); }}>Gỡ GPS</Button> : <Button type="button" variant="ghost" size="sm" disabled={isSending} onClick={() => setClearReportLocation(true)}>Bỏ qua GPS</Button>}
+              </div>
+              {reportEvidence.length ? (
+                <ul className="mt-2 flex flex-wrap gap-2" aria-label="Ảnh đã chọn">
+                  {reportEvidence.map((file, index) => (
+                    <li key={`${file.name}-${file.lastModified}-${index}`} className="flex items-center gap-2 rounded-md border bg-background px-2 py-1 text-xs">
+                      <span className="max-w-48 truncate">{file.name}</span>
+                      <button type="button" className="font-semibold text-destructive" disabled={isSending} onClick={() => setReportEvidence((current) => current.filter((_, itemIndex) => itemIndex !== index))} aria-label={`Gỡ ảnh ${file.name}`}>Gỡ</button>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </section>
+          ) : null}
           <form id="chat-composer" onSubmit={submitMessage} className="mx-auto max-w-3xl">
             <label htmlFor="chat-message" className="sr-only">Tin nhắn của bạn</label>
             <div className="flex items-end gap-2 rounded-2xl border border-input bg-background p-2 shadow-sm transition-colors focus-within:border-primary/70 focus-within:ring-2 focus-within:ring-primary/15">
