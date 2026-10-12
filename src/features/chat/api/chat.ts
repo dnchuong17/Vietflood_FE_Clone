@@ -3,7 +3,17 @@ import {
   apiRequest,
 } from "@/features/auth/lib/api-client";
 
-export type ChatMessage = {
+export type ChatSource = {
+  id: string; citation: number; documentId: string; version: number; title: string;
+  sectionPath: string[]; sourceUrl: string; snapshotUrl: string; chunkHash: string;
+};
+export type RagDetails = {
+  status?: "answered" | "partial" | "no_knowledge" | "unsupported_dynamic" | "needs_clarification" | "unavailable";
+  sources?: ChatSource[]; sourceSupportPercent?: number;
+  generationMode?: "grounded_synthesis" | "system_notice" | "introduction";
+  unansweredParts?: string[];
+};
+export type ChatMessage = RagDetails & {
   id: string;
   role: "user" | "assistant";
   kind: "knowledge" | "first_aid" | "report_guide" | "report_status" | "community_reports" | "small_talk" | "action" | "fallback" | "legacy";
@@ -34,7 +44,7 @@ export type ChatMessagesPage = ChatPage<ChatMessage> & {
   pendingAction?: ChatAction | null;
 };
 
-export type ChatReply = { answer: string; sessionId: string; action?: ChatAction };
+export type ChatReply = RagDetails & { answer: string; sessionId: string; action?: ChatAction };
 
 export class ChatApiError extends Error {
   statusCode: number;
@@ -145,4 +155,9 @@ export async function deleteChatSession(sessionId: string): Promise<void> {
       : payload?.message || "Không thể xóa hội thoại.";
     throw new ChatApiError(response.status, message);
   }
+}
+
+export type SourceSnapshot = { documentId: string; version: number; title: string; text: string; sourceUrl: string; active?: boolean };
+export function getSourceSnapshot(documentId: string, version: number): Promise<SourceSnapshot> {
+  return requestJson(`/chat/sources/${encodeURIComponent(documentId)}/versions/${version}`, "Không tải được bản tài liệu nguồn.");
 }

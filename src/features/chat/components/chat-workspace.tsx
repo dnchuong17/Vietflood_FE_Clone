@@ -42,6 +42,7 @@ import {
 } from "@/features/chat/api/chat";
 import { cn } from "@/lib/utils";
 import styles from "./chat-workspace.module.css";
+import { EvidenceReply } from "./evidence-reply";
 
 const MESSAGE_LIMIT = 2000;
 const STARTER_PROMPTS = [
@@ -395,6 +396,7 @@ export function ChatWorkspace() {
           role: "assistant",
           kind: "legacy",
           content: reply.answer,
+          sources: reply.sources, status: reply.status, sourceSupportPercent: reply.sourceSupportPercent, generationMode: reply.generationMode, unansweredParts: reply.unansweredParts,
           createdAt: now,
         },
       ]);
@@ -469,7 +471,8 @@ export function ChatWorkspace() {
       const assistantMessageId = `assistant-local-${++newMessageSequenceRef.current}`;
       newMessageIdsRef.current.add(assistantMessageId);
       setMessages((current) => [...current, {
-        id: assistantMessageId, role: "assistant", kind: "action", content: reply.answer, createdAt: now,
+        id: assistantMessageId, role: "assistant", kind: "action", content: reply.answer,
+          sources: reply.sources, status: reply.status, sourceSupportPercent: reply.sourceSupportPercent, generationMode: reply.generationMode, unansweredParts: reply.unansweredParts, createdAt: now,
       }]);
       setPendingAction(reply.action && ["collecting", "awaiting_confirmation"].includes(reply.action.status) ? reply.action : null);
       if (decision === "cancel" || reply.action?.status === "completed") {
@@ -721,7 +724,7 @@ export function ChatWorkspace() {
                       {!isUser ? <span className="mt-1 flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><ChatBubbleLeftRightIcon className="size-4" aria-hidden="true" /></span> : null}
                       <div className={cn("min-w-0 max-w-[88%] sm:max-w-[76%]", isUser ? "text-right" : "text-left")}>
                         <div className={cn("inline-block rounded-2xl px-4 py-3 text-left text-sm leading-6 shadow-sm sm:px-5", isUser ? "rounded-br-md bg-primary text-primary-foreground" : "rounded-bl-md border border-border bg-card text-card-foreground")}>
-                          <p className="whitespace-pre-wrap break-words">{message.content}</p>
+                          <EvidenceReply message={message} />
                         </div>
                         <div className={cn("mt-1.5 flex min-h-11 items-center gap-2 px-1 text-xs text-muted-foreground", isUser ? "justify-end" : "justify-start")}>
                           <span>{isUser ? "Bạn" : "Trợ lý"}{message.createdAt ? ` · ${formatTime(message.createdAt)}` : ""}</span>
