@@ -103,7 +103,8 @@ describe("Vietnamese UI copy", () => {
       const source = readFileSync(join(process.cwd(), file), "utf8");
 
       return literals
-        .filter((literal) => source.includes(literal))
+        // Check complete copy fragments, not camelCase identifiers such as showPassword.
+        .filter((literal) => new RegExp(`(?<![A-Za-z])${literal.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![A-Za-z])`).test(source))
         .map((literal) => `${file}: ${literal}`);
     });
 

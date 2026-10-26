@@ -14,6 +14,7 @@ import { io, type Socket } from "socket.io-client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { OperationsBanner } from "@/components/ui/operations-banner";
 import { LoadingBar } from "@/components/feedback/loading-bar";
 import {
   Card,
@@ -369,7 +370,10 @@ export function LiveTrackingPanel() {
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[22rem_1fr]">
+    <div className="grid gap-4 lg:grid-cols-[22rem_minmax(0,1fr)]" data-testid="tracking-workspace">
+      <OperationsBanner className="lg:col-span-2" eyebrow="Kết nối hiện trường" title="Chia sẻ có chủ đích. Phối hợp an toàn." description="Chỉ bật chia sẻ khi bạn muốn gửi vị trí cho đội hỗ trợ. Bạn có thể dừng bất cứ lúc nào; giữ trang mở để tiếp tục cập nhật.">
+        <Badge variant={isConnected ? "success" : "warning"}>{isConnected ? "Kênh vị trí đã kết nối" : "Kênh vị trí chưa kết nối"}</Badge>
+      </OperationsBanner>
       <Card>
         <CardHeader>
           <div className="flex items-start justify-between gap-3">

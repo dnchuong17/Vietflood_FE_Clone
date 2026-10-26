@@ -24,8 +24,9 @@ export function LandingHeroMotion({ children, className, delay = 0, direction = 
   const ref = useRef<HTMLDivElement>(null);
   useGSAP(() => {
     if (!ref.current || prefersReducedMotion()) return;
-    gsap.fromTo(ref.current, { autoAlpha: 0, scale: 0.98, ...offsets[direction] }, {
-      autoAlpha: 1, scale: 1, x: 0, y: 0, duration: 0.56, delay, ease: "power2.out", clearProps: "all",
+    // Keep essential content readable even while a background tab pauses its animation clock.
+    gsap.fromTo(ref.current, { scale: 0.99, ...offsets[direction] }, {
+      scale: 1, x: 0, y: 0, duration: 0.56, delay, ease: "power2.out", clearProps: "all",
     });
   }, { scope: ref, dependencies: [delay, direction], revertOnUpdate: true });
   return <div ref={ref} data-motion="landing-hero" data-motion-policy="prefers-reduced-motion" className={className} {...props}>{children}</div>;
@@ -36,8 +37,8 @@ export function LandingReveal({ children, className, delay = 0, direction = "up"
   useGSAP(() => {
     const element = ref.current;
     if (!element || prefersReducedMotion()) return;
-    gsap.fromTo(element, { autoAlpha: 0, ...offsets[direction] }, {
-      autoAlpha: 1, x: 0, y: 0, duration: 0.5, delay, ease: "power2.out", clearProps: "all",
+    gsap.fromTo(element, { ...offsets[direction] }, {
+      x: 0, y: 0, duration: 0.5, delay, ease: "power2.out", clearProps: "all",
       scrollTrigger: { trigger: element, start: "top 92%", once: true },
     });
   }, { scope: ref, dependencies: [delay, direction], revertOnUpdate: true });
@@ -50,8 +51,8 @@ export function LandingStagger({ children, className, ...props }: HTMLAttributes
     const element = ref.current;
     if (!element || prefersReducedMotion()) return;
     const items = element.querySelectorAll<HTMLElement>("[data-motion='landing-item']");
-    gsap.fromTo(items, { autoAlpha: 0, y: 18 }, {
-      autoAlpha: 1, y: 0, duration: 0.42, stagger: 0.08, ease: "power2.out", clearProps: "all",
+    gsap.fromTo(items, { y: 18 }, {
+      y: 0, duration: 0.42, stagger: 0.08, ease: "power2.out", clearProps: "all",
       scrollTrigger: { trigger: element, start: "top 92%", once: true },
     });
   }, { scope: ref });

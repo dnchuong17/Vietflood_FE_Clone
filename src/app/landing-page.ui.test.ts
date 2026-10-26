@@ -34,4 +34,13 @@ describe("landing page UI", () => {
     expect(motionSource).toContain("prefers-reduced-motion");
     expect(motionSource).toContain("scrollTrigger");
   });
+
+  it("never hides essential landing content while animation frames are paused", () => {
+    const motionSource = readFileSync(motionSourceUrl, "utf8");
+    expect(motionSource).not.toContain("autoAlpha: 0");
+    expect(source).toContain("GIAO DIỆN MINH HỌA");
+    expect(source).not.toContain("#214");
+    expect(source).not.toContain("đang trực tuyến");
+    expect(source).toContain("overflow-x-clip");
+  });
 });

@@ -28,8 +28,8 @@ export function MotionEnter({ children, distance = 12, delay = 0, className, ...
 
   useGSAP(() => {
     if (!ref.current || prefersReducedMotion()) return;
-    gsap.fromTo(ref.current, { autoAlpha: 0, y: distance }, {
-      autoAlpha: 1, y: 0, duration: 0.42, delay, ease: "power2.out", clearProps: "all",
+    gsap.fromTo(ref.current, { y: distance }, {
+      y: 0, duration: 0.42, delay, ease: "power2.out", clearProps: "all",
     });
   }, { scope: ref, dependencies: [pathname, distance, delay], revertOnUpdate: true });
 
@@ -43,8 +43,8 @@ export function MotionReveal({ children, distance = 20, delay = 0, className, ..
     const element = ref.current;
     if (!element || prefersReducedMotion()) return;
     const scroller = element.closest<HTMLElement>("[data-motion-scroller]");
-    gsap.fromTo(element, { autoAlpha: 0, y: distance }, {
-      autoAlpha: 1, y: 0, duration: 0.55, delay, ease: "power2.out", clearProps: "all",
+    gsap.fromTo(element, { y: distance }, {
+      y: 0, duration: 0.55, delay, ease: "power2.out", clearProps: "all",
       scrollTrigger: {
         trigger: element,
         scroller: scroller ?? undefined,

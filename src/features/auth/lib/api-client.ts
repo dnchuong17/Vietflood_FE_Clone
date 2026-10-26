@@ -10,36 +10,44 @@ import {
   updateRefreshToken,
   clearAuthTokens,
   isAccessTokenExpiringSoon,
+  getAuthSessionRevision,
 } from "./auth-storage";
 import { refreshAccessToken } from "../api/sign-in";
 import { apiUrl } from "@/lib/api-config";
+import { ApiResponseError, getResponseErrorStatus, responseError } from "./response-error";
 
 type RequestOptions = RequestInit & {
   skipAuthRefresh?: boolean;
 };
 
 let refreshPromise: Promise<void> | null = null;
+let refreshRevision = -1;
 
 /**
  * Refresh access token and update storage
  */
 async function doRefreshToken(): Promise<void> {
   const refreshToken = getRefreshToken();
+  const revision = getAuthSessionRevision();
+  const accessToken = getAccessToken();
+  const isCurrentSession = () => getAuthSessionRevision() === revision && getRefreshToken() === refreshToken && getAccessToken() === accessToken;
 
   if (!refreshToken) {
-    clearAuthTokens();
     throw new Error("Không có refresh token. Vui lòng đăng nhập lại.");
   }
 
   try {
     const response = await refreshAccessToken(refreshToken);
+    if (!isCurrentSession()) throw new Error("Phiên đăng nhập đã thay đổi.");
     updateAccessToken(response.accessToken);
 
     if (response.refresh_token) {
       updateRefreshToken(response.refresh_token);
     }
   } catch (error) {
-    clearAuthTokens();
+    if (isCurrentSession() && error instanceof ApiResponseError && (error.status === 401 || error.status === 403)) {
+      clearAuthTokens();
+    }
     throw error;
   }
 }
@@ -47,7 +55,7 @@ async function doRefreshToken(): Promise<void> {
 async function ensureFreshAccessToken(
   forceRefresh: boolean = false,
 ): Promise<void> {
-  if (refreshPromise) {
+  if (refreshPromise && refreshRevision === getAuthSessionRevision()) {
     await refreshPromise;
     return;
   }
@@ -61,12 +69,14 @@ async function ensureFreshAccessToken(
     return;
   }
 
-  refreshPromise = doRefreshToken();
+  refreshRevision = getAuthSessionRevision();
+  const pending = doRefreshToken();
+  refreshPromise = pending;
 
   try {
-    await refreshPromise;
+    await pending;
   } finally {
-    refreshPromise = null;
+    if (refreshPromise === pending) refreshPromise = null;
   }
 }
 
@@ -81,6 +91,7 @@ export async function apiRequest(
   options: RequestOptions = {},
 ): Promise<Response> {
   const { skipAuthRefresh = false, ...fetchOptions } = options;
+  const requestRevision = getAuthSessionRevision();
 
   if (!skipAuthRefresh) {
     try {
@@ -91,6 +102,7 @@ export async function apiRequest(
   }
 
   // Add authorization header if token exists
+  if (getAuthSessionRevision() !== requestRevision) throw new Error("Phiên đăng nhập đã thay đổi.");
   const currentAccessToken = getAccessToken();
   const headers = new Headers(fetchOptions.headers || {});
 
@@ -106,7 +118,9 @@ export async function apiRequest(
   // Handle 401 Unauthorized - try to refresh token
   if (response.status === 401 && !skipAuthRefresh) {
     try {
+      if (getAuthSessionRevision() !== requestRevision) return response;
       await ensureFreshAccessToken(true);
+      if (getAuthSessionRevision() !== requestRevision) return response;
 
       // Retry the original request with new token
       const newAccessToken = getAccessToken();
@@ -152,17 +166,11 @@ export async function parseJsonResponse<T>(
   fallbackMessage: string,
 ): Promise<T> {
   const data: unknown = await response.json().catch(() => null);
-
-  if (!response.ok) {
-    if (typeof data === "object" && data !== null && "message" in data) {
-      const message = (data as { message?: unknown }).message;
-      if (typeof message === "string" && message.trim().length > 0) {
-        throw new Error(message);
-      }
-    }
-
-    throw new Error(fallbackMessage);
+  const errorStatus = getResponseErrorStatus(data);
+  if (!response.ok || errorStatus) {
+    throw responseError(data, errorStatus ?? response.status, fallbackMessage);
   }
+  if (data === null && response.status !== 204) throw new Error(fallbackMessage);
 
   return data as T;
 }

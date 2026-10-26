@@ -10,6 +10,7 @@ import {
 } from "@heroicons/react/24/solid";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { MotionReveal } from "@/components/motion/gsap-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -30,6 +31,9 @@ export function OverviewDashboard() {
   const role = normalizeRole(identity?.role);
   const [reports, setReports] = useState<FloodReport[]>([]);
   const [isLoadingSummary, setIsLoadingSummary] = useState(false);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [hasSyncedSummary, setHasSyncedSummary] = useState(false);
+  const [reloadSummary, setReloadSummary] = useState(0);
 
   useEffect(() => {
     let isActive = true;
@@ -45,10 +49,13 @@ export function OverviewDashboard() {
         const loadedReports = await listReports(role);
         if (isActive) {
           setReports(loadedReports);
+          setSummaryError(null);
+          setHasSyncedSummary(true);
         }
-      } catch {
+      } catch (error) {
         if (isActive) {
-          setReports([]);
+          setSummaryError(error instanceof Error ? error.message : "Không thể tải tổng quan báo cáo.");
+          setHasSyncedSummary(false);
         }
       } finally {
         if (isActive) {
@@ -62,7 +69,7 @@ export function OverviewDashboard() {
     return () => {
       isActive = false;
     };
-  }, [role]);
+  }, [role, reloadSummary]);
 
   const summary = useMemo(
     () => buildProfileHomeSummary({ identity, reports }),
@@ -71,6 +78,7 @@ export function OverviewDashboard() {
 
   return (
     <div className="flex flex-col gap-4">
+      {summaryError ? <section role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-critical/30 bg-critical/5 p-4"><div><h2 className="text-sm font-bold text-critical">Chưa thể đồng bộ tổng quan</h2><p className="mt-1 text-sm">{summaryError}</p><p className="mt-1 text-xs text-muted-foreground">Các chỉ số chưa phản ánh dữ liệu mới nhất.</p></div><Button type="button" variant="outline" disabled={isLoadingSummary} onClick={() => setReloadSummary((value) => value + 1)}>Thử lại</Button></section> : null}
       <MotionReveal className="grid gap-3 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)]">
         <Card>
           <CardContent className="flex h-full flex-col justify-between gap-3 p-4">
@@ -83,8 +91,8 @@ export function OverviewDashboard() {
                 {summary.greeting}
               </h2>
             </div>
-            <Badge variant="secondary" className="w-fit">
-              {isLoadingSummary ? "Đang đồng bộ báo cáo" : "Đã đồng bộ báo cáo"}
+            <Badge variant={summaryError ? "warning" : "secondary"} className="w-fit">
+              {isLoadingSummary ? "Đang đồng bộ báo cáo" : summaryError ? "Đồng bộ thất bại" : hasSyncedSummary ? "Đã đồng bộ báo cáo" : "Chưa đồng bộ báo cáo"}
             </Badge>
           </CardContent>
         </Card>

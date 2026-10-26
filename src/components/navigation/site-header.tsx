@@ -11,6 +11,7 @@ import {
   ChatBubbleLeftRightIcon,
   DocumentTextIcon as FileText,
   HomeIcon as Home,
+  ShieldCheckIcon,
   LifebuoyIcon as HeartHandshake,
   RadioIcon as RadioTower,
   UserCircleIcon as UserRound,
@@ -52,8 +53,8 @@ export function SiteHeader() {
 
   useGSAP(() => {
     if (!headerRef.current || prefersReducedMotion()) return;
-    gsap.fromTo(headerRef.current, { autoAlpha: 0, y: -8 }, {
-      autoAlpha: 1, y: 0, duration: 0.24, ease: "power2.out", clearProps: "all",
+    gsap.fromTo(headerRef.current, { y: -8 }, {
+      y: 0, duration: 0.24, ease: "power2.out", clearProps: "all",
     });
   }, { scope: headerRef });
 
@@ -76,18 +77,18 @@ export function SiteHeader() {
     <>
       <header
         ref={headerRef}
-        className="sticky top-0 z-20 border-b shadow-sm bg-background/85 backdrop-blur-xl"
+        className="sticky top-0 z-20 border-b border-border bg-card/95 shadow-[0_2px_12px_#09243b08] backdrop-blur-xl"
         data-motion="site-header"
         data-motion-policy="prefers-reduced-motion"
       >
-        <div className="mx-auto grid h-[var(--navbar-height)] max-w-7xl grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 px-3 sm:gap-3 sm:px-4">
+        <div className="mx-auto grid h-[var(--navbar-height)] max-w-[1440px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 px-3 sm:gap-4 sm:px-6">
           <Link
             href="/"
             className="inline-flex min-w-0 items-center gap-2.5 font-bold"
             aria-label="Trang chủ VietFlood"
           >
-            <span className="size-3 shrink-0 rounded-full bg-linear-to-br from-primary to-success shadow-[0_0_0_5px_color-mix(in_oklch,var(--primary)_18%,transparent)]" />
-            <span className="hidden sm:inline">{siteConfig.name}</span>
+            <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground"><ShieldCheckIcon className="size-6" aria-hidden="true" /></span>
+            <span className="hidden sm:grid"><span>{siteConfig.name}</span><span className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.15em] text-muted-foreground">Ứng phó ngập lụt</span></span>
           </Link>
 
           {tabs.length > 0 ? (
@@ -105,7 +106,7 @@ export function SiteHeader() {
                     className={cn(
                       "shrink-0 rounded-lg px-2.5 py-2 text-sm font-semibold transition sm:px-3",
                       active
-                        ? "bg-primary/10 text-primary"
+                        ? "bg-primary text-primary-foreground shadow-sm"
                         : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
                     )}
                     aria-current={active ? "page" : undefined}
@@ -121,7 +122,7 @@ export function SiteHeader() {
           <div className="flex items-center justify-end min-w-0 gap-2">
             <ThemeToggle />
             {identity ? (
-              <span className="hidden rounded-lg border bg-card px-2.5 py-1.5 text-xs font-semibold text-muted-foreground sm:inline-flex">
+              <span className="hidden max-w-28 truncate rounded-lg border bg-background px-2.5 py-2 text-xs font-semibold text-muted-foreground xl:inline-block" title={identity.displayName}>
                 {identity.displayName}
               </span>
             ) : null}
@@ -161,7 +162,7 @@ export function SiteHeader() {
 
       {tabs.length > 0 ? (
         <nav
-          className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur-xl lg:hidden"
+          className="fixed inset-x-0 bottom-0 z-40 border-t bg-card/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur-xl lg:hidden"
           aria-label="Thanh tab di động"
         >
           <div
@@ -179,7 +180,7 @@ export function SiteHeader() {
                   className={cn(
                     "flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 rounded-lg px-1 py-2 text-[11px] font-semibold transition",
                     active
-                      ? "text-primary"
+                      ? "bg-primary/10 text-primary"
                       : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
                   )}
                   aria-current={active ? "page" : undefined}

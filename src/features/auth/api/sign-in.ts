@@ -6,6 +6,7 @@ import type {
 } from "@/features/auth/types/auth";
 import { normalizeRole } from "@/features/auth/lib/roles";
 import { apiUrl } from "@/lib/api-config";
+import { getResponseErrorStatus, responseError } from "../lib/response-error";
 
 export function extractErrorMessage(
   data: unknown,
@@ -172,8 +173,9 @@ export async function refreshAccessToken(
 
   const data: unknown = await response.json().catch(() => null);
 
-  if (!response.ok) {
-    throw new Error(extractErrorMessage(data, "Không thể làm mới phiên đăng nhập."));
+  const errorStatus = getResponseErrorStatus(data);
+  if (!response.ok || errorStatus) {
+    throw responseError(data, errorStatus ?? response.status, "Không thể làm mới phiên đăng nhập.");
   }
 
   return normalizeTokens(data);

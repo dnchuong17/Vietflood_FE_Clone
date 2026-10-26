@@ -27,6 +27,7 @@ import { ConfirmDialog } from "@/components/feedback/confirm-dialog";
 import { LoadingBar } from "@/components/feedback/loading-bar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { OperationsBanner } from "@/components/ui/operations-banner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -740,6 +741,8 @@ function ReportForm({
 
 export function ReportWorkspace() {
   const { showAlert } = useGlobalAlert();
+  const loadError = useReportsStore((state) => state.loadError);
+  const setLoadError = useReportsStore((state) => state.setLoadError);
   const identity = useAuthIdentity();
   const role = normalizeRole(identity?.role) ?? "citizen";
   const canManage = canManageReports(role);
@@ -777,6 +780,7 @@ export function ReportWorkspace() {
       const nextReports = await listReports(role);
       setReports(nextReports);
       setLastSyncedAt(new Date().toISOString());
+      setLoadError(null);
     } catch (error) {
       showAlert({
         title: "Không thể tải báo cáo",
@@ -784,7 +788,8 @@ export function ReportWorkspace() {
           error instanceof Error ? error.message : "Không thể tải báo cáo.",
         variant: "error",
       });
-      setReports([]);
+      setLoadError(error instanceof Error ? error.message : "Không thể tải báo cáo.");
+      setLastSyncedAt(null);
     } finally {
       setLoading(false);
     }
@@ -916,7 +921,11 @@ export function ReportWorkspace() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-testid="report-workspace">
+      <OperationsBanner eyebrow="Báo cáo hiện trường" title={canManage ? "Xác minh thông tin. Ưu tiên hỗ trợ." : "Mỗi ghi nhận giúp ứng cứu chính xác hơn."} description={canManage ? "Kiểm tra vị trí và minh chứng trước khi cập nhật trạng thái. Các ca khẩn cấp cần được ưu tiên xác minh." : "Cung cấp vị trí, mô tả rõ tình hình và thêm minh chứng nếu an toàn. Theo dõi phản hồi ngay trong danh sách của bạn."}>
+        {!canManage ? <Button type="button" onClick={() => { setEditingReport(null); setCreating(true); }}><Plus aria-hidden="true" />Báo cáo sự cố</Button> : <Button asChild variant="outline"><Link href="/cuu-tro">Hàng chờ cứu trợ</Link></Button>}
+      </OperationsBanner>
+      {loadError ? <section role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-critical/30 bg-critical/5 p-4" data-testid="reports-load-error"><div><h2 className="text-sm font-bold text-critical">Không thể tải báo cáo</h2><p className="mt-1 text-sm">{loadError}</p><p className="mt-1 text-xs text-muted-foreground">Chưa xác nhận dữ liệu mới nhất. Dữ liệu đang hiển thị, nếu có, là từ lần tải trước.</p></div><Button type="button" variant="outline" onClick={() => void loadReports()} disabled={isLoading}>{isLoading ? "Đang thử lại..." : "Thử lại"}</Button></section> : null}
       <Card>
         <CardContent className="grid gap-4 p-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -930,7 +939,7 @@ export function ReportWorkspace() {
             </div>
             <Badge variant="outline" className="gap-1.5">
               <Clock3 className="h-3.5 w-3.5" aria-hidden="true" />
-              Đồng bộ: {lastSyncedLabel}
+              {loadError ? "Đồng bộ thất bại" : `Đồng bộ: ${lastSyncedLabel}`}
             </Badge>
           </div>
 
@@ -990,7 +999,7 @@ export function ReportWorkspace() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-3 rounded-lg border bg-card p-4 shadow-sm md:grid-cols-[1fr_auto_auto] md:items-end">
+      <div className="workspace-toolbar grid gap-3 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-end">
         <Field>
           <FieldLabel htmlFor="report-search">Tìm kiếm</FieldLabel>
           <div className="relative">
@@ -1008,12 +1017,12 @@ export function ReportWorkspace() {
           </div>
         </Field>
         <Field>
-          <FieldLabel>Trạng thái</FieldLabel>
+          <FieldLabel htmlFor="report-status-filter">Trạng thái</FieldLabel>
           <Select
             value={filter}
             onValueChange={(value) => setFilter(value as "all" | ReportStatus)}
           >
-            <SelectTrigger className="w-full min-w-40">
+            <SelectTrigger id="report-status-filter" className="w-full min-w-40">
               <SelectValue placeholder="Trạng thái" />
             </SelectTrigger>
             <SelectContent>
@@ -1079,7 +1088,7 @@ export function ReportWorkspace() {
         />
       ) : null}
 
-      {!isLoading && filteredReports.length === 0 ? (
+      {!isLoading && !loadError && filteredReports.length === 0 ? (
         <div className="grid place-items-center gap-3 rounded-lg border border-slate-200 bg-white p-6 text-center text-slate-600">
           <ClipboardList className="size-9 text-sky-700" aria-hidden="true" />
           <span>Không tìm thấy báo cáo.</span>

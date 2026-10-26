@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { ArrowUpRightIcon, MapPinIcon, ShieldCheckIcon } from "@heroicons/react/24/outline";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import styles from "./auth-experience.module.css";
 
 type AuthFormCardProps = {
@@ -54,7 +54,7 @@ export function AuthFormCard({ title, description, mode, note, children }: AuthF
         <Card className={styles.formCard}>
           <CardHeader className={styles.formHeader}>
             <span className={styles.formEyebrow}>{isRegister ? "BẮT ĐẦU VỚI VIETFLOOD" : "CHÀO MỪNG TRỞ LẠI"}</span>
-            <CardTitle className={styles.formTitle}>{title}</CardTitle>
+            <h1 className={styles.formTitle}>{title}</h1>
             <CardDescription className={styles.formDescription}>{description}</CardDescription>
           </CardHeader>
           <CardContent className={styles.formContent}>

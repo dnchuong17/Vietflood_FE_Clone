@@ -18,10 +18,10 @@ const buttonVariants = cva(
           "bg-destructive text-white shadow-sm hover:bg-destructive/90",
       },
       size: {
-        default: "h-9 px-4 py-2",
-        sm: "h-8 px-3",
+        default: "h-11 px-4 py-2",
+        sm: "h-10 px-3",
         lg: "h-11 px-5",
-        icon: "size-9",
+        icon: "size-11",
       },
     },
     defaultVariants: {

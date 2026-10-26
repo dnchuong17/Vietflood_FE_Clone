@@ -16,8 +16,8 @@ describe("dark-mode theme shell", () => {
   });
 
   it("defines VietFlood semantic tokens for both light and dark mode", () => {
-    expect(globalsSource).toContain("--primary: oklch(0.62 0.16 235)");
-    expect(globalsSource).toContain("--success: oklch(0.61 0.14 165)");
+    expect(globalsSource).toContain("--primary: oklch(0.48 0.16 250)");
+    expect(globalsSource).toContain("--success: oklch(0.47 0.1 180)");
     expect(globalsSource).toContain("--warning: oklch(0.74 0.15 75)");
     expect(globalsSource).toContain(".dark {");
     expect(globalsSource).toContain("--background: oklch(0.16 0.02 240)");

@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
+import Link from "next/link";
 import { useEffect, type ComponentType, type SVGProps } from "react";
 import {
   BookOpenIcon,
@@ -15,11 +16,13 @@ import {
 } from "@heroicons/react/24/solid";
 
 import { LoadingBar } from "@/components/feedback/loading-bar";
+import { Button } from "@/components/ui/button";
 import { MotionEnter } from "@/components/motion/gsap-motion";
 import type { UserRole } from "@/features/auth/lib/roles";
 import { getUserRoleLabel, normalizeRole } from "@/features/auth/lib/roles";
 import { useAuthIdentityState } from "@/features/auth/lib/use-auth-identity";
 import { getDefaultRouteForRole } from "@/features/app-shell/lib/tabs";
+import { getWorkspaceContext } from "@/features/app-shell/lib/workspace-context";
 
 type AppShellProps = {
   children: React.ReactNode;
@@ -47,6 +50,7 @@ export function AppShell({ children, allowedRoles, title }: AppShellProps) {
   const { identity, hasRestoredIdentity } = useAuthIdentityState();
   const role = normalizeRole(identity?.role);
   const isAllowed = role && (!allowedRoles || allowedRoles.includes(role));
+  const context = getWorkspaceContext(pathname);
   const TitleIcon = title
     ? ROUTE_TITLE_ICONS[
         Object.keys(ROUTE_TITLE_ICONS).find((route) => pathname.startsWith(route)) ??
@@ -71,7 +75,7 @@ export function AppShell({ children, allowedRoles, title }: AppShellProps) {
 
   if (!hasRestoredIdentity || !identity || !role || !isAllowed) {
     return (
-      <main className="min-h-[calc(100vh-var(--navbar-height))] bg-background px-4 pt-[var(--navbar-height)]">
+      <main id="main-content" tabIndex={-1} className="min-h-[calc(100vh-var(--navbar-height))] bg-background px-4 pt-[var(--navbar-height)]">
         <div className="mx-auto grid min-h-[calc(100vh-var(--navbar-height))] max-w-xl place-items-center">
           <LoadingBar
             title="Đang kiểm tra quyền truy cập..."
@@ -83,32 +87,37 @@ export function AppShell({ children, allowedRoles, title }: AppShellProps) {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-24 pt-[var(--navbar-height)] text-foreground lg:pb-8">
+    <main id="main-content" tabIndex={-1} className="operations-surface min-h-dvh bg-background pb-24 pt-[var(--navbar-height)] text-foreground lg:pb-8">
       <MotionEnter
-        className="w-full px-4 py-4 mx-auto max-w-7xl"
+        className="mx-auto w-full max-w-[1440px] px-3 py-5 sm:px-6 lg:py-6"
       >
         {title ? (
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-4 border-b border-border pb-5">
             <div className="flex min-w-0 items-center gap-3">
               {TitleIcon ? (
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <span className="flex size-12 shrink-0 items-center justify-center rounded-xl border border-primary/15 bg-card text-primary shadow-sm">
                   <TitleIcon className="size-5" aria-hidden="true" />
                 </span>
               ) : null}
               <div className="min-w-0">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
-                  {getUserRoleLabel(role)}
+                  {context.label} · {getUserRoleLabel(role)}
                 </p>
-                <h1 className="truncate text-2xl font-bold text-foreground">{title}</h1>
+                <h1 className="mt-1 text-2xl font-bold text-foreground">{title}</h1>
+                <p className="mt-1 hidden text-sm text-muted-foreground sm:block">{context.description}</p>
               </div>
             </div>
-            {/* <div className="px-3 py-2 text-sm border rounded-lg shadow-sm bg-card text-muted-foreground">
-              {identity.displayName}
-            </div> */}
+            <nav className="flex flex-wrap gap-2" aria-label="Thao tác nhanh">
+              {pathname !== "/trang-chu" ? <Button asChild variant="outline" size="sm"><Link href="/trang-chu">Bản đồ hiện trường</Link></Button> : null}
+              <Button asChild variant="outline" size="sm"><Link href="/huong-dan">Hướng dẫn</Link></Button>
+              {role === "citizen" && !pathname.startsWith("/bao-cao") ? (
+                <Button asChild size="sm"><Link href="/bao-cao">Báo cáo sự cố</Link></Button>
+              ) : null}
+            </nav>
           </div>
         ) : null}
         {children}
       </MotionEnter>
-    </div>
+    </main>
   );
 }

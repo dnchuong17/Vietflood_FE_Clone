@@ -41,4 +41,25 @@ describe("reports Zustand store", () => {
 
     expect(useReportsStore.getState().lastSyncedAt).toBeNull();
   });
+
+  it("keeps the prior snapshot but invalidates synced status until a failed load is retried successfully", () => {
+    const store = useReportsStore.getState();
+    store.setReports([{ id: 7, description: "Cần hỗ trợ", status: "pending" }]);
+    store.setLastSyncedAt("2026-10-26T03:04:05.000Z");
+    store.setLoadError("Dịch vụ tạm ngừng");
+    store.setLoading(false);
+    expect(useReportsStore.getState().reports).toHaveLength(1);
+    expect(useReportsStore.getState().lastSyncedAt).toBeNull();
+    expect(useReportsStore.getState().loadError).toBe("Dịch vụ tạm ngừng");
+    store.setLoading(true);
+    expect(useReportsStore.getState().loadError).toBe("Dịch vụ tạm ngừng");
+    store.setReports([]);
+    store.setLoadError(null);
+    store.setLastSyncedAt("2026-10-26T03:05:05.000Z");
+    expect(useReportsStore.getState().reports).toEqual([]);
+    expect(useReportsStore.getState().loadError).toBeNull();
+    expect(useReportsStore.getState().lastSyncedAt).toBe("2026-10-26T03:05:05.000Z");
+    resetReportsStore();
+    expect(useReportsStore.getState().loadError).toBeNull();
+  });
 });

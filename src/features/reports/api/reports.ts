@@ -112,15 +112,19 @@ export function normalizeReport(report: FloodReport): FloodReport {
 }
 
 function normalizeReportList(data: unknown): FloodReport[] {
+  const record = asRecord(data);
+  if (record && "data" in record) return normalizeReportList(record.data);
+  if (record && "result" in record) return normalizeReportList(record.result);
   if (!Array.isArray(data)) {
-    return [];
+    throw new Error("Phản hồi danh sách báo cáo không hợp lệ.");
   }
 
   return data.map((item) => {
+    if (!asRecord(item)) throw new Error("Phản hồi báo cáo không hợp lệ.");
     if (
       typeof item === "object" &&
       item !== null &&
-      ("report" in item || "user" in item)
+      "report" in item
     ) {
       const envelope = item as BackendReportEnvelope;
       return normalizeReport({
@@ -151,7 +155,7 @@ function normalizeReportDetail(data: unknown): FloodReport | null {
     return normalizeReportDetail(record.result);
   }
 
-  if ("report" in record || "user" in record) {
+  if ("report" in record) {
     const envelope = record as BackendReportEnvelope;
     return normalizeReport({
       ...(envelope.report ?? {}),

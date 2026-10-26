@@ -5,6 +5,7 @@ import type { FloodReport, ReportStatus } from "../api/reports";
 type ReportsStore = {
   reports: FloodReport[];
   isLoading: boolean;
+  loadError: string | null;
   filter: "all" | ReportStatus;
   query: string;
   lastSyncedAt: string | null;
@@ -13,6 +14,7 @@ type ReportsStore = {
   savingStatusByReportId: Record<number, ReportStatus>;
   setReports: (reports: FloodReport[]) => void;
   setLoading: (isLoading: boolean) => void;
+  setLoadError: (loadError: string | null) => void;
   setFilter: (filter: "all" | ReportStatus) => void;
   setQuery: (query: string) => void;
   setLastSyncedAt: (lastSyncedAt: string | null) => void;
@@ -26,6 +28,7 @@ type ReportsStore = {
 const initialState = {
   reports: [] as FloodReport[],
   isLoading: true,
+  loadError: null as string | null,
   filter: "all" as const,
   query: "",
   lastSyncedAt: null,
@@ -38,6 +41,7 @@ export const useReportsStore = create<ReportsStore>()((set) => ({
   ...initialState,
   setReports: (reports) => set({ reports }),
   setLoading: (isLoading) => set({ isLoading }),
+  setLoadError: (loadError) => set((state) => ({ loadError, lastSyncedAt: loadError ? null : state.lastSyncedAt })),
   setFilter: (filter) => set({ filter }),
   setQuery: (query) => set({ query }),
   setLastSyncedAt: (lastSyncedAt) => set({ lastSyncedAt }),

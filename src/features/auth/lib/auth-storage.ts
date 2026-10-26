@@ -24,6 +24,11 @@ export type AuthIdentity = {
 
 let cachedIdentityToken: string | null = null;
 let cachedIdentity: AuthIdentity | null = null;
+let sessionRevision = 0;
+
+export function getAuthSessionRevision(): number {
+  return sessionRevision;
+}
 
 function setCookie(name: string, value: string, maxAgeSeconds: number): void {
   document.cookie = `${encodeURIComponent(name)}=${encodeURIComponent(value)}; Max-Age=${maxAgeSeconds}; Path=/; SameSite=Lax`;
@@ -60,6 +65,7 @@ export function persistAuthTokens(tokens: SignInResponse): void {
     return;
   }
 
+  sessionRevision += 1;
   setCookie(
     ACCESS_TOKEN_KEY,
     tokens.accessToken,
@@ -86,6 +92,7 @@ export function clearAuthTokens(): void {
     return;
   }
 
+  sessionRevision += 1;
   clearCookie(ACCESS_TOKEN_KEY);
   clearCookie(REFRESH_TOKEN_KEY);
   window.localStorage.removeItem(ACCESS_TOKEN_KEY);

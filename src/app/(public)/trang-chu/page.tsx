@@ -8,9 +8,7 @@ export const metadata = {
 export default function MainPage() {
   return (
     <AppShell title="Bản đồ Windy">
-      <div className="h-[calc(100vh-12rem)] min-h-[28rem] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-        <HomeMapView />
-      </div>
+      <HomeMapView />
     </AppShell>
   );
 }

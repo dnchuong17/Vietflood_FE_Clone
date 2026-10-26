@@ -23,6 +23,7 @@ import { LoadingBar } from "@/components/feedback/loading-bar";
 import { MotionReveal } from "@/components/motion/gsap-motion";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { OperationsBanner } from "@/components/ui/operations-banner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -108,6 +109,9 @@ export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: b
   const setQueueFilter = useReliefStore((state) => state.setQueueFilter);
   const reports = useReportsStore((state) => state.reports);
   const isLoading = useReportsStore((state) => state.isLoading);
+  const loadError = useReportsStore((state) => state.loadError);
+  const setLoadError = useReportsStore((state) => state.setLoadError);
+  const setLastSyncedAt = useReportsStore((state) => state.setLastSyncedAt);
   const savingStatusByReportId = useReportsStore(
     (state) => state.savingStatusByReportId,
   );
@@ -127,6 +131,8 @@ export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: b
     try {
       setLoading(true);
       setReports(await listReports(role));
+      setLoadError(null);
+      setLastSyncedAt(new Date().toISOString());
     } catch (error) {
       showAlert({
         title: "Không thể tải dữ liệu cứu trợ",
@@ -134,7 +140,7 @@ export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: b
           error instanceof Error ? error.message : "Không thể tải báo cáo.",
         variant: "error",
       });
-      setReports([]);
+      setLoadError(error instanceof Error ? error.message : "Không thể tải dữ liệu cứu trợ.");
     } finally {
       setLoading(false);
     }
@@ -250,8 +256,13 @@ export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: b
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <MotionReveal className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+    <div className="flex flex-col gap-4" data-testid="relief-workspace">
+      <OperationsBanner eyebrow={assignmentMode ? "Điều phối lực lượng" : "Ưu tiên ứng cứu"} title={assignmentMode ? "Rõ nhiệm vụ. Sẵn sàng phối hợp." : "Tập trung vào những ca cần hỗ trợ."} description="Hàng chờ được sắp xếp theo mức độ ưu tiên. Kiểm tra vị trí, liên hệ và xác minh thông tin trước khi triển khai hỗ trợ.">
+        <Badge variant={stats.awaiting > 0 ? "warning" : "outline"}>{stats.awaiting} chờ xử lý</Badge>
+        <Button asChild variant="outline"><Link href="/theo-doi"><Map aria-hidden="true" />Vị trí hiện trường</Link></Button>
+      </OperationsBanner>
+      {loadError ? <section role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-critical/30 bg-critical/5 p-4"><div><h2 className="text-sm font-bold text-critical">Chưa thể đồng bộ hàng chờ cứu trợ</h2><p className="mt-1 text-sm">{loadError}</p><p className="mt-1 text-xs text-muted-foreground">Dữ liệu đang hiển thị, nếu có, là từ lần tải trước. Chưa xác nhận tình hình mới nhất.</p></div><Button type="button" variant="outline" disabled={isLoading} onClick={() => void loadReports()}>Thử lại</Button></section> : null}
+      <MotionReveal className={cn("grid gap-3 sm:grid-cols-2", assignmentMode ? "lg:grid-cols-4" : "lg:grid-cols-5")}>
         {statCards.map(([label, value], index) => {
           const Icon = statCardIcons[index] ?? ClipboardCheck;
 
