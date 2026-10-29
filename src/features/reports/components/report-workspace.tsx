@@ -51,6 +51,7 @@ import {
   type GeocodingResult,
 } from "@/features/location/api/geocoding";
 import { useAuthIdentity } from "@/features/auth/lib/use-auth-identity";
+import { getDeviceLocation, getDeviceLocationError } from "@/features/location/lib/device-location";
 import { canManageReports, normalizeRole } from "@/features/auth/lib/roles";
 import {
   createReport,
@@ -217,6 +218,7 @@ function ReportForm({
   const { showAlert } = useGlobalAlert();
   const [values, setValues] = useState(initialValues);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
   const [selectedProvinceCode, setSelectedProvinceCode] = useState<number | null>(null);
   const [provinceOptions, setProvinceOptions] = useState<DivisionOption[]>([]);
   const [wardOptions, setWardOptions] = useState<DivisionOption[]>([]);
@@ -403,29 +405,21 @@ function ReportForm({
     }
   }
 
-  function fillCurrentLocation() {
-    if (!navigator.geolocation) {
+  async function fillCurrentLocation() {
+    if (isLocating) return;
+    setIsLocating(true);
+    try {
+      const position = await getDeviceLocation();
+      await applyReverseGeocode(position);
+    } catch (error) {
       showAlert({
-        title: "Không có vị trí",
-        description: "Trình duyệt này không hỗ trợ định vị.",
+        title: "Không thể lấy vị trí",
+        description: getDeviceLocationError(error),
         variant: "error",
       });
-      return;
+    } finally {
+      setIsLocating(false);
     }
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        void applyReverseGeocode(position);
-      },
-      () => {
-        showAlert({
-          title: "Vị trí bị chặn",
-          description: "Hãy cho phép truy cập vị trí hoặc tiếp tục gửi báo cáo không có tọa độ.",
-          variant: "error",
-        });
-      },
-      { enableHighAccuracy: true },
-    );
   }
 
   async function resolveReportLocationBeforeSubmit(
@@ -683,10 +677,12 @@ function ReportForm({
         <button
           type="button"
           onClick={fillCurrentLocation}
+          disabled={isLocating}
+          aria-busy={isLocating}
           className="inline-flex items-center justify-center gap-2 rounded-lg border border-sky-200 px-3 py-2 text-sm font-semibold text-sky-700 hover:bg-sky-50"
         >
           <LocateFixed className="h-4 w-4" aria-hidden="true" />
-          Dùng GPS
+          {isLocating ? "Đang lấy vị trí…" : "Dùng GPS"}
         </button>
       </div>
 

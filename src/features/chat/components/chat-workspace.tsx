@@ -41,6 +41,7 @@ import {
   type ChatSession,
 } from "@/features/chat/api/chat";
 import { cn } from "@/lib/utils";
+import { getDeviceLocation, getDeviceLocationError } from "@/features/location/lib/device-location";
 import styles from "./chat-workspace.module.css";
 import { EvidenceReply } from "./evidence-reply";
 
@@ -551,20 +552,15 @@ export function ChatWorkspace() {
     }
   };
 
-  const requestReportLocation = () => {
-    if (!navigator.geolocation) {
-      setError("Trình duyệt này không hỗ trợ lấy vị trí. Bạn vẫn có thể tạo báo cáo bằng địa chỉ.");
-      return;
+  const requestReportLocation = async () => {
+    try {
+      const position = await getDeviceLocation();
+      setReportLocation({ latitude: position.coords.latitude, longitude: position.coords.longitude });
+      setClearReportLocation(false);
+      setError(null);
+    } catch (error) {
+      setError(getDeviceLocationError(error));
     }
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setReportLocation({ latitude: position.coords.latitude, longitude: position.coords.longitude });
-        setClearReportLocation(false);
-        setError(null);
-      },
-      () => setError("Không lấy được vị trí. Kiểm tra quyền vị trí hoặc tiếp tục tạo báo cáo không có GPS."),
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
-    );
   };
 
   const chooseReportEvidence = (event: ChangeEvent<HTMLInputElement>) => {
