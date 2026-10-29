@@ -42,6 +42,18 @@ PATH=/opt/homebrew/bin:$PATH NODE_PATH=/Users/macbook/.npm/_npx/b234c773f454f454
 
 Optional settings: `QA_MOBILE_URL`, `QA_MOBILE_OUTPUT`, `QA_CHROME`, `QA_API_ORIGIN`. Results belong under `evidence/mobile/`. This is **Expo web** evidence, not an iOS/Android pass.
 
+## Chat GPS/photo confirmation
+
+With the fixture-facing localhost Next process above running:
+
+```sh
+PATH=/opt/homebrew/bin:$PATH NODE_PATH=/Users/macbook/.npm/_npx/b234c773f454f454/node_modules node docs/qa/chat-attachment-confirm.cjs
+```
+
+This localhost-only runner intercepts every API request and blocks unexpected remote requests and app-origin writes. Confirmation captures synthetic multipart data only; it never creates a real report or uploads a photo. It checks desktop/narrow layouts, zero coordinates, reopening the active conversation, switching away/back, a native reload/discard warning even for inactive cached drafts, selection retention after a failed confirmation, exact GPS/photo bytes on explicit confirmation/retry, cancellation privacy and replacement-proposal isolation.
+
+Attachments remain in the mounted workspace's memory. Accepting a discard/reload prompt or unmounting the workspace is not claimed to preserve files permanently. Results and screenshots default to `~/.hermes/cache/scratch/chat-attachment-confirm/`; override with `QA_ATTACHMENT_OUTPUT`. This is frontend/payload coverage, not live storage or native iOS proof.
+
 ## Acceptance limits
 
 Inspect the final verification report and feature matrix for unresolved checks. Treat startup directory listings, empty pages, redirects, and service-failure screens as failures unless explicitly expected by that test. Source screenshots and fixture answers are not real flood reports or emergency guidance. Do not deploy these fixtures or test JWTs.

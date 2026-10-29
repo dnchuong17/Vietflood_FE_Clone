@@ -88,6 +88,13 @@ export function ChatWorkspace() {
   const [reportEvidence, setReportEvidence] = useState<File[]>([]);
   const [reportLocation, setReportLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [clearReportLocation, setClearReportLocation] = useState(false);
+  // Attachments stay device-only until confirmation and belong to one proposal.
+  const reportAttachmentDraftsRef = useRef(new Map<string, {
+    actionId: string;
+    evidence: File[];
+    location: { latitude: number; longitude: number } | null;
+    clearLocation: boolean;
+  }>());
   const [isLoadingSessions, setIsLoadingSessions] = useState(true);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [isLoadingOlderMessages, setIsLoadingOlderMessages] = useState(false);
@@ -163,6 +170,29 @@ export function ChatWorkspace() {
     queueMicrotask(() => { if (!canceled) void loadSessions(); });
     return () => { canceled = true; };
   }, [loadSessions]);
+
+  useEffect(() => {
+    if (!activeSessionId || pendingAction?.intent !== "create_report") return;
+    reportAttachmentDraftsRef.current.set(activeSessionId, {
+      actionId: pendingAction.id,
+      evidence: reportEvidence,
+      location: reportLocation,
+      clearLocation: clearReportLocation,
+    });
+  }, [activeSessionId, pendingAction, reportEvidence, reportLocation, clearReportLocation]);
+
+  useEffect(() => {
+    const warnBeforeDiscard = (event: BeforeUnloadEvent) => {
+      const hasCachedAttachments = Array.from(reportAttachmentDraftsRef.current.values()).some(
+        (item) => item.evidence.length || item.location || item.clearLocation,
+      );
+      if (!reportEvidence.length && !reportLocation && !clearReportLocation && !hasCachedAttachments) return;
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warnBeforeDiscard);
+    return () => window.removeEventListener("beforeunload", warnBeforeDiscard);
+  }, [reportEvidence.length, reportLocation, clearReportLocation]);
 
   useEffect(() => {
     const list = messageListRef.current;
@@ -317,6 +347,17 @@ export function ChatWorkspace() {
       setMessages(page.items);
       setMessagesCursor(page.nextCursor);
       setPendingAction(page.pendingAction ?? null);
+      const savedAttachments = reportAttachmentDraftsRef.current.get(session.sessionId);
+      if (savedAttachments && page.pendingAction?.intent === "create_report" && savedAttachments.actionId === page.pendingAction.id) {
+        setReportEvidence(savedAttachments.evidence);
+        setReportLocation(savedAttachments.location);
+        setClearReportLocation(savedAttachments.clearLocation);
+      } else if (savedAttachments) {
+        reportAttachmentDraftsRef.current.delete(session.sessionId);
+        if (savedAttachments.evidence.length || savedAttachments.location) {
+          setError("Bản nháp báo cáo đã thay đổi hoặc hết hiệu lực. GPS/ảnh đã chọn chưa được gửi; hãy chọn lại cho bản nháp hiện tại.");
+        }
+      }
     } catch (loadError) {
       if (activeSessionRef.current !== session.sessionId) return;
       setError(errorMessage(loadError));
@@ -402,6 +443,15 @@ export function ChatWorkspace() {
       ]);
       setPendingAction(reply.action && ["collecting", "awaiting_confirmation"].includes(reply.action.status) ? reply.action : null);
       setAnnouncement(`Trợ lý VietFlood: ${reply.answer}`);
+      if (pendingAction && reply.action && pendingAction.id !== reply.action.id) {
+        reportAttachmentDraftsRef.current.delete(reply.sessionId);
+        setReportEvidence([]);
+        setReportLocation(null);
+        setClearReportLocation(false);
+        if (reportEvidence.length || reportLocation) {
+          setError("Đề xuất báo cáo trước đã được thay thế. GPS/ảnh chưa được gửi; hãy chọn lại trước khi xác nhận đề xuất mới.");
+        }
+      }
       setSessions((current) => {
         const existing = current.find((session) => session.sessionId === reply.sessionId);
         return [
@@ -476,6 +526,7 @@ export function ChatWorkspace() {
       }]);
       setPendingAction(reply.action && ["collecting", "awaiting_confirmation"].includes(reply.action.status) ? reply.action : null);
       if (decision === "cancel" || reply.action?.status === "completed") {
+        reportAttachmentDraftsRef.current.delete(sessionId);
         setReportEvidence([]);
         setReportLocation(null);
         setClearReportLocation(false);
@@ -564,6 +615,7 @@ export function ChatWorkspace() {
     setErrorAction(null);
     try {
       await deleteChatSession(sessionToDelete.sessionId);
+      reportAttachmentDraftsRef.current.delete(sessionToDelete.sessionId);
       setSessions((current) => current.filter((item) => item.sessionId !== sessionToDelete.sessionId));
       if (activeSessionId === sessionToDelete.sessionId) startNewChat();
       setSessionToDelete(null);
@@ -603,7 +655,7 @@ export function ChatWorkspace() {
         ) : null}
       </div>
       <div className="px-4 py-4">
-        <Button className="h-11 w-full justify-start rounded-xl" onClick={startNewChat} disabled={isSending}>
+        <Button data-testid="chat-new-conversation" className="h-11 w-full justify-start rounded-xl" onClick={startNewChat} disabled={isSending}>
           <PlusIcon className="size-4" aria-hidden="true" />
           Cuộc trò chuyện mới
         </Button>
@@ -775,9 +827,14 @@ export function ChatWorkspace() {
 
         <footer className="border-t border-border/70 bg-card px-3 py-3 sm:px-6 sm:py-4">
           {pendingAction?.intent === "create_report" ? (
-            <section className="mx-auto mb-3 max-w-3xl rounded-xl border border-primary/20 bg-primary/5 p-3" aria-label="Tùy chọn báo cáo">
+            <section data-testid="chat-report-task" className="mx-auto mb-3 max-w-3xl rounded-xl border border-primary/20 bg-primary/5 p-3" aria-label="Tùy chọn báo cáo">
               <p className="text-sm font-semibold">Thông tin tùy chọn cho báo cáo</p>
               <p className="mt-1 text-xs text-muted-foreground">GPS và ảnh chỉ được gửi khi bạn xác nhận tạo báo cáo.</p>
+              {reportLocation || reportEvidence.length ? <p data-testid="chat-selected-attachments" className="mt-1 text-xs leading-5" role="status">
+                {reportLocation ? `GPS đã chọn: ${reportLocation.latitude.toFixed(6)}, ${reportLocation.longitude.toFixed(6)}. ` : ""}
+                {reportEvidence.length ? `${reportEvidence.length} ảnh đã chọn. ` : ""}
+                Bản tóm tắt của trợ lý chưa bao gồm lựa chọn trên thiết bị; GPS/ảnh sẽ đính kèm khi bạn xác nhận.
+              </p> : null}
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <Button type="button" variant="outline" size="sm" disabled={isSending} onClick={requestReportLocation}>
                   <MapPinIcon data-icon="inline-start" aria-hidden="true" />
