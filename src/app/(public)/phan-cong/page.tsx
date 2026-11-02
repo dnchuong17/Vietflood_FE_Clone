@@ -1,5 +1,5 @@
 import { AppShell } from "@/features/app-shell/components/app-shell";
-import { ReliefDashboard } from "@/features/relief/components/relief-dashboard";
+import { IncidentDashboard } from "@/features/incidents/components/incident-dashboard";
 
 export const metadata = {
   title: "Phân công | VietFlood",
@@ -8,7 +8,7 @@ export const metadata = {
 export default function AssignmentPage() {
   return (
     <AppShell title="Phân công vận hành" allowedRoles={["relief", "admin"]}>
-      <ReliefDashboard assignmentMode />
+      <IncidentDashboard assignments />
     </AppShell>
   );
 }

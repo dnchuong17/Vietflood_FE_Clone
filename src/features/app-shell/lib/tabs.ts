@@ -15,7 +15,7 @@ const CITIZEN_TABS: AppTab[] = [
 ];
 
 const OPERATIONAL_TABS: AppTab[] = [
-  { href: "/cuu-tro", label: "Cứu trợ", match: ["/cuu-tro", "/phan-cong"] },
+  { href: "/cuu-tro", label: "Cứu trợ", match: ["/cuu-tro", "/phan-cong", "/su-co"] },
   { href: "/chat", label: "Trợ lý", match: ["/chat"] },
   { href: "/bao-cao", label: "Báo cáo", match: ["/bao-cao"] },
   { href: "/theo-doi", label: "Theo dõi", match: ["/theo-doi"] },

@@ -37,6 +37,7 @@ const ROUTE_TITLE_ICONS: Record<string, HeroIcon> = {
   "/bao-cao": DocumentTextIcon,
   "/theo-doi": RadioIcon,
   "/cuu-tro": LifebuoyIcon,
+  "/su-co": LifebuoyIcon,
   "/phan-cong": ClipboardDocumentCheckIcon,
   "/nguoi-dung": UserGroupIcon,
   "/ho-so": UserCircleIcon,
