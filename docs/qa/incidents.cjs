@@ -4,7 +4,8 @@ const { chromium } = require("playwright");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const base = process.env.QA_WEB_URL || "http://127.0.0.1:3105";
-const output = process.env.QA_OUTPUT || "/private/tmp/vietflood-incidents-qa";
+const output = process.env.QA_OUTPUT || require("node:path").join(require("node:os").homedir(), ".hermes/cache/scratch/vietflood-incidents-qa");
+assert(["127.0.0.1", "localhost", "[::1]"].includes(new URL(base).hostname), "QA_WEB_URL must be localhost");
 fs.mkdirSync(output, { recursive: true });
 const A = "11111111-1111-4111-8111-111111111111",
   B = "22222222-2222-4222-8222-222222222222";
@@ -252,7 +253,7 @@ async function mock(route) {
     url.origin === new URL(base).origin ||
     ["data:", "blob:"].includes(url.protocol)
   )
-    return route.continue();
+    return ["GET", "HEAD"].includes(req.method()) ? route.continue() : route.abort();
   return route.abort();
 }
 function token(role, id) {
@@ -283,6 +284,7 @@ function token(role, id) {
     const ctx = await browser.newContext({
       viewport: { width, height: 1000 },
       reducedMotion: "reduce",
+      serviceWorkers: "block",
     });
     await ctx.route("**/*", mock);
     await ctx.routeWebSocket("**/socket.io/**", (ws) => ws.close());

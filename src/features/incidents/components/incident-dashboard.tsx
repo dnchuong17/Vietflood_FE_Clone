@@ -2,6 +2,7 @@
 
 import {
   useCallback,
+  useMemo,
   useEffect,
   useRef,
   useState,
@@ -37,6 +38,9 @@ import {
   type Review,
 } from "../api/incidents";
 import { Choice, Empty, IncidentBadges, IncidentLink } from "./incident-common";
+import { IncidentAnalytics } from "./incident-analytics";
+import { NormalizedSource } from "./incident-common";
+import { calendarRange } from "../lib/report-period";
 import { EmergencyStrip } from "./emergency-strip";
 
 const REASONS: Record<string, string> = {
@@ -56,10 +60,11 @@ export function IncidentDashboard({
 }) {
   const identity = useAuthIdentity(),
     admin = identity?.role === "admin";
-  const [view, setView] = useState<"incidents" | "reports" | "review">(
+  const [view, setView] = useState<"incidents" | "reports" | "review" | "analytics">(
     "incidents",
   );
   const [filters, setFilters] = useState<Filters>({});
+  const analyticsFilters = useMemo(() => ({...filters,...(assignments && identity?.role === "relief" ? {assignedToMe:"true"}: {})}), [filters,assignments,identity?.role]);
   const [data, setData] = useState<Page<Incident> | null>(null),
     [overview, setOverview] = useState<Overview | null>(null);
   const [error, setError] = useState<string | null>(null),
@@ -91,7 +96,6 @@ export function IncidentDashboard({
     }
   }, [filters, assignments, identity?.role]);
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- State updates follow asynchronous fetches; cleanup aborts stale requests.
     void refresh();
     const timer = setInterval(() => {
       if (!document.hidden) void refresh();
@@ -125,6 +129,8 @@ export function IncidentDashboard({
   function apply(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
+    const from=String(form.get("from")??""), to=String(form.get("to")??"");
+    try { if(from && to) calendarRange(from,to); } catch(e) {setError(e instanceof Error?e.message:"Ngày không hợp lệ"); return;}
     setFilters({
       province: String(form.get("province") ?? "").trim(),
       ward: String(form.get("ward") ?? "").trim(),
@@ -190,6 +196,7 @@ export function IncidentDashboard({
         >
           Sự cố
         </Button>
+        <Button variant={view === "analytics" ? "default" : "outline"} onClick={() => setView("analytics")}>AI Flood Intelligence</Button>
         {!assignments ? (
           <Button
             variant={view === "reports" ? "default" : "outline"}
@@ -306,7 +313,7 @@ export function IncidentDashboard({
               Xóa bộ lọc
             </Button>
           </form>
-          {data?.items.length ? (
+          {view === "analytics" ? <IncidentAnalytics filters={analyticsFilters} /> : data?.items.length ? (
             <div className="grid gap-3">
               {data.items.map((item) => (
                 <Card key={item.id}>
@@ -460,6 +467,7 @@ function ReviewCard({ item, onDone }: { item: Review; onDone: () => void }) {
             .filter(Boolean)
             .join(", ")}
         </p>
+        <NormalizedSource analysis={item.analysis} />
         {item.candidates.length ? (
           <>
             <Choice
@@ -476,6 +484,7 @@ function ReviewCard({ item, onDone }: { item: Review; onDone: () => void }) {
             />
             {candidate ? (
               <p className="text-xs">
+                {candidate.relation === "possible_duplicate" ? "Có thể trùng nội dung (chưa kết luận)" : "Có liên quan (chưa kết luận)"} · {candidate.distanceMeters} m · lệch {candidate.timeDifferenceMinutes ?? "chưa rõ"} phút · nguồn {candidate.matchingReportIds?.map(id=>`#${id}`).join(", ") || "chưa rõ"}.<br />
                 Độ tương đồng: {candidate.score.toFixed(3)} (không phải xác suất
                 đúng).{" "}
                 <IncidentLink id={candidate.incidentId}>

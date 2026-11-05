@@ -45,7 +45,6 @@ export function EmergencyStrip() {
     }
   }, []);
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- State updates follow asynchronous fetches; cleanup aborts stale requests.
     void refresh();
     const timer = setInterval(() => {
       if (!document.hidden) void refresh();

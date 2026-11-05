@@ -17,6 +17,7 @@ import {
   STATUS_LABELS,
   SEVERITY_LABELS,
   type Incident,
+  type PriorityAssessment, type SourceAnalysis,
 } from "../api/incidents";
 
 export function Choice({
@@ -132,4 +133,13 @@ export function useIncidentEvents(onChange: () => void) {
       socket.disconnect();
     };
   }, []);
+}
+
+export function NormalizedSource({analysis}: {analysis?: SourceAnalysis | null}) {
+ if (!analysis) return <p className="text-xs text-muted-foreground">Chưa có bản chuẩn hóa; giữ nguyên lời người dân.</p>;
+ return <details className="rounded border p-3 text-sm"><summary className="cursor-pointer font-semibold">Bản chuẩn hóa (không thay nguyên văn)</summary><p className="mt-2 whitespace-pre-wrap">{analysis.normalizedText}</p><p className="text-xs text-muted-foreground">{analysis.pipeline} · {analysis.normalizationVersion ?? "Chưa rõ phiên bản"}{analysis.pipeline!=="incidents-v2" ? " · Phân tích cũ, chờ xử lý lại" : ""}</p><p className="mt-2 text-xs whitespace-pre-wrap">Văn bản đối chiếu: {analysis.matchingText}</p></details>;
+}
+export function PriorityEvidence({priority,onSource}: {priority?: PriorityAssessment;onSource:(id:number)=>void}) {
+ if (!priority) return <p className="text-sm">Chưa có ước tính ưu tiên.</p>;
+ return <section className="rounded border p-3 space-y-2 text-sm"><h3 className="font-bold">Ước tính ưu tiên: {SEVERITY_LABELS[priority.value]}</h3><p>Gợi ý hỗ trợ — cần con người quyết định, không thay mức độ chính thức hoặc xác minh.</p>{priority.value==="CRITICAL" && <p className="font-semibold text-destructive">Critical: kiểm tra ngay bằng chứng đe dọa tính mạng; không suy từ độ sâu nước đơn thuần.</p>}<p>Căn cứ: {priority.reasonCodes.join(", ") || "Chưa đủ căn cứ"} · bằng chứng v{priority.evidenceVersion}</p><p>Nguồn báo cáo: {priority.sourceReportIds.map(id=><button className="mr-2 underline text-primary" key={id} onClick={()=>onSource(id)}>#{id}</button>)}</p>{priority.factIds.length>0 && <p className="break-words text-xs">ID bằng chứng: {priority.factIds.join(", ")}</p>}</section>;
 }

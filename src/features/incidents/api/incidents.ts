@@ -68,6 +68,9 @@ export type Summary = {
   generatedAt: string;
 };
 export type IncidentDetail = Incident & {
+  priority: PriorityAssessment;
+  editorialSummary: SummaryEdit | null;
+  analysisRequired: boolean;
   summary: Summary | null;
   summaryStale: boolean;
   summaryJob: { status: string; failure_code: string | null } | null;
@@ -82,6 +85,7 @@ export type ReportRevision = {
   createdAt: string;
 };
 export type SourceReport = {
+  analysis?: SourceAnalysis | null;
   id: number;
   manual: boolean;
   archived_at: string | null;
@@ -96,6 +100,7 @@ export type Emergency = {
   snapshot: FloodReport;
 };
 export type Review = {
+  analysis?: SourceAnalysis | null;
   report_id: number;
   revision: number;
   reason: string;
@@ -106,6 +111,9 @@ export type Review = {
     title: string;
     score: number;
     distanceMeters: number;
+    relation?: "possible_duplicate" | "related";
+    timeDifferenceMinutes?: number;
+    matchingReportIds?: number[];
   }[];
 };
 export type Overview = {
@@ -211,4 +219,23 @@ export function dateBoundary(value: string, end = false) {
         `${value}T${end ? "23:59:59.999" : "00:00:00"}+07:00`,
       ).toISOString()
     : undefined;
+}
+
+export type SourceAnalysis = {pipeline: string; normalizedText: string; matchingText: string; normalizationVersion?: string};
+export type PriorityAssessment = {value: IncidentSeverity; provenance: "estimate"; requiresHumanDecision: true; reasonCodes: string[]; factIds: string[]; sourceReportIds: number[]; evidenceVersion: number};
+export type SummaryEdit = {id: number; title: string; body: string; reason?: string; actorId: number | null; createdAt: string; evidenceVersion: number; pipeline: string; stale: boolean};
+export type Analytics = {
+ generatedAt: string; filters: Record<string, unknown>; totalIncidents: number; totalReports: number; linkedReports: number; ungroupedReports: number; missingGpsReports: number;
+ bySeverity: {key: string; count: number}[]; byStatus: {key: string; count: number}[]; dailyReports: {date: string; count: number}[];
+ topAreas: {province: string; ward: string; reportCount: number; incidentCount: number}[];
+ map: {incidents: (Pick<Incident, "id" | "title" | "severity" | "status" | "reportCount" | "isUrgent"> & {lat: number; lng: number; priority: PriorityAssessment})[]; density: {lat: number; lng: number; count: number}[]; incidentTotal: number; incidentReturned: number; densityReportTotal: number; limit: number; truncated: boolean};
+};
+export type IncidentReport = {generatedAt: string; filters: Record<string, unknown>; analytics: Analytics; incidents: (Incident & {priority: PriorityAssessment; sourceReportIds: number[]; summary: Summary | null; summaryStale: boolean; editorialSummary: SummaryEdit | null})[]; coverage: {complete: true; incidentCount: number; maximumIncidents: number}};
+export async function incidentPdf(filters: Filters, signal?: AbortSignal): Promise<Blob> {
+ const response = await apiRequest(apiPath("/incidents/report.pdf") + queryString(filters), {method: "GET", cache: "no-store", signal, headers: {Accept: "application/pdf"}});
+ if (!response.ok) await parseJsonResponse(response, "Không thể tải PDF. Hãy thu hẹp khoảng ngày hoặc khu vực.");
+ if (!response.headers.get("content-type")?.toLowerCase().startsWith("application/pdf")) throw new Error("Máy chủ không trả về PDF hợp lệ.");
+ const blob = await response.blob();
+ if (await blob.slice(0,5).text() !== "%PDF-") throw new Error("Tệp PDF không hợp lệ.");
+ return blob;
 }

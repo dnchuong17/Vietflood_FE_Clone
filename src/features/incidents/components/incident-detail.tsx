@@ -35,6 +35,9 @@ import {
   type SourceReport,
 } from "../api/incidents";
 import { Choice, Empty, IncidentBadges, IncidentLink } from "./incident-common";
+import { IncidentSummaryEditor } from "./incident-summary-editor";
+import { PriorityEvidence, NormalizedSource } from "./incident-common";
+import { validGps } from "../lib/report-period";
 import { EmergencyStrip } from "./emergency-strip";
 
 const AUDIT_LABELS: Record<string, string> = {
@@ -128,15 +131,13 @@ export function IncidentDetail({ incidentId }: { incidentId: string }) {
       );
       setSelected([]);
       setError(null);
-      if (typeof next.lat === "number" && typeof next.lng === "number")
-        setLocation({ lat: next.lat, lng: next.lng });
+      setLocation(validGps(next.lat,next.lng) ? {lat:next.lat!,lng:next.lng!}:null);
     } catch (e) {
       if (!controller.signal.aborted)
         setError(e instanceof Error ? e.message : "Không thể tải sự cố.");
     }
   }, [incidentId]);
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- State updates follow asynchronous fetches; cleanup aborts stale requests.
     void refresh();
     return () => request.current?.abort();
   }, [refresh]);
@@ -306,7 +307,11 @@ export function IncidentDetail({ incidentId }: { incidentId: string }) {
             </Button>
           </div>
           <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
-            <div className="space-y-5">
+            <div className="space-y-5 min-w-0">
+              {incident.analysisRequired && <p role="status" className="rounded border p-3 text-sm">Phân tích cũ / chờ phân tích lại với incidents-v2. Không coi bằng chứng cũ là đã xác minh hiện hành.</p>}
+              <PriorityEvidence priority={incident.priority} onSource={id=>void revealSource(id)} />
+              <IncidentSummaryEditor key={incident.id} incident={incident} admin={admin} onSaved={refresh}/>
+
               <Card>
                 <CardHeader>
                   <CardTitle>Tóm tắt có dẫn chứng</CardTitle>
@@ -344,6 +349,7 @@ export function IncidentDetail({ incidentId }: { incidentId: string }) {
                       </AlertDescription>
                     </Alert>
                   ) : null}
+                  <p className="text-xs text-muted-foreground">Tóm tắt AI · {incident.summaryStale ? "Cũ / cần cập nhật" : "Theo bằng chứng hiện có"} — không phải bản biên tập Admin.</p>
                   {incident.summary ? (
                     <>
                       <FactList
@@ -885,10 +891,10 @@ function SourceCard({
             .join(", ")}{" "}
           · {incidentDate(report.createdAt)}
         </p>
+        <NormalizedSource analysis={source.analysis} />
         {report.lat != null &&
         report.lng != null &&
-        Number.isFinite(lat) &&
-        Number.isFinite(lng) ? (
+        validGps(lat,lng) ? (
           <Button
             variant="ghost"
             size="sm"

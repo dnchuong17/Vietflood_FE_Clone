@@ -54,6 +54,36 @@ This localhost-only runner intercepts every API request and blocks unexpected re
 
 Attachments remain in the mounted workspace's memory. Accepting a discard/reload prompt or unmounting the workspace is not claimed to preserve files permanently. Results and screenshots default to `~/.hermes/cache/scratch/chat-attachment-confirm/`; override with `QA_ATTACHMENT_OUTPUT`. This is frontend/payload coverage, not live storage or native iOS proof.
 
+## AI Flood Intelligence / incident acceptance (rev8)
+
+Start the **local fixture-facing** app from `/Users/macbook/Vietflood_FE_Clone`:
+
+```sh
+PATH=/opt/homebrew/bin:$PATH NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:4310 npm run dev -- --hostname 127.0.0.1 --port 3105
+```
+
+No API listener on 4310 is needed. In another shell, run both browser suites:
+
+```sh
+PATH=/opt/homebrew/bin:$PATH NODE_PATH=/Users/macbook/.npm/_npx/b234c773f454f454/node_modules node docs/qa/incidents.cjs
+PATH=/opt/homebrew/bin:$PATH NODE_PATH=/Users/macbook/.npm/_npx/b234c773f454f454/node_modules node docs/qa/incident-intelligence.cjs
+```
+
+Both reject a non-local `QA_WEB_URL`. API requests (including mutations) are intercepted in memory; remote tiles, media, sockets and unexpected app-origin writes cannot reach a server. The intelligence runner blocks all WebSockets and service workers. Never change these runners to point at production or supply real credentials. `QA_CHROME` selects a Chrome executable. `QA_OUTPUT` controls the original runner's artifact directory; `QA_INTELLIGENCE_OUTPUT` controls the new runner's directory.
+
+The November 6, 2026 Vietnam-time local acceptance passed:
+
+- `incidents.cjs`: **16 checks**, including emergency polling with sockets blocked, filters, preserved originals/revisions, assignment, verification, split/merge and Rescue/Citizen route controls.
+- `incident-intelligence.cjs`: **38 checks**, Admin/Rescue/Citizen × 1440/390 px × light/dark, accessible charts/map list, zero GPS, tile failure/attribution, escaped marker text, full-scope coverage, VN day/ISO-week filters, PDF transport, unverified/AI/Admin/stale labels, editor reason/version/idempotent retry/conflict/history, empty/error/oversize responses and relation labels.
+- `npm test`: **58 files / 247 tests**, including **37 incident tests**. `npx tsc --noEmit`, scoped incident/runner ESLint and `npm run build` passed. Build used the explicit localhost API origin above.
+
+Artifacts (not checked into Git):
+
+- `~/.hermes/cache/scratch/vietflood-incidents-qa/results.json`, desktop/mobile PNGs.
+- `~/.hermes/cache/scratch/vietflood-incident-intelligence/results.json`, role/width/theme PNGs, eight explicitly synthetic `*-fixture.pdf` downloads, `unit-tests.log`, `types.log`, `eslint.log`, `build.log`, `acceptance-commands.json`.
+
+**Evidence boundaries:** browser fixtures are not PostgreSQL/HTTP-JWT integration, live RBAC, real tiles, model/clustering validation, production availability or a Vietnamese backend PDF/font/layout pass. The local binary PDF is intentionally labeled synthetic and only proves authenticated transport/download handling. The parent backend acceptance must independently verify actual API-generated Vietnamese PDFs. Existing AI summaries are never invented when missing. Editor UI accepts title 3–200 chars and body 3–4000 chars (gateway allows up to 12,000); report periods use Vietnam UTC+7 and max 31 inclusive days. Editorial `reason` is rendered when provided by the updated backend; older responses honestly point to audit history rather than fabricating provenance.
+
 ## Acceptance limits
 
 Inspect the final verification report and feature matrix for unresolved checks. Treat startup directory listings, empty pages, redirects, and service-failure screens as failures unless explicitly expected by that test. Source screenshots and fixture answers are not real flood reports or emergency guidance. Do not deploy these fixtures or test JWTs.
