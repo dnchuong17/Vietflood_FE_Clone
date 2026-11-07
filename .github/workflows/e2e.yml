@@ -1,0 +1,46 @@
+name: Synthetic web E2E
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: synthetic-e2e-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CI: 'true'
+      NEXT_PUBLIC_API_BASE_URL: http://127.0.0.1:4310
+      NEXT_PUBLIC_SOCKET_URL: http://127.0.0.1:4310
+      NEXT_TELEMETRY_DISABLED: '1'
+      PLAYWRIGHT_SKIP_BROWSER_GC: '1'
+    steps:
+      # Verified against official actions/* Git tag refs; no mutable action tags.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+          cache: npm
+      # npm lockfile is authoritative here despite the legacy pnpm declaration.
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm test
+      - run: npx tsc --noEmit
+      - run: npx eslint playwright.config.ts tests/e2e/*.ts
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: synthetic-playwright-reports
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+          if-no-files-found: warn

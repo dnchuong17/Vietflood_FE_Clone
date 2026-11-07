@@ -82,7 +82,10 @@ function normalizeOptionalNumber(value: unknown): number | undefined {
   }
 
   if (typeof value === "string" && value.trim()) {
-    const parsed = Number.parseFloat(value);
+    const numeric = value.trim();
+    // Do not turn malformed coordinates such as "16.04oops" into real map points.
+    if (!/^[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$/.test(numeric)) return undefined;
+    const parsed = Number(numeric);
     return Number.isFinite(parsed) ? parsed : undefined;
   }
 

@@ -1,0 +1,311 @@
+import type { Page, TestInfo } from '@playwright/test';
+import type { FloodReport } from '../../src/features/reports/api/reports';
+import {
+  test as base, expect, API, APP, reports, profile, expectIds, selectStatus, apply, reset,
+} from './fixtures';
+
+// Either original spelling is valid when the applied date sort changes which
+// canonical report first represents a location; do not invent a normalized label.
+const sharedLocation = (page: Page) => page.getByRole('button', {
+  name: /^Xem báo cáo tại 12 đường kiểm thử, (?:Tăng Nhơn Phú, Hồ Chí Minh|Phường Tăng Nhơn Phú, Thành phố Hồ Chí Minh)$/,
+});
+const candidateDescription = 'SYNTHETIC nước ngập sâu cần hỗ trợ tại nhà';
+const makeReport = (id: number, extra: Partial<FloodReport> = {}): FloodReport => ({
+  ...reports[0], id, userId: 1, user: profile('citizen'), isUrgent: false,
+  description: `SYNTHETIC báo cáo phân tích ${id}`, createdAt: '2026-10-20T00:00:00Z', ...extra,
+});
+// Eight canonical IDs, four known locations, two independently unknown locations.
+// Similar-content candidates remain separate reports; only repeated IDs collapse.
+const canonical: FloodReport[] = [
+  makeReport(201, { description: candidateDescription, isUrgent: true }),
+  makeReport(202, { description: `  ${candidateDescription.toUpperCase()}  `, status: 'verified',
+    province: 'Thành phố Hồ Chí Minh', ward: 'Phường Tăng Nhơn Phú', createdAt: '2026-10-20T00:30:00Z' }),
+  makeReport(203, { status: 'resolved', province: 'Thành phố Đà Nẵng', ward: 'Phường Hải Châu', addressLine: '34 đường kiểm thử' }),
+  makeReport(204, { status: 'rejected', province: '', ward: '', addressLine: '' }),
+  makeReport(205, { province: 'Hồ Chí Minh', ward: '', addressLine: '' }),
+  makeReport(206, { status: 'verified', isUrgent: true, province: '', ward: '', addressLine: '',
+    lat: 10.1234561, lng: 106.1234561, description: 'SYNTHETIC cùng vị trí GPS chính xác' }),
+  makeReport(207, { status: 'resolved', province: '', ward: '', addressLine: '',
+    lat: 10.1234561, lng: 106.1234561, description: 'SYNTHETIC cùng vị trí GPS chính xác', createdAt: '2026-10-20T00:45:00Z' }),
+  makeReport(208, { status: 'rejected', province: '', ward: '', addressLine: '',
+    lat: 10.1234562, lng: 106.1234562, description: 'SYNTHETIC cùng vị trí GPS chính xác' }),
+];
+const syntheticRows = () => [
+  ...canonical.map(report => ({ ...report })),
+  { ...canonical[0] },
+  { ...canonical[0], status: 'resolved', isUrgent: false, description: 'SYNTHETIC conflicting later payload' },
+];
+type Dataset = { rows: FloodReport[]; release: () => void };
+const test = base.extend<{ dataset: Dataset }>({
+  dataset: [async ({ context, scenario }, runFixture) => {
+    const held: (() => void)[] = [];
+    const dataset: Dataset = { rows: syntheticRows(), release: () => held.splice(0).forEach(resolve => resolve()) };
+    const fixtureRelease = scenario.release;
+    scenario.release = () => { dataset.release(); fixtureRelease(); };
+    // This narrow override never continues/fetches a real API. All other requests
+    // still pass through the shared fixture's fail-closed auditing and blocking.
+    await context.route(url => url.origin === API && url.pathname === '/reports', async route => {
+      const request = route.request(), url = new URL(request.url()), method = request.method();
+      const entry = { method, path: url.pathname, origin: url.origin, query: url.search,
+        disposition: method === 'OPTIONS' ? 'synthetic-preflight' : 'synthetic-api' };
+      scenario.requests.push(entry);
+      const fulfill = (body: unknown, status = 200) => route.fulfill({ status,
+        contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': APP,
+          'Access-Control-Allow-Credentials': 'true', 'Access-Control-Allow-Headers': '*',
+          'Access-Control-Allow-Methods': 'GET,OPTIONS' }, body: JSON.stringify(body) });
+      if (method === 'OPTIONS') return fulfill({});
+      if (method !== 'GET') {
+        entry.disposition = 'blocked-write';
+        scenario.writes.push(entry);
+        return fulfill({ message: 'SYNTHETIC operational write forbidden' }, 501);
+      }
+      if (scenario.mode === 'loading') await new Promise<void>(resolve => held.push(resolve));
+      if (scenario.mode === 'error') return fulfill({ message: 'SYNTHETIC reports outage' }, 503);
+      return fulfill(scenario.mode === 'empty' ? [] : dataset.rows);
+    });
+    try { await runFixture(dataset); } finally { dataset.release(); }
+  }, { auto: true }],
+});
+
+async function metrics(page: Page, total: number, urgent: number, open: number, locations: number) {
+  for (const [id, value] of [['total', total], ['urgent', urgent], ['open', open], ['locations', locations]] as const) {
+    await expect(page.getByTestId(`analysis-${id}`)).toHaveText(String(value));
+  }
+}
+async function counter(page: Page, visible: number, total: number) {
+  await expect(page.getByText(new RegExp(`^${visible}\\s*/\\s*${total}\\s+báo cáo$`)).first()).toBeVisible();
+}
+async function evidence(page: Page, testInfo: TestInfo, name: string) {
+  const path = testInfo.outputPath(`${name}.png`);
+  await page.screenshot({ path, fullPage: true });
+  await testInfo.attach(name, { path, contentType: 'image/png' });
+  if (name === 'analysis-summary') {
+    for (const section of ['report-status-heading', 'report-location-heading', 'report-duplicates-heading']) {
+      await page.locator(`#${section}`).scrollIntoViewIfNeeded();
+      const sectionPath = testInfo.outputPath(`${name}-${section}.png`);
+      await page.screenshot({ path: sectionPath });
+      await testInfo.attach(`${name}-${section}`, { path: sectionPath, contentType: 'image/png' });
+    }
+  }
+}
+const reportReads = (requests: { path: string; method: string }[]) => requests.filter(request => request.path === '/reports' && request.method === 'GET').length;
+
+test.describe('admin report analytics', () => {
+  test.use({ role: 'admin' });
+
+  test('unique-ID summary, canonical first row, shared/missing locations and advisory candidates', async ({ page, scenario, colorScheme }, testInfo) => {
+    await page.goto('/cuu-tro');
+    await expectIds(page, canonical.map(report => report.id!), 8);
+    await expect(page.getByRole('heading', { name: 'Báo cáo người dân', exact: true })).toBeVisible();
+    await expect(page.getByTestId('report-analysis-panel')).toBeVisible();
+    await metrics(page, 8, 2, 4, 4);
+    const notice = page.getByTestId('report-dedup-notice');
+    await expect(notice).toBeVisible();
+    await expect(notice).toContainText(/2/); // two repeated rows
+    await expect(notice).toContainText(/1/); // one conflicting ID
+    await expect(page.locator('article[data-report-id="201"]')).toHaveCount(1);
+    await expect(page.locator('article[data-report-id="201"]')).toContainText(candidateDescription);
+    await expect(page.locator('article[data-report-id="201"]')).toContainText('Chờ xử lý');
+    await expect(page.getByText('SYNTHETIC conflicting later payload', { exact: true })).toHaveCount(0);
+    const panel = page.getByTestId('report-analysis-panel');
+    await expect(panel.getByRole('button', { name: /^Xem báo cáo tại / })).toHaveCount(4);
+    await expect(sharedLocation(page)).toBeVisible();
+    const candidates = page.getByTestId('duplicate-candidates');
+    await expect(candidates).toBeVisible();
+    for (const id of [201, 202, 206, 207]) {
+      await expect(candidates.getByRole('link', { name: `Đối chiếu #${id}`, exact: true })).toHaveAttribute('href', `/bao-cao/${id}`);
+      await expect(page.locator(`article[data-report-id="${id}"]`)).toHaveCount(1);
+    }
+    // Assert individual links: section textContent can join '#202' with a GPS
+    // label beginning '10', which makes a word-boundary assertion misleading.
+    for (const id of [204, 205, 208]) await expect(candidates.getByRole('link', { name: `Đối chiếu #${id}`, exact: true })).toHaveCount(0);
+    await expect(page.locator('html')).toHaveClass(colorScheme === 'dark' ? /dark/ : /light/);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);
+    expect(reportReads(scenario.requests)).toBeGreaterThan(0);
+    await evidence(page, testInfo, 'analysis-summary');
+  });
+
+  test('draft does not change metrics; Apply and Reset use the deduped applied scope locally', async ({ page, scenario }) => {
+    await page.goto('/cuu-tro');
+    await metrics(page, 8, 2, 4, 4);
+    const before = reportReads(scenario.requests);
+    await selectStatus(page, 'Đã xác minh');
+    await metrics(page, 8, 2, 4, 4);
+    await expectIds(page, canonical.map(report => report.id!), 8);
+    await apply(page);
+    await metrics(page, 2, 1, 2, 2);
+    await expectIds(page, [202, 206], 8);
+    await page.locator('#relief-filter-search').fill('SYNTHETIC-NO-MATCH');
+    await metrics(page, 2, 1, 2, 2);
+    await apply(page);
+    await metrics(page, 0, 0, 0, 0);
+    await expectIds(page, [], 8);
+    await expect(page.getByText('Không có báo cáo phù hợp với bộ lọc.', { exact: true })).toBeVisible();
+    await reset(page);
+    await metrics(page, 8, 2, 4, 4);
+    await expectIds(page, canonical.map(report => report.id!), 8);
+    await expect(page.locator('#relief-filter-search')).toHaveValue('');
+    await expect(page.locator('form select[name="status"]')).toHaveValue('all');
+    expect(reportReads(scenario.requests)).toBe(before);
+  });
+
+  test('status chart applies immediately without Apply or a new API request', async ({ page, scenario }) => {
+    await page.goto('/cuu-tro');
+    await metrics(page, 8, 2, 4, 4);
+    const before = reportReads(scenario.requests);
+    for (const [label, ids, urgent, open, locations] of [
+      ['Chờ xử lý', [201, 205], 1, 2, 1],
+      ['Đã xác minh', [202, 206], 1, 2, 2],
+      ['Đã xử lý', [203, 207], 0, 0, 2],
+      ['Từ chối', [204, 208], 0, 0, 1],
+    ] as const) {
+      // Reset restores the chart's full applied scope before the next drilldown.
+      await reset(page);
+      await page.getByRole('button', { name: `Lọc trạng thái ${label}`, exact: true }).click();
+      await expectIds(page, [...ids], 8);
+      await metrics(page, 2, urgent, open, locations);
+    }
+    expect(reportReads(scenario.requests)).toBe(before);
+  });
+
+  test('location drilldown scopes originals, not metrics, and supports clear and Reset', async ({ page, scenario }, testInfo) => {
+    await page.goto('/cuu-tro');
+    await metrics(page, 8, 2, 4, 4);
+    const before = reportReads(scenario.requests);
+    await sharedLocation(page).click();
+    await expectIds(page, [201, 202], 8);
+    await metrics(page, 8, 2, 4, 4);
+    await evidence(page, testInfo, 'analysis-location-drilldown');
+    await page.getByRole('button', { name: 'Bỏ chọn địa điểm', exact: true }).click();
+    await expectIds(page, canonical.map(report => report.id!), 8);
+    await sharedLocation(page).click();
+    await reset(page);
+    await expectIds(page, canonical.map(report => report.id!), 8);
+    await expect(page.getByRole('button', { name: 'Bỏ chọn địa điểm', exact: true })).toHaveCount(0);
+    await metrics(page, 8, 2, 4, 4);
+    expect(reportReads(scenario.requests)).toBe(before);
+  });
+
+  test('urgent quick scope combines safely with location, clears empty scope and resets locally', async ({ page, scenario }, testInfo) => {
+    await page.goto('/cuu-tro');
+    await metrics(page, 8, 2, 4, 4);
+    const before = reportReads(scenario.requests);
+    const urgent = page.getByRole('button', { name: 'Chỉ xem báo cáo khẩn cấp', exact: true });
+    const places = page.getByRole('list', { name: 'Các địa điểm không lặp', exact: true });
+    // Both first locations have one urgent report; more open reports wins the tie.
+    await expect(places.getByRole('button').first()).toHaveAccessibleName(/^Xem báo cáo tại 12 đường kiểm thử/);
+    await urgent.click();
+    await expect(urgent).toHaveAttribute('aria-pressed', 'true');
+    await expectIds(page, [201, 206], 8);
+    await metrics(page, 8, 2, 4, 4);
+    await sharedLocation(page).click();
+    await expectIds(page, [201], 8);
+    await page.getByRole('button', { name: 'Bỏ chọn địa điểm', exact: true }).click();
+    await expectIds(page, [201, 206], 8);
+    await page.getByRole('button', { name: /^Xem báo cáo tại 34 đường kiểm thử/ }).click();
+    await expectIds(page, [], 8);
+    await expect(page.getByText('Không có báo cáo trong phạm vi địa điểm và khẩn cấp đang chọn.', { exact: true })).toBeVisible();
+    await evidence(page, testInfo, 'analysis-empty-quick-scope');
+    await page.getByRole('button', { name: 'Bỏ chọn phạm vi nhanh', exact: true }).click();
+    await expectIds(page, canonical.map(report => report.id!), 8);
+    await urgent.click();
+    await page.getByRole('button', { name: 'Bỏ lọc khẩn cấp', exact: true }).click();
+    await expectIds(page, canonical.map(report => report.id!), 8);
+    await urgent.click();
+    await reset(page);
+    await expect(urgent).toHaveAttribute('aria-pressed', 'false');
+    await expectIds(page, canonical.map(report => report.id!), 8);
+    expect(reportReads(scenario.requests)).toBe(before);
+  });
+
+  test('initial loading and error have no fabricated zero metrics; Retry recovers', async ({ page, scenario, dataset }) => {
+    scenario.mode = 'loading';
+    await page.goto('/cuu-tro');
+    await expect(page.getByText(/Đang tải báo cáo/).first()).toBeVisible();
+    for (const id of ['total', 'urgent', 'open', 'locations']) await expect(page.getByTestId(`analysis-${id}`)).toHaveCount(0);
+    await expect(page.locator('article[data-report-id]')).toHaveCount(0);
+    await expect(page.getByText(/^0\s*\/\s*0\s+báo cáo$/)).toHaveCount(0);
+    scenario.mode = 'error'; dataset.release();
+    await expect(page.getByText(/SYNTHETIC reports outage/).first()).toBeVisible();
+    for (const id of ['total', 'urgent', 'open', 'locations']) await expect(page.getByTestId(`analysis-${id}`)).toHaveCount(0);
+    await expect(page.getByText(/^0\s*\/\s*0\s+báo cáo$/)).toHaveCount(0);
+    scenario.mode = 'data';
+    await page.getByRole('button', { name: 'Thử lại', exact: true }).click();
+    await metrics(page, 8, 2, 4, 4);
+    await expectIds(page, canonical.map(report => report.id!), 8);
+  });
+
+  test('failed refresh retains marked stale metrics and originals, then successful retry replaces them', async ({ page, scenario, dataset }) => {
+    await page.goto('/cuu-tro');
+    await metrics(page, 8, 2, 4, 4);
+    scenario.mode = 'error';
+    const before = reportReads(scenario.requests);
+    await page.getByRole('button', { name: 'Làm mới', exact: true }).click();
+    await expect.poll(() => reportReads(scenario.requests)).toBeGreaterThan(before);
+    await expect(page.getByText(/SYNTHETIC reports outage/).first()).toBeVisible();
+    await expect(page.getByText(/Dữ liệu hiển thị là từ lần tải trước/).first()).toBeVisible();
+    await metrics(page, 8, 2, 4, 4);
+    await expectIds(page, canonical.map(report => report.id!), 8);
+    dataset.rows = [canonical[0]];
+    scenario.mode = 'data';
+    await page.getByRole('button', { name: 'Thử lại', exact: true }).click();
+    await metrics(page, 1, 1, 1, 1);
+    await expectIds(page, [201], 1);
+    await expect(page.getByText(/Dữ liệu hiển thị là từ lần tải trước/)).toHaveCount(0);
+    await expect(page.getByText(/SYNTHETIC reports outage/)).toHaveCount(0);
+  });
+
+  test('successful empty dataset may show zero metrics rather than a loading/error state', async ({ page, scenario }) => {
+    scenario.mode = 'empty';
+    await page.goto('/cuu-tro');
+    await metrics(page, 0, 0, 0, 0);
+    await expectIds(page, [], 0);
+    await expect(page.getByText('Chưa có báo cáo người dân.', { exact: true })).toBeVisible();
+  });
+
+  test('pagination renders twelve unique originals but keeps totals and metrics unpaginated', async ({ page, dataset, scenario }) => {
+    const many = Array.from({ length: 15 }, (_, index) => makeReport(301 + index, {
+      status: 'pending', isUrgent: index === 0, createdAt: '2026-10-20T00:00:00Z',
+    }));
+    dataset.rows = [...many, { ...many[0] }];
+    await page.goto('/cuu-tro');
+    await metrics(page, 15, 1, 15, 1);
+    await expect(page.locator('article[data-report-id]')).toHaveCount(12);
+    await counter(page, 15, 15);
+    const first = await page.locator('article[data-report-id]').evaluateAll(elements => elements.map(element => Number(element.getAttribute('data-report-id'))));
+    expect(new Set(first).size).toBe(12);
+    const before = reportReads(scenario.requests);
+    await expect(page.getByRole('button', { name: 'Trang báo cáo trước', exact: true })).toBeDisabled();
+    await page.getByRole('button', { name: 'Trang báo cáo sau', exact: true }).click();
+    await expect(page.locator('article[data-report-id]')).toHaveCount(3);
+    await counter(page, 15, 15);
+    await metrics(page, 15, 1, 15, 1);
+    const last = await page.locator('article[data-report-id]').evaluateAll(elements => elements.map(element => Number(element.getAttribute('data-report-id'))));
+    expect([...first, ...last].sort((a, b) => a - b)).toEqual(many.map(report => report.id!));
+    await expect(page.getByRole('button', { name: 'Trang báo cáo sau', exact: true })).toBeDisabled();
+    await page.getByRole('button', { name: 'Trang báo cáo trước', exact: true }).click();
+    await expect(page.locator('article[data-report-id]')).toHaveCount(12);
+    await counter(page, 15, 15);
+    expect(reportReads(scenario.requests)).toBe(before);
+  });
+});
+
+test.describe('relief retains original report workspace without admin analytics', () => {
+  test.use({ role: 'relief' });
+  test('list and applied filters remain available, analytics and advisory controls stay absent', async ({ page, dataset }) => {
+    dataset.rows = reports;
+    await page.goto('/cuu-tro');
+    await expect(page.getByRole('heading', { name: 'Báo cáo người dân', exact: true })).toBeVisible();
+    // Preserve the shared Relief fixture's existing list and filter behavior.
+    await expectIds(page, reports.map(report => report.id));
+    await expect(page.getByTestId('report-analysis-panel')).toHaveCount(0);
+    await expect(page.getByTestId('duplicate-candidates')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /^Xem báo cáo tại / })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /^Lọc trạng thái / })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Chỉ xem báo cáo khẩn cấp', exact: true })).toHaveCount(0);
+    await selectStatus(page, 'Đã xác minh');
+    await apply(page);
+    await expectIds(page, [102, 106]);
+    await expect(page.getByTestId('report-analysis-panel')).toHaveCount(0);
+  });
+});

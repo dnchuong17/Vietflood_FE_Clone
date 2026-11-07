@@ -1,3 +1,8 @@
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 import path from "node:path";
-export default defineConfig({ resolve: { alias: { "@": path.resolve(__dirname, "src") } }, esbuild: { jsx: "automatic" } });
+
+export default defineConfig({
+  resolve: { alias: { "@": path.resolve(__dirname, "src") } },
+  esbuild: { jsx: "automatic" },
+  test: { exclude: [...configDefaults.exclude, "tests/e2e/**"] },
+});

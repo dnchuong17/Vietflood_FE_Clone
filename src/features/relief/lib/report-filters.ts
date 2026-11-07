@@ -54,7 +54,7 @@ export function filterUserReports(reports: FloodReport[], filters: ReportFilters
   return reports.filter(report => {
     if (province && normalizeVietnamDivision(report.province ?? "") !== province) return false;
     if (ward && normalizeVietnamDivision(report.ward ?? "") !== ward) return false;
-    if (filters.status !== "all" && String(report.status ?? "pending").toLowerCase() !== filters.status) return false;
+    if (filters.status !== "all" && String(report.status ?? "pending").trim().toLowerCase() !== filters.status) return false;
     if (from !== null || to !== null) {
       const time = reportCreatedTime(report);
       if (time === null || (from !== null && time < from) || (to !== null && time >= to)) return false;

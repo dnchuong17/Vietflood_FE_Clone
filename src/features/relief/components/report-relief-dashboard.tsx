@@ -16,9 +16,13 @@ import { VietnamAddressPicker } from "@/features/location/components/vietnam-add
 import { listReports, type FloodReport, type ReportStatus } from "@/features/reports/api/reports";
 import { getReportStatusLabel, REPORT_STATUS_OPTIONS } from "@/features/reports/lib/status";
 import { emptyReportFilters, filterUserReports, reportCreatedTime, reportDateRange, type ReportFilters } from "../lib/report-filters";
+import { analyzeReports, deduplicateReports } from "../lib/report-analysis";
+import { ReportAnalysisPanel } from "./report-analysis-panel";
+
+const REPORTS_PER_PAGE = 12;
 
 function statusLabel(report: FloodReport): string {
-  const value = String(report.status ?? "pending").toLowerCase();
+  const value = String(report.status ?? "pending").trim().toLowerCase();
   return REPORT_STATUS_OPTIONS.includes(value as ReportStatus)
     ? getReportStatusLabel(value as ReportStatus) : "Chưa rõ trạng thái";
 }
@@ -40,6 +44,10 @@ export function ReportReliefDashboard() {
   const [draft, setDraft] = useState<ReportFilters>(emptyReportFilters);
   const [applied, setApplied] = useState<ReportFilters>(emptyReportFilters);
   const [filterError, setFilterError] = useState<string | null>(null);
+  const [locationKey, setLocationKey] = useState<string | null>(null);
+  const [urgentOnly, setUrgentOnly] = useState(false);
+  const [page, setPage] = useState(1);
+  const isAdmin = role === "admin";
 
   useEffect(() => {
     if (!role || !canManageReports(role)) return;
@@ -49,7 +57,10 @@ export function ReportReliefDashboard() {
       setError(null);
       try {
         const reports = await listReports(role!);
-        if (current) setLoaded({ role: role!, reports });
+        if (current) {
+          setLoaded({ role: role!, reports });
+          setPage(1);
+        }
       } catch (cause) {
         if (current) setError(cause instanceof Error ? cause.message : "Không thể tải báo cáo.");
       } finally {
@@ -60,8 +71,19 @@ export function ReportReliefDashboard() {
     return () => { current = false; };
   }, [role, revision]);
 
-  const reports = useMemo(() => loaded?.role === role ? loaded.reports : [], [loaded, role]);
+  const rawReports = useMemo(() => loaded?.role === role ? loaded.reports : [], [loaded, role]);
+  const deduplicated = useMemo(() => deduplicateReports(rawReports), [rawReports]);
+  const reports = deduplicated.reports;
   const visible = useMemo(() => filterUserReports(reports, applied), [reports, applied]);
+  const analysis = useMemo(() => analyzeReports(visible), [visible]);
+  const selectedLocation = isAdmin ? analysis.locations.find(location => location.key === locationKey) : undefined;
+  const selectedReports = selectedLocation ? new Set(selectedLocation.reports) : null;
+  const scoped = visible.filter(report => (!selectedReports || selectedReports.has(report)) &&
+    (!isAdmin || !urgentOnly || (report.isUrgent ?? report.is_urgent) === true));
+  const pages = Math.max(1, Math.ceil(scoped.length / REPORTS_PER_PAGE));
+  const currentPage = Math.min(page, pages);
+  const paginated = scoped.slice((currentPage - 1) * REPORTS_PER_PAGE, currentPage * REPORTS_PER_PAGE);
+  const isFiltered = Object.entries(applied).some(([key, value]) => key === "status" ? value !== "all" : Boolean(value));
   const hasData = loaded?.role === role;
 
   function apply(event: FormEvent<HTMLFormElement>) {
@@ -69,6 +91,9 @@ export function ReportReliefDashboard() {
     try {
       reportDateRange(draft);
       setApplied({ ...draft });
+      setLocationKey(null);
+      setUrgentOnly(false);
+      setPage(1);
       setFilterError(null);
     } catch (cause) {
       setFilterError(cause instanceof Error ? cause.message : "Bộ lọc không hợp lệ.");
@@ -79,12 +104,32 @@ export function ReportReliefDashboard() {
     setDraft(emptyReportFilters());
     setApplied(emptyReportFilters());
     setFilterError(null);
+    setLocationKey(null);
+    setUrgentOnly(false);
+    setPage(1);
+  }
+
+  function quickStatus(status: ReportStatus) {
+    const next = { ...applied, status };
+    setApplied(next);
+    setDraft(next);
+    setFilterError(null);
+    setLocationKey(null);
+    setUrgentOnly(false);
+    setPage(1);
+  }
+
+  function selectLocation(key: string) {
+    setLocationKey(key);
+    setPage(1);
+    requestAnimationFrame(() => document.getElementById("relief-report-results")?.focus());
   }
 
   return (
     <div className="workspace-stack" data-testid="report-relief-workspace">
       <header className="workspace-header flex flex-wrap items-start justify-between gap-4">
         <div>
+          {isAdmin ? <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-primary">Tổng quan điều phối</p> : null}
           <h2 className="workspace-title">Báo cáo người dân</h2>
           <p className="workspace-description mt-1">Xem trực tiếp báo cáo đã gửi. Không cần chờ AI phân tích hoặc chuyển sang đã xử lý.</p>
         </div>
@@ -129,11 +174,35 @@ export function ReportReliefDashboard() {
         <Button type="button" variant="outline" disabled={isLoading} onClick={() => setRevision(value => value + 1)}>Thử lại</Button>
       </AlertDescription></Alert> : null}
       {isLoading ? <div role="status" className="space-y-3"><p className="text-sm">Đang tải báo cáo…</p><Skeleton className="h-28" /><Skeleton className="h-28" /></div> : null}
-      {hasData ? <p role="status" className="text-sm text-muted-foreground">{visible.length} / {reports.length} báo cáo</p> : null}
+      {hasData && deduplicated.duplicateRows > 0 ? <Alert data-testid="report-dedup-notice"><AlertDescription>
+        Đã loại {deduplicated.duplicateRows} dòng lặp mã khỏi phép đếm và danh sách. Mỗi mã chỉ xuất hiện một lần; không xóa báo cáo gốc.
+        {deduplicated.conflictingIds > 0 ? ` Có ${deduplicated.conflictingIds} mã có dữ liệu không nhất quán; đang giữ bản đầu tiên API trả về, chưa xác nhận bản mới nhất. Hãy làm mới và đối chiếu chi tiết.` : ""}
+      </AlertDescription></Alert> : null}
+      {hasData && isAdmin ? <div aria-busy={isLoading}><ReportAnalysisPanel analysis={analysis} totalLoaded={reports.length} isFiltered={isFiltered}
+        selectedLocation={selectedLocation?.key ?? null} selectedStatus={applied.status} urgentOnly={urgentOnly}
+        onToggleUrgent={() => { setUrgentOnly(value => !value); setPage(1); requestAnimationFrame(() => document.getElementById("relief-report-results")?.focus()); }}
+        onSelectLocation={selectLocation} onSelectStatus={quickStatus} /></div> : null}
+      {hasData ? <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-5">
+        <div><h3 id="relief-report-results" tabIndex={-1} className="text-base font-semibold">Danh sách báo cáo gốc</h3>
+          <p role="status" className="mt-1 text-sm text-muted-foreground">{scoped.length} / {reports.length} báo cáo</p></div>
+        {scoped.length > REPORTS_PER_PAGE ? <p className="text-xs text-muted-foreground">Trang {currentPage}/{pages} · {REPORTS_PER_PAGE} báo cáo mỗi trang</p> : null}
+      </div> : null}
+      {selectedLocation ? <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
+        <p className="min-w-0 text-sm [overflow-wrap:anywhere]">Đang xem địa điểm: <strong>{selectedLocation.label}</strong></p>
+        <Button type="button" variant="outline" onClick={() => { setLocationKey(null); setPage(1); }}>Bỏ chọn địa điểm</Button>
+      </div> : null}
+      {hasData && isAdmin && urgentOnly ? <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4">
+        <p className="text-sm">Danh sách chỉ hiển thị báo cáo có cờ khẩn cấp. Biểu đồ vẫn phản ánh toàn bộ bộ lọc đã áp dụng.</p>
+        <Button type="button" variant="outline" onClick={() => { setUrgentOnly(false); setPage(1); }}>Bỏ lọc khẩn cấp</Button>
+      </div> : null}
+      {!isLoading && hasData && visible.length > 0 && scoped.length === 0 ? <Card><CardContent className="space-y-3 p-6 text-sm">
+        <p>Không có báo cáo trong phạm vi địa điểm và khẩn cấp đang chọn.</p>
+        <Button type="button" variant="outline" onClick={() => { setLocationKey(null); setUrgentOnly(false); setPage(1); }}>Bỏ chọn phạm vi nhanh</Button>
+      </CardContent></Card> : null}
       {!isLoading && !error && hasData && reports.length === 0 ? <Card><CardContent className="p-6 text-sm">Chưa có báo cáo người dân.</CardContent></Card> : null}
       {!isLoading && !error && reports.length > 0 && visible.length === 0 ? <Card><CardContent className="space-y-3 p-6 text-sm"><p>Không có báo cáo phù hợp với bộ lọc.</p><Button type="button" variant="outline" onClick={reset}>Xóa bộ lọc</Button></CardContent></Card> : null}
       <div className="workspace-stack">
-        {visible.map((report, index) => <article key={report.id ?? index} data-report-id={report.id} className="min-w-0 rounded-xl border bg-card p-4 text-card-foreground">
+        {paginated.map((report, index) => <article key={`report-${report.id ?? "missing"}-${index}`} data-report-id={report.id} className="min-w-0 rounded-xl border bg-card p-4 text-card-foreground">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap gap-2">
               <Badge variant="outline">#{report.id ?? "—"}</Badge>
@@ -150,6 +219,12 @@ export function ReportReliefDashboard() {
           </div>
         </article>)}
       </div>
+      {hasData && pages > 1 ? <nav aria-label="Phân trang báo cáo" className="flex flex-wrap items-center justify-between gap-3 border-t pt-4">
+        <p role="status" className="text-sm text-muted-foreground">Hiển thị {(currentPage - 1) * REPORTS_PER_PAGE + 1}–{Math.min(currentPage * REPORTS_PER_PAGE, scoped.length)} / {scoped.length}</p>
+        <div className="flex items-center gap-2"><Button type="button" variant="outline" aria-label="Trang báo cáo trước" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>Trước</Button>
+          <span className="text-sm tabular-nums">{currentPage}/{pages}</span>
+          <Button type="button" variant="outline" aria-label="Trang báo cáo sau" disabled={currentPage === pages} onClick={() => setPage(currentPage + 1)}>Sau</Button></div>
+      </nav> : null}
     </div>
   );
 }

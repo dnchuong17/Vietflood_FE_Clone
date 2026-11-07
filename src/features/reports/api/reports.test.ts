@@ -18,6 +18,22 @@ describe("report payload regressions", () => {
     vi.mocked(apiGet).mockResolvedValue(reply({ [key]: [{ report: { id: 2 }, user: { id: 8 } }] }));
     await expect(listReports("admin")).resolves.toMatchObject([{ id: 2, userId: 8 }]);
   });
+  it("never normalizes malformed GPS strings into real locations, and keeps valid zero", async () => {
+    vi.mocked(apiGet).mockResolvedValue(reply([
+      { id: 20, latitude: "16.04oops", longitude: "108.20 degrees" },
+      { id: 21, lat: "0", lng: "-0" },
+      { id: 22, lat: " 16.047 ", lng: "1.08206e2" },
+      { id: 23, lat: "0x10", lng: "Infinity" },
+    ]));
+    const reports = await listReports("relief");
+    expect(reports[0].lat).toBeUndefined();
+    expect(reports[0].lng).toBeUndefined();
+    expect(reports[1].lat).toBe(0);
+    expect(reports[1].lng).toBe(-0);
+    expect(reports[2]).toMatchObject({ lat: 16.047, lng: 108.206 });
+    expect(reports[3].lat).toBeUndefined();
+    expect(reports[3].lng).toBeUndefined();
+  });
   it("does not present an RPC outage as an empty operational queue", async () => {
     vi.mocked(apiGet).mockResolvedValue(reply({ statusCode: 503, message: "Dịch vụ báo cáo tạm ngừng" }));
     await expect(listReports("relief")).rejects.toThrow("Dịch vụ báo cáo tạm ngừng");

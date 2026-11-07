@@ -41,6 +41,12 @@ describe("direct user report filters", () => {
   it.each(["pending", "verified", "resolved", "rejected"] as const)("filters the original %s status, not an incident status", status => {
     expect(filterUserReports(reports, { ...emptyReportFilters(), status })).toEqual(reports.filter(r => (r.status ?? "pending") === status).sort((a,b) => (Date.parse(b.createdAt ?? "") || -Infinity) - (Date.parse(a.createdAt ?? "") || -Infinity)));
   });
+  it("matches analytics status normalization without rewriting source values", () => {
+    const rows: FloodReport[] = [{ id: 10, status: " VERIFIED " }, { id: 11 }, { id: 12, status: "" }];
+    expect(ids(filterUserReports(rows, { ...emptyReportFilters(), status: "verified" }))).toEqual([10]);
+    expect(ids(filterUserReports(rows, { ...emptyReportFilters(), status: "pending" }))).toEqual([11]);
+    expect(rows[0].status).toBe(" VERIFIED ");
+  });
   it("finds Vietnamese description and reporter text without accents", () => {
     expect(ids(filterUserReports(reports, { ...emptyReportFilters(), query: "duong ngap can doi chieu" }))).toEqual([1]);
     expect(ids(filterUserReports(reports, { ...emptyReportFilters(), query: "nguoidan" }))).toEqual([1]);

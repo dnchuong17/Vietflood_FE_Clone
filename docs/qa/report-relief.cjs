@@ -131,7 +131,7 @@ async function main() {
           assert.equal(new URL(page.url()).pathname, '/cuu-tro');
           assert.equal(await page.evaluate(() => document.documentElement.classList.contains('dark')), theme === 'dark');
           for (const [id, name] of [['search','query'],['from','from'],['to','to']]) assert.equal(await page.locator('#relief-filter-'+id).getAttribute('name'), name);
-          await page.getByLabel('Trạng thái báo cáo', { exact: true }).waitFor();
+          await page.getByRole('combobox', { name: 'Trạng thái báo cáo', exact: true }).waitFor();
           for (const r of reports) {
             const card = page.locator(`article[data-report-id="${r.id}"]`);
             assert(await card.locator(`a[href="/bao-cao/${r.id}"]`).count(), 'Missing report detail link');

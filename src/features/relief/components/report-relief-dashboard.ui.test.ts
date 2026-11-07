@@ -29,6 +29,15 @@ describe("direct report relief page wiring", () => {
     expect(source).toContain("report.isUrgent");
     expect(source).not.toMatch(/mapReportToAssignment|priorityWeight|processingEnabled|suggestedSeverity/);
   });
+  it("deduplicates before filtering and analysis, but paginates only the report list", () => {
+    expect(source).toContain("deduplicateReports(rawReports)");
+    expect(source).toContain("analyzeReports(visible)");
+    expect(source).toContain("paginated.map");
+    expect(source).toContain("hasData && isAdmin");
+    expect(source).toContain("report-dedup-notice");
+    expect(source).toContain("selectedReports.has(report)");
+    expect(source).not.toMatch(/mergeReports|deleteReport|createIncident/);
+  });
   it("distinguishes loading, API errors, no reports and no filter matches", () => {
     for (const text of ["Đang tải báo cáo", "Không thể tải báo cáo", "Chưa có báo cáo người dân", "Không có báo cáo phù hợp với bộ lọc", "Thử lại"]) expect(source).toContain(text);
     expect(source).toContain("current = false");
