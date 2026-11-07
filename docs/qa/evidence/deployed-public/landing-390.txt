@@ -1,0 +1,126 @@
+VietFlood
+Tạo tài khoản
+Nền tảng web ứng phó ngập lụt
+Báo cáo ngập lụt theo thời gian thực cho cộng đồng và đội ứng cứu.
+
+VietFlood đưa các quy trình trên ứng dụng di động lên web: người dân gửi báo cáo, đội ứng cứu phân loại sự cố, quản trị viên quản lý người dùng và theo dõi trực tiếp giúp hiện trường luôn rõ ràng.
+
+Đăng nhập
+Mở bản đồ Windy
+
+3
+
+VAI TRÒ
+
+4
+
+TRẠNG THÁI BÁO CÁO
+
+24/7
+
+KẾT NỐI TRỰC TIẾP
+
+ĐIỀU PHỐI TRỰC TIẾP
+
+Ứng phó ngập lụt Đà Nẵng
+đang trực tuyến
+
+Thiết bị hoạt động
+
+18
+
+Báo cáo mới
+
+42
+
+#214
+đã xác minh
+
+Khu chợ trung tâm
+
+#213
+đang chờ
+
+Cầu bị chặn
+
+#212
+đã xử lý
+
+Điểm trú ẩn trường học
+
+Mô hình ba vai trò
+Xây dựng theo vai trò từ máy chủ, không tạo thêm vai trò riêng cho giao diện trình duyệt.
+
+Trang giới thiệu phản ánh đúng mô hình phân quyền đang dùng trong web app: người dân, đội ứng cứu và quản trị viên.
+
+Người dân
+
+Tạo báo cáo ngập lụt, theo dõi báo cáo của mình, xem bản đồ Windy và chia sẻ vị trí trực tiếp khi cần hỗ trợ.
+
+Đội ứng cứu
+
+Theo dõi toàn bộ báo cáo, cập nhật trạng thái xử lý, xem vị trí trực tiếp và quản lý hàng chờ điều phối.
+
+Quản trị viên
+
+Có toàn quyền vận hành người dùng, báo cáo, thiết lập, quy trình cứu trợ và giám sát hệ thống.
+
+Đồng bộ với ứng dụng di động
+Điểm vào trên web truyền tải cùng một trải nghiệm sản phẩm như ứng dụng di động.
+
+Báo cáo, điều phối cứu trợ, theo dõi, người dùng và thiết lập hồ sơ được trình bày như một quy trình ứng phó ngập lụt thống nhất.
+
+/reports
+Quy trình báo cáo
+
+Tạo và chỉnh sửa báo cáo nhiều phần với vị trí, mức độ nghiêm trọng, danh mục, độ khẩn cấp và tệp minh chứng.
+
+/reports/:id/status
+Điều phối cứu trợ
+
+Hàng chờ trực tiếp cho sự cố đang chờ xử lý, đã xác minh, cập nhật trạng thái và sẵn sàng phân công.
+
+send-location
+Theo dõi trực tiếp
+
+Chia sẻ vị trí qua kết nối thời gian thực để quan sát hiện trường, theo dõi thiết bị đang hoạt động và chuyển nhanh sang bản đồ.
+
+/auth/all
+Quản lý người dùng
+
+Danh sách và quản lý tài khoản theo vai trò, đồng bộ với hệ thống máy chủ: người dân, đội ứng cứu, quản trị viên.
+
+Quy trình ứng phó
+Từ báo cáo của người dân đến hành động cứu trợ.
+
+VietFlood chuyển từng ghi nhận ngập lụt thành luồng vận hành có cấu trúc: ngữ cảnh bản đồ, minh chứng báo cáo, cập nhật trạng thái và hỗ trợ vị trí trực tiếp cho lực lượng đang phản ứng.
+
+Bắt đầu với vai trò người dân
+Mở bảng điều phối
+1
+Người dân gửi báo cáo
+
+Vị trí, mức độ nghiêm trọng, danh mục và tệp minh chứng.
+
+2
+Đội ứng cứu xác minh sự cố
+
+Đội vận hành lọc, ưu tiên và cập nhật trạng thái xử lý.
+
+3
+Theo dõi trực tiếp hỗ trợ phản ứng
+
+Chia sẻ vị trí hiện trường giúp các đội phối hợp an toàn.
+
+4
+Quản trị viên quản lý truy cập
+
+Người dùng và quyền hạn luôn đồng bộ với vai trò từ máy chủ.
+
+VietFlood
+
+Báo cáo ngập lụt, điều phối cứu trợ và theo dõi trực tiếp.
+
+Bản đồ
+Báo cáo
+Theo dõi

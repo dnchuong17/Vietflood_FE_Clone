@@ -1,0 +1,393 @@
+{
+  "base": "https://vflood.vercel.app",
+  "evidenceKind": "live deployed public-site browser checks; no authenticated or mutating workflows",
+  "generatedAt": "2026-10-26T16:36:11.248Z",
+  "results": [
+    {
+      "name": "landing content and responsive bounds at 390px",
+      "status": "passed",
+      "details": {
+        "scroll": 390,
+        "client": 390
+      }
+    },
+    {
+      "name": "landing content and responsive bounds at 768px",
+      "status": "passed",
+      "details": {
+        "scroll": 768,
+        "client": 768
+      }
+    },
+    {
+      "name": "landing content and responsive bounds at 1440px",
+      "status": "passed",
+      "details": {
+        "scroll": 1440,
+        "client": 1440
+      }
+    },
+    {
+      "name": "landing links point to existing page anchors",
+      "status": "passed",
+      "details": [
+        {
+          "text": "Vai trò",
+          "href": "#roles",
+          "exists": true
+        },
+        {
+          "text": "Tính năng",
+          "href": "#features",
+          "exists": true
+        },
+        {
+          "text": "Quy trình",
+          "href": "#workflow",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "name": "/dang-nhap form renders accessibly at 390px",
+      "status": "passed",
+      "details": {
+        "inputs": [
+          {
+            "id": "login-username",
+            "type": "text",
+            "required": true,
+            "label": "Tên đăng nhập"
+          },
+          {
+            "id": "login-password",
+            "type": "password",
+            "required": true,
+            "label": "Mật khẩu"
+          }
+        ],
+        "scroll": 390,
+        "client": 390
+      }
+    },
+    {
+      "name": "/dang-nhap form renders accessibly at 1440px",
+      "status": "passed",
+      "details": {
+        "inputs": [
+          {
+            "id": "login-username",
+            "type": "text",
+            "required": true,
+            "label": "Tên đăng nhập"
+          },
+          {
+            "id": "login-password",
+            "type": "password",
+            "required": true,
+            "label": "Mật khẩu"
+          }
+        ],
+        "scroll": 1440,
+        "client": 1440
+      }
+    },
+    {
+      "name": "/dang-nhap empty form blocked without production submission",
+      "status": "passed",
+      "details": {
+        "invalidInputs": 2
+      }
+    },
+    {
+      "name": "/dang-ky form renders accessibly at 390px",
+      "status": "passed",
+      "details": {
+        "inputs": [
+          {
+            "id": "register-first-name",
+            "type": "text",
+            "required": true,
+            "label": "Tên"
+          },
+          {
+            "id": "register-last-name",
+            "type": "text",
+            "required": true,
+            "label": "Họ"
+          },
+          {
+            "id": "register-username",
+            "type": "text",
+            "required": true,
+            "label": "Tên đăng nhập"
+          },
+          {
+            "id": "register-password",
+            "type": "password",
+            "required": true,
+            "label": "Mật khẩu"
+          },
+          {
+            "id": "register-email",
+            "type": "email",
+            "required": true,
+            "label": "Email"
+          },
+          {
+            "id": "register-phone",
+            "type": "tel",
+            "required": true,
+            "label": "Số điện thoại"
+          },
+          {
+            "id": "register-address",
+            "type": "text",
+            "required": false,
+            "label": "Địa chỉ (không bắt buộc)"
+          },
+          {
+            "id": "register-province",
+            "type": "text",
+            "required": false,
+            "label": "Tỉnh/Thành phố (không bắt buộc)"
+          },
+          {
+            "id": "register-ward",
+            "type": "text",
+            "required": false,
+            "label": "Phường/Xã (không bắt buộc)"
+          }
+        ],
+        "scroll": 390,
+        "client": 390
+      }
+    },
+    {
+      "name": "/dang-ky form renders accessibly at 1440px",
+      "status": "passed",
+      "details": {
+        "inputs": [
+          {
+            "id": "register-first-name",
+            "type": "text",
+            "required": true,
+            "label": "Tên"
+          },
+          {
+            "id": "register-last-name",
+            "type": "text",
+            "required": true,
+            "label": "Họ"
+          },
+          {
+            "id": "register-username",
+            "type": "text",
+            "required": true,
+            "label": "Tên đăng nhập"
+          },
+          {
+            "id": "register-password",
+            "type": "password",
+            "required": true,
+            "label": "Mật khẩu"
+          },
+          {
+            "id": "register-email",
+            "type": "email",
+            "required": true,
+            "label": "Email"
+          },
+          {
+            "id": "register-phone",
+            "type": "tel",
+            "required": true,
+            "label": "Số điện thoại"
+          },
+          {
+            "id": "register-address",
+            "type": "text",
+            "required": false,
+            "label": "Địa chỉ (không bắt buộc)"
+          },
+          {
+            "id": "register-province",
+            "type": "text",
+            "required": false,
+            "label": "Tỉnh/Thành phố (không bắt buộc)"
+          },
+          {
+            "id": "register-ward",
+            "type": "text",
+            "required": false,
+            "label": "Phường/Xã (không bắt buộc)"
+          }
+        ],
+        "scroll": 1440,
+        "client": 1440
+      }
+    },
+    {
+      "name": "/dang-ky empty form blocked without production submission",
+      "status": "passed",
+      "details": {
+        "invalidInputs": 6
+      }
+    },
+    {
+      "name": "password visibility toggle works",
+      "status": "passed"
+    },
+    {
+      "name": "unauthenticated /trang-chu access restriction",
+      "status": "passed",
+      "details": {
+        "finalRoute": "/dang-nhap"
+      }
+    },
+    {
+      "name": "unauthenticated /bao-cao access restriction",
+      "status": "passed",
+      "details": {
+        "finalRoute": "/dang-nhap"
+      }
+    },
+    {
+      "name": "unauthenticated /bao-cao/101 access restriction",
+      "status": "passed",
+      "details": {
+        "finalRoute": "/dang-nhap"
+      }
+    },
+    {
+      "name": "unauthenticated /chat access restriction",
+      "status": "passed",
+      "details": {
+        "finalRoute": "/dang-nhap"
+      }
+    },
+    {
+      "name": "unauthenticated /cuu-tro access restriction",
+      "status": "passed",
+      "details": {
+        "finalRoute": "/dang-nhap"
+      }
+    },
+    {
+      "name": "unauthenticated /phan-cong access restriction",
+      "status": "passed",
+      "details": {
+        "finalRoute": "/dang-nhap"
+      }
+    },
+    {
+      "name": "unauthenticated /theo-doi access restriction",
+      "status": "passed",
+      "details": {
+        "finalRoute": "/dang-nhap"
+      }
+    },
+    {
+      "name": "unauthenticated /tong-quan access restriction",
+      "status": "passed",
+      "details": {
+        "finalRoute": "/dang-nhap"
+      }
+    },
+    {
+      "name": "unauthenticated /nguoi-dung access restriction",
+      "status": "passed",
+      "details": {
+        "finalRoute": "/dang-nhap"
+      }
+    },
+    {
+      "name": "unauthenticated /ho-so access restriction",
+      "status": "passed",
+      "details": {
+        "finalRoute": "/dang-nhap"
+      }
+    },
+    {
+      "name": "unauthenticated /huong-dan access restriction",
+      "status": "passed",
+      "details": {
+        "finalRoute": "/dang-nhap"
+      }
+    },
+    {
+      "name": "unauthenticated /tro-ly/nguon/qa-nonexistent/1 access restriction",
+      "status": "failed",
+      "error": "page.waitForURL: Timeout 10000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/dang-nhap\" until \"load\"\n============================================================",
+      "evidence": "failure-22"
+    },
+    {
+      "name": "unknown route displays a real 404",
+      "status": "passed"
+    },
+    {
+      "name": "no uncaught JavaScript exceptions",
+      "status": "passed"
+    }
+  ],
+  "pageErrors": [],
+  "consoleErrors": [
+    {
+      "url": "https://vflood.vercel.app/tro-ly/nguon/qa-nonexistent/1",
+      "message": "Failed to load resource: the server responded with a status of 401 ()"
+    },
+    {
+      "url": "https://vflood.vercel.app/tro-ly/nguon/qa-nonexistent/1",
+      "message": "Token refresh failed Error: Không có refresh token. Vui lòng đăng nhập lại.\n    at i (https://vflood.vercel.app/_next/static/chunks/b50b0ddea55b8963.js:1:6851)\n    at a (https://vflood.vercel.app/_next/static/chunks/b50b0ddea55b8963.js:1:7213)\n    at s (https://vflood.vercel.app/_next/static/chunks/b50b0ddea55b8963.js:1:7542)\n    at async r (https://vflood.vercel.app/_next/static/chunks/b50b0ddea55b8963.js:1:8883)"
+    },
+    {
+      "url": "https://vflood.vercel.app/qa-nonexistent-route",
+      "message": "Failed to load resource: the server responded with a status of 404 ()"
+    }
+  ],
+  "failedRequests": [
+    {
+      "url": "https://vflood.vercel.app/dang-nhap?_rsc=1he3f",
+      "error": "net::ERR_ABORTED"
+    },
+    {
+      "url": "https://vflood.vercel.app/dang-nhap?_rsc=ug5b5",
+      "error": "net::ERR_ABORTED"
+    },
+    {
+      "url": "https://vflood.vercel.app/dang-nhap?_rsc=r04vw",
+      "error": "net::ERR_ABORTED"
+    },
+    {
+      "url": "https://vflood.vercel.app/dang-nhap?_rsc=wvkvh",
+      "error": "net::ERR_ABORTED"
+    },
+    {
+      "url": "https://vflood.vercel.app/_next/static/chunks/68600cb12d641d49.js",
+      "error": "net::ERR_ABORTED"
+    },
+    {
+      "url": "https://vflood.vercel.app/_next/static/chunks/81be2b80f172412d.js",
+      "error": "net::ERR_ABORTED"
+    },
+    {
+      "url": "https://vflood.vercel.app/dang-ky?_rsc=1j5g6",
+      "error": "net::ERR_ABORTED"
+    }
+  ],
+  "httpErrors": [
+    {
+      "url": "https://vietflood-api.ndtd.indevs.in/chat/sources/qa-nonexistent/versions/1",
+      "status": 401
+    },
+    {
+      "url": "https://vflood.vercel.app/qa-nonexistent-route",
+      "status": 404
+    }
+  ],
+  "observations": {
+    "staticOperationalSample": true,
+    "sampleLabeled": false,
+    "blockedMutations": []
+  }
+}

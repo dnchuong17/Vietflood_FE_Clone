@@ -1,0 +1,300 @@
+{
+  "target": "https://vflood.vercel.app",
+  "generatedAt": "2026-10-26T16:11:08.581Z",
+  "evidenceKind": "deployed web, anonymous read-only; no credentials and no production mutations",
+  "results": [
+    {
+      "name": "/ renders at 390px; motion no-preference",
+      "status": "failed",
+      "error": "Horizontal overflow: {\"title\":\"VietFlood\",\"scrollWidth\":396,\"clientWidth\":390,\"headings\":[{\"text\":\"Báo cáo ngập lụt theo thời gian thực cho cộng đồng và đội ứng cứu.\",\"visibility\":\"visible\",\"opacity\":\"1\"}],\"unlabeledInputs\":[],\"emptyLinks\":[]}",
+      "evidence": "failure-0"
+    },
+    {
+      "name": "/dang-nhap renders at 390px; motion no-preference",
+      "status": "failed",
+      "error": "Missing h1",
+      "evidence": "failure-1"
+    },
+    {
+      "name": "/dang-ky renders at 390px; motion no-preference",
+      "status": "failed",
+      "error": "Missing h1",
+      "evidence": "failure-2"
+    },
+    {
+      "name": "/ renders at 768px; motion no-preference",
+      "status": "failed",
+      "error": "Horizontal overflow: {\"title\":\"VietFlood\",\"scrollWidth\":774,\"clientWidth\":768,\"headings\":[{\"text\":\"Báo cáo ngập lụt theo thời gian thực cho cộng đồng và đội ứng cứu.\",\"visibility\":\"visible\",\"opacity\":\"1\"}],\"unlabeledInputs\":[],\"emptyLinks\":[]}",
+      "evidence": "failure-3"
+    },
+    {
+      "name": "/dang-nhap renders at 768px; motion no-preference",
+      "status": "failed",
+      "error": "Missing h1",
+      "evidence": "failure-4"
+    },
+    {
+      "name": "/dang-ky renders at 768px; motion no-preference",
+      "status": "failed",
+      "error": "Missing h1",
+      "evidence": "failure-5"
+    },
+    {
+      "name": "/ renders at 1440px; motion no-preference",
+      "status": "passed",
+      "details": {
+        "title": "VietFlood",
+        "scrollWidth": 1440,
+        "clientWidth": 1440,
+        "headings": [
+          {
+            "text": "Báo cáo ngập lụt theo thời gian thực cho cộng đồng và đội ứng cứu.",
+            "visibility": "visible",
+            "opacity": "1"
+          }
+        ],
+        "unlabeledInputs": [],
+        "emptyLinks": []
+      }
+    },
+    {
+      "name": "/dang-nhap renders at 1440px; motion no-preference",
+      "status": "failed",
+      "error": "Missing h1",
+      "evidence": "failure-7"
+    },
+    {
+      "name": "/dang-ky renders at 1440px; motion no-preference",
+      "status": "failed",
+      "error": "Missing h1",
+      "evidence": "failure-8"
+    },
+    {
+      "name": "/ renders at 390px; motion reduce",
+      "status": "passed",
+      "details": {
+        "title": "VietFlood",
+        "scrollWidth": 390,
+        "clientWidth": 390,
+        "headings": [
+          {
+            "text": "Báo cáo ngập lụt theo thời gian thực cho cộng đồng và đội ứng cứu.",
+            "visibility": "visible",
+            "opacity": "1"
+          }
+        ],
+        "unlabeledInputs": [],
+        "emptyLinks": []
+      }
+    },
+    {
+      "name": "/dang-nhap renders at 390px; motion reduce",
+      "status": "failed",
+      "error": "Missing h1",
+      "evidence": "failure-10"
+    },
+    {
+      "name": "/dang-ky renders at 390px; motion reduce",
+      "status": "failed",
+      "error": "Missing h1",
+      "evidence": "failure-11"
+    },
+    {
+      "name": "/ renders at 768px; motion reduce",
+      "status": "passed",
+      "details": {
+        "title": "VietFlood",
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "headings": [
+          {
+            "text": "Báo cáo ngập lụt theo thời gian thực cho cộng đồng và đội ứng cứu.",
+            "visibility": "visible",
+            "opacity": "1"
+          }
+        ],
+        "unlabeledInputs": [],
+        "emptyLinks": []
+      }
+    },
+    {
+      "name": "/dang-nhap renders at 768px; motion reduce",
+      "status": "failed",
+      "error": "Missing h1",
+      "evidence": "failure-13"
+    },
+    {
+      "name": "/dang-ky renders at 768px; motion reduce",
+      "status": "failed",
+      "error": "Missing h1",
+      "evidence": "failure-14"
+    },
+    {
+      "name": "/ renders at 1440px; motion reduce",
+      "status": "passed",
+      "details": {
+        "title": "VietFlood",
+        "scrollWidth": 1440,
+        "clientWidth": 1440,
+        "headings": [
+          {
+            "text": "Báo cáo ngập lụt theo thời gian thực cho cộng đồng và đội ứng cứu.",
+            "visibility": "visible",
+            "opacity": "1"
+          }
+        ],
+        "unlabeledInputs": [],
+        "emptyLinks": []
+      }
+    },
+    {
+      "name": "/dang-nhap renders at 1440px; motion reduce",
+      "status": "failed",
+      "error": "Missing h1",
+      "evidence": "failure-16"
+    },
+    {
+      "name": "/dang-ky renders at 1440px; motion reduce",
+      "status": "failed",
+      "error": "Missing h1",
+      "evidence": "failure-17"
+    },
+    {
+      "name": "anonymous access to /trang-chu redirects to sign-in",
+      "status": "passed"
+    },
+    {
+      "name": "anonymous access to /chat redirects to sign-in",
+      "status": "passed"
+    },
+    {
+      "name": "anonymous access to /bao-cao redirects to sign-in",
+      "status": "passed"
+    },
+    {
+      "name": "anonymous access to /bao-cao/101 redirects to sign-in",
+      "status": "passed"
+    },
+    {
+      "name": "anonymous access to /theo-doi redirects to sign-in",
+      "status": "passed"
+    },
+    {
+      "name": "anonymous access to /cuu-tro redirects to sign-in",
+      "status": "passed"
+    },
+    {
+      "name": "anonymous access to /phan-cong redirects to sign-in",
+      "status": "passed"
+    },
+    {
+      "name": "anonymous access to /nguoi-dung redirects to sign-in",
+      "status": "passed"
+    },
+    {
+      "name": "anonymous access to /ho-so redirects to sign-in",
+      "status": "passed"
+    },
+    {
+      "name": "anonymous access to /tong-quan redirects to sign-in",
+      "status": "passed"
+    },
+    {
+      "name": "anonymous access to /huong-dan redirects to sign-in",
+      "status": "passed"
+    },
+    {
+      "name": "anonymous access to /tro-ly/nguon/qa-doc/1 redirects to sign-in",
+      "status": "failed",
+      "error": "page.waitForURL: Timeout 45000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/dang-nhap\" until \"load\"\n============================================================",
+      "evidence": "failure-29"
+    },
+    {
+      "name": "empty login cannot send a production sign-in request",
+      "status": "passed"
+    },
+    {
+      "name": "empty registration cannot send a production registration request",
+      "status": "passed"
+    },
+    {
+      "name": "password visibility toggle changes field type without submission",
+      "status": "passed"
+    },
+    {
+      "name": "landing section links have valid targets",
+      "status": "passed",
+      "details": [
+        {
+          "href": "#roles",
+          "targetExists": true
+        },
+        {
+          "href": "#features",
+          "targetExists": true
+        },
+        {
+          "href": "#workflow",
+          "targetExists": true
+        }
+      ]
+    },
+    {
+      "name": "unknown route shows a real 404",
+      "status": "passed"
+    },
+    {
+      "name": "no uncaught browser exceptions",
+      "status": "passed"
+    }
+  ],
+  "errors": [],
+  "consoleErrors": [
+    {
+      "url": "https://vflood.vercel.app/tro-ly/nguon/qa-doc/1",
+      "message": "Failed to load resource: the server responded with a status of 401 ()"
+    },
+    {
+      "url": "https://vflood.vercel.app/tro-ly/nguon/qa-doc/1",
+      "message": "Token refresh failed Error: Không có refresh token. Vui lòng đăng nhập lại.\n    at i (https://vflood.vercel.app/_next/static/chunks/b50b0ddea55b8963.js:1:6851)\n    at a (https://vflood.vercel.app/_next/static/chunks/b50b0ddea55b8963.js:1:7213)\n    at s (https://vflood.vercel.app/_next/static/chunks/b50b0ddea55b8963.js:1:7542)\n    at async r (https://vflood.vercel.app/_next/static/chunks/b50b0ddea55b8963.js:1:8883)"
+    },
+    {
+      "url": "https://vflood.vercel.app/qa-nonexistent-route",
+      "message": "Failed to load resource: the server responded with a status of 404 ()"
+    }
+  ],
+  "requestsFailed": [
+    {
+      "url": "https://vflood.vercel.app/dang-nhap?_rsc=wvkvh",
+      "method": "GET",
+      "error": "net::ERR_ABORTED"
+    },
+    {
+      "url": "https://vflood.vercel.app/dang-nhap?_rsc=ug5b5",
+      "method": "GET",
+      "error": "net::ERR_ABORTED"
+    },
+    {
+      "url": "https://vflood.vercel.app/dang-nhap?_rsc=r04vw",
+      "method": "GET",
+      "error": "net::ERR_ABORTED"
+    },
+    {
+      "url": "https://vflood.vercel.app/dang-nhap?_rsc=1he3f",
+      "method": "GET",
+      "error": "net::ERR_ABORTED"
+    }
+  ],
+  "badResponses": [
+    {
+      "url": "https://vietflood-api.ndtd.indevs.in/chat/sources/qa-doc/versions/1",
+      "status": 401
+    },
+    {
+      "url": "https://vflood.vercel.app/qa-nonexistent-route",
+      "status": 404
+    }
+  ],
+  "blockedMutations": [],
+  "authenticatedWorkflows": "not tested: requires a dedicated test account/session"
+}

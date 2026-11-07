@@ -7,12 +7,18 @@ import { Button } from "@/components/ui/button";
 import type { ReportStatus } from "@/features/reports/api/reports";
 import { getReportStatusLabel } from "@/features/reports/lib/status";
 import type { ReportAnalysis } from "../lib/report-analysis";
+import type { ReportAreas } from "../lib/report-areas";
+import { ReportAreaChart } from "./report-area-chart";
+import { ReportTrendChart } from "./report-trend-chart";
 
 const number = new Intl.NumberFormat("vi-VN");
 const statusOrder = ["pending", "verified", "resolved", "rejected"] as const;
 
 type Props = {
   analysis: ReportAnalysis;
+  areas: ReportAreas;
+  selectedArea: string | null;
+  onSelectArea: (key: string | null) => void;
   totalLoaded: number;
   isFiltered: boolean;
   selectedLocation: string | null;
@@ -24,10 +30,8 @@ type Props = {
 };
 
 /** Read-only projections of the same report collection as the original list. */
-export function ReportAnalysisPanel({ analysis, totalLoaded, isFiltered, selectedLocation, selectedStatus, urgentOnly, onToggleUrgent, onSelectLocation, onSelectStatus }: Props) {
+export function ReportAnalysisPanel({ analysis, areas, selectedArea, onSelectArea, totalLoaded, isFiltered, selectedLocation, selectedStatus, urgentOnly, onToggleUrgent, onSelectLocation, onSelectStatus }: Props) {
   const days = analysis.days.slice(-7);
-  const maxDay = Math.max(1, ...days.map(day => day.total));
-  const maxProvince = Math.max(1, ...analysis.provinces.map(province => province.total));
   const priorityLocations = [...analysis.locations].sort((a, b) => b.urgent - a.urgent || b.open - a.open ||
     b.reports.length - a.reports.length || a.key.localeCompare(b.key, "vi"));
   const metrics = [
@@ -63,6 +67,8 @@ export function ReportAnalysisPanel({ analysis, totalLoaded, isFiltered, selecte
       </Button>
     </div>
 
+    <ReportAreaChart areas={areas} total={analysis.total} selectedArea={selectedArea} onSelectArea={onSelectArea} />
+
     <div className="grid gap-4 lg:grid-cols-2">
       <section aria-labelledby="report-status-heading" className="min-w-0 rounded-xl border bg-card p-4 sm:p-5">
         <h4 id="report-status-heading" className="font-semibold">Trạng thái báo cáo</h4>
@@ -79,18 +85,12 @@ export function ReportAnalysisPanel({ analysis, totalLoaded, isFiltered, selecte
       <section aria-labelledby="report-trend-heading" className="min-w-0 rounded-xl border bg-card p-4 sm:p-5">
         <h4 id="report-trend-heading" className="font-semibold">Nhịp gửi báo cáo</h4>
         <p className="mt-1 text-xs leading-5 text-muted-foreground">7 ngày có báo cáo gần nhất trong phạm vi đang xem · UTC+7</p>
-        {days.length ? <ol aria-label="Số báo cáo theo ngày Việt Nam" className="mt-5 grid h-48 grid-flow-col auto-cols-fr items-end gap-2">
-          {days.map(day => <li key={day.date} aria-label={`${day.date}: ${day.total} báo cáo, ${day.urgent} khẩn cấp`} className="flex h-full min-w-0 flex-col items-center justify-end gap-2">
-            <span className="text-xs font-semibold tabular-nums">{number.format(day.total)}</span>
-            <span aria-hidden="true" className="block w-full max-w-12 rounded-t-md bg-primary/80" style={{ height: `${Math.max(3, day.total / maxDay * 65)}%` }} />
-            <time dateTime={day.date} className="text-[11px] tabular-nums text-muted-foreground">{day.date.slice(8, 10)}/{day.date.slice(5, 7)}</time>
-          </li>)}
-        </ol> : <p className="flex min-h-48 items-center justify-center text-sm text-muted-foreground">Chưa có ngày gửi hợp lệ để vẽ biểu đồ.</p>}
+        {days.length ? <ReportTrendChart days={days} /> : <p className="flex min-h-48 items-center justify-center text-sm text-muted-foreground">Chưa có ngày gửi hợp lệ để vẽ biểu đồ.</p>}
         <p className="mt-3 text-xs leading-5 text-muted-foreground">{number.format(analysis.undated)} báo cáo thiếu ngày hợp lệ vẫn có trong tổng. Các ngày không có báo cáo không được vẽ.</p>
       </section>
     </div>
 
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+    <div className="grid gap-4">
       <section aria-labelledby="report-location-heading" className="min-w-0 overflow-hidden rounded-xl border bg-card">
         <div className="border-b p-4 sm:p-5">
           <h4 id="report-location-heading" className="font-semibold">Địa điểm cần đối chiếu</h4>
@@ -111,17 +111,7 @@ export function ReportAnalysisPanel({ analysis, totalLoaded, isFiltered, selecte
         </ul> : <p className="p-5 text-sm text-muted-foreground">Chưa đủ địa chỉ hoặc GPS hợp lệ để xác định địa điểm.</p>}
         <p className="border-t bg-muted/30 p-4 text-xs leading-5 text-muted-foreground">{number.format(analysis.unknownLocationReports)} báo cáo chưa đủ vị trí được giữ riêng trong danh sách; không gom cả phường/xã thành một điểm.</p>
       </section>
-      <section aria-labelledby="report-province-heading" className="min-w-0 rounded-xl border bg-card p-4 sm:p-5">
-        <h4 id="report-province-heading" className="font-semibold">Phân bố theo tỉnh/thành</h4>
-        <p className="mt-1 text-xs leading-5 text-muted-foreground">Gộp cách viết tương đương; không thay đổi địa chỉ gốc.</p>
-        {analysis.provinces.length ? <ul className="mt-4 max-h-96 space-y-4 overflow-y-auto p-1" aria-label="Báo cáo theo tỉnh thành">
-          {analysis.provinces.map(province => <li key={province.key}>
-            <div className="flex items-start justify-between gap-3 text-sm"><span className="min-w-0 [overflow-wrap:anywhere]">{province.label}</span><span className="shrink-0 font-semibold tabular-nums">{number.format(province.total)}</span></div>
-            <div aria-hidden="true" className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary" style={{ width: `${province.total / maxProvince * 100}%` }} /></div>
-            <p className="mt-1 text-xs text-muted-foreground">{province.urgent} có cờ khẩn cấp</p>
-          </li>)}
-        </ul> : <p className="py-8 text-sm text-muted-foreground">Chưa có dữ liệu trong phạm vi đang xem.</p>}
-      </section>
+
     </div>
 
     <section data-testid="duplicate-candidates" aria-labelledby="report-duplicates-heading" className="overflow-hidden rounded-xl border bg-card">

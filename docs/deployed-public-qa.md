@@ -6,7 +6,7 @@ Date: 2026-10-26. Target: https://vflood.vercel.app/.
 
 Real Chrome browser run: **24 passed, 1 failed, 25 assertions**. No API fixtures, seeded sessions or forged tokens were used. No sign-in, registration, report, chat or profile mutation was submitted. A request interceptor prevented any non-GET/HEAD/OPTIONS operation; the run recorded zero blocked mutations because no mutating request was attempted.
 
-Command (from the web repository):
+Command (from the web repository)
 
 ```sh
 PATH=/opt/homebrew/bin:$PATH NODE_PATH=/Users/macbook/.npm/_npx/b234c773f454f454/node_modules node docs/qa/deployed-public.cjs

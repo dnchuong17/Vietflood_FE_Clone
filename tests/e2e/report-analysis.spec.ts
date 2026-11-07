@@ -80,7 +80,7 @@ async function evidence(page: Page, testInfo: TestInfo, name: string) {
   await page.screenshot({ path, fullPage: true });
   await testInfo.attach(name, { path, contentType: 'image/png' });
   if (name === 'analysis-summary') {
-    for (const section of ['report-status-heading', 'report-location-heading', 'report-duplicates-heading']) {
+    for (const section of ['report-area-heading', 'report-status-heading', 'report-location-heading', 'report-duplicates-heading']) {
       await page.locator(`#${section}`).scrollIntoViewIfNeeded();
       const sectionPath = testInfo.outputPath(`${name}-${section}.png`);
       await page.screenshot({ path: sectionPath });
@@ -216,6 +216,68 @@ test.describe('admin report analytics', () => {
     await expect(urgent).toHaveAttribute('aria-pressed', 'false');
     await expectIds(page, canonical.map(report => report.id!), 8);
     expect(reportReads(scenario.requests)).toBe(before);
+  });
+
+  test('Recharts ranks deduped province and ward areas, bar and keyboard drilldown preserve totals', async ({ page, scenario }, testInfo) => {
+    await page.goto('/cuu-tro');
+    await metrics(page, 8, 2, 4, 4);
+    const before = reportReads(scenario.requests);
+    const chart = page.getByTestId('report-area-chart');
+    const ranks = chart.getByTestId('area-ranking-item');
+    await expect(ranks).toHaveCount(2);
+    await expect(ranks.first()).toHaveAttribute('data-area-total', '3');
+    await expect(chart.getByRole('status')).toContainText('4 báo cáo thiếu tỉnh/thành');
+    const bars = chart.locator('.recharts-bar-rectangle');
+    await expect(bars).toHaveCount(2);
+    await expect(chart.locator('svg.recharts-surface')).toBeVisible();
+    // No-overflow alone misses a flex header squeezed into a very narrow column.
+    const headingBox = await chart.getByRole('heading', { name: 'Khu vực nhiều báo cáo', exact: true }).boundingBox();
+    expect(headingBox!.width).toBeGreaterThan(250);
+    await chart.scrollIntoViewIfNeeded();
+    await evidence(page, testInfo, 'area-province-chart');
+    await chart.getByTestId('area-recharts').scrollIntoViewIfNeeded();
+    await evidence(page, testInfo, 'area-chart-rendered');
+    await bars.first().click();
+    await expectIds(page, [201, 202, 205], 8);
+    await metrics(page, 8, 2, 4, 4);
+    await page.getByRole('button', { name: 'Bỏ chọn khu vực', exact: true }).click();
+    await expectIds(page, canonical.map(report => report.id!), 8);
+    await chart.getByRole('button', { name: 'Phường/xã', exact: true }).click();
+    await expect(chart).toHaveAttribute('data-area-level', 'ward');
+    await expect(ranks.first()).toHaveAttribute('data-area-total', '2');
+    await expect(chart.getByRole('status')).toContainText('5 báo cáo thiếu tỉnh/thành hoặc phường/xã');
+    const first = ranks.first().getByRole('button');
+    await first.focus(); await page.keyboard.press('Enter');
+    await expectIds(page, [201, 202], 8);
+    await page.getByRole('button', { name: 'Chỉ xem báo cáo khẩn cấp', exact: true }).click();
+    await expectIds(page, [201], 8);
+    await reset(page);
+    await expectIds(page, canonical.map(report => report.id!), 8);
+    await expect(page.getByRole('button', { name: 'Bỏ chọn khu vực', exact: true })).toHaveCount(0);
+    expect(reportReads(scenario.requests)).toBe(before);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+  });
+
+  test('area chart caps top eight but complete ranking retains smaller areas and unknown scope is honest', async ({ page, dataset }, testInfo) => {
+    dataset.rows = Array.from({ length: 10 }, (_, index) => makeReport(501 + index, {
+      province: `Tỉnh QA khu vực ${String(index + 1).padStart(2, '0')}`, ward: 'Phường QA trùng tên',
+    }));
+    dataset.rows.push({ ...dataset.rows[0] });
+    await page.goto('/cuu-tro');
+    const chart = page.getByTestId('report-area-chart');
+    await expect(chart.getByTestId('area-ranking-item')).toHaveCount(10);
+    await expect(chart.locator('.recharts-bar-rectangle')).toHaveCount(8);
+    await chart.getByRole('button', { name: 'Phường/xã', exact: true }).click();
+    await expect(chart.getByTestId('area-ranking-item')).toHaveCount(10);
+    await chart.getByTestId('area-ranking-item').last().getByRole('button').click();
+    await expectIds(page, [510], 10);
+    dataset.rows = [makeReport(601, { province: '', ward: '', lat: 0, lng: 0 })];
+    await page.getByRole('button', { name: 'Làm mới', exact: true }).click();
+    await expectIds(page, [601], 1);
+    await expect(chart.getByText('Chưa có báo cáo đủ thông tin cho cấp khu vực này.', { exact: true })).toBeVisible();
+    await expect(chart.getByRole('status')).toContainText('1 báo cáo thiếu');
+    await chart.scrollIntoViewIfNeeded();
+    await evidence(page, testInfo, 'area-unknown-address');
   });
 
   test('initial loading and error have no fabricated zero metrics; Retry recovers', async ({ page, scenario, dataset }) => {

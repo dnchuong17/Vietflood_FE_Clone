@@ -1,0 +1,57 @@
+VietFlood
+Tạo tài khoản
+Nền tảng web ứng phó ngập lụt
+Báo cáo ngập lụt theo thời gian thực cho cộng đồng và đội ứng cứu.
+
+VietFlood đưa các quy trình trên ứng dụng di động lên web: người dân gửi báo cáo, đội ứng cứu phân loại sự cố, quản trị viên quản lý người dùng và theo dõi trực tiếp giúp hiện trường luôn rõ ràng.
+
+Đăng nhập
+Mở bản đồ Windy
+
+3
+
+VAI TRÒ
+
+4
+
+TRẠNG THÁI BÁO CÁO
+
+24/7
+
+KẾT NỐI TRỰC TIẾP
+
+ĐIỀU PHỐI TRỰC TIẾP
+
+Ứng phó ngập lụt Đà Nẵng
+đang trực tuyến
+
+Thiết bị hoạt động
+
+18
+
+Báo cáo mới
+
+42
+
+#214
+đã xác minh
+
+Khu chợ trung tâm
+
+#213
+đang chờ
+
+Cầu bị chặn
+
+#212
+đã xử lý
+
+Điểm trú ẩn trường học
+
+VietFlood
+
+Báo cáo ngập lụt, điều phối cứu trợ và theo dõi trực tiếp.
+
+Bản đồ
+Báo cáo
+Theo dõi

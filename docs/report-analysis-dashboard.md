@@ -26,7 +26,7 @@ The existing in-progress dashboard, API normalization and test-tooling changes w
 
 This is read-only dashboard deduplication and review support. It does **not** prevent duplicate creation at the backend, erase stored records, certify real-world location identity or automatically merge incidents. Submission idempotency and database-level duplicate prevention would require a separately scoped backend change.
 
-## Verification — November 7, 2026
+## Baseline verification — November 7, 2026
 
 Executed from the operational frontend with the supported Homebrew Node runtime:
 
@@ -57,3 +57,30 @@ Two test harness assumptions were corrected without weakening behavior: comparis
 ## Evidence boundary
 
 All browser API/catalogue results are explicitly synthetic, fulfilled in memory with external network/write guards. Relief tests require zero incident requests, unexpected API requests, operational writes and uncaught page exceptions. Other explicit profile/chat mutation regression scenarios remain fixture-only. Results are not proof of live backend/database RBAC, production availability, real weather/maps/media, native behavior or full WCAG conformance. No real flood reports or accounts were created or removed.
+
+## Regional Recharts dashboard — current extension
+
+The current extension installs pinned `recharts@3.10.1` and its matching React peer `react-is@19.2.3` using the project's npm lockfile. Official Recharts BarChart guidance and installed TypeScript declarations were consulted. Existing unrelated dependency advisories were not force-upgraded.
+
+- `report-areas.ts` builds separate administrative province and province-qualified ward rollups. Volume is the primary ordering, then urgency, unfinished count and deterministic key tie-breaks. Known division aliases are normalized only for lookup; labels and source reports are retained.
+- Repeated valid report IDs count once. Different IDs remain distinct even with identical content/addresses. Same ward names in different provinces never share a group.
+- The main horizontal Recharts BarChart shows the top eight regions by report volume. An adjacent, scrollable full ranking retains every region and full Vietnamese name, with urgent/open counts and share of the complete applied scope.
+- Province/ward controls switch the regional granularity. Clicking a bar or pressing Enter on a ranked row scopes original reports without fetching/writing the API or changing chart totals. Region selection combines with urgency; selecting a precise location replaces region selection. Apply, Reset, status changes or changing region level clear the selected region.
+- Missing province/ward values are disclosed separately and remain in overall counts/list. GPS alone is not reverse-geocoded into an invented administrative area. Administrative aggregation is not exact-location deduplication or incident merging.
+- The daily trend now uses Recharts AreaChart with total and urgent series; urgent counts are explicitly a subset of total. Charts use theme tokens, accessible textual alternatives, fixed responsive parent heights, and no chart entrance animation.
+
+### Fresh verification of this extension
+
+- Unit tests: **66 files / 388 tests passed**, including six additional regional grouping tests.
+- TypeScript, scoped relief/E2E ESLint, `git diff --check`, and production build: passed.
+- E2E: **140/140 passed** at 1440/390px, light/dark, including actual SVG rendering, bar clicks, keyboard area selection, province/ward counts after ID deduplication, unknown addresses, ten distinct same-named wards, the top-eight limit with full ranking preserved, urgency intersection and clear/reset.
+- Five regression suites: **290/290 passed**. Relief audit has zero unexpected API calls, incident requests, operational writes and uncaught page errors.
+- A mobile visual inspection caught the initial flex header squeezing the description beside the region switch; it now stacks on narrow screens. A minimum heading-width assertion complements document overflow checks, and the full suites were rerun after the fix.
+
+Final preserved E2E report: `/Users/macbook/.hermes/cache/scratch/recharts-area-review/e2e-final-results.json`, started `2026-11-07T16:42:23.228Z`. Its exact source run reported 140 expected, zero unexpected/skipped/flaky cases. Screenshots are in `recharts-area-review/e2e-final/`, including `analysis-summary-report-area-heading.png` and `area-chart-rendered.png`. Desktop-light and narrow-dark screenshots were visually inspected.
+
+Final regression report: `test-results/qa-regressions/2026-11-07T16-45-09-407Z-48156/summary.json`, with a preserved copy at `/Users/macbook/.hermes/cache/scratch/recharts-area-review/qa-final-summary.json`.
+
+Earlier attempts in this extension are not final passes: a concurrent local E2E run occupied port 3105 and removed shared report files during one regression run. That run's individual checks passed but the required browser/context audit was incomplete. Its status stayed failed; the final sequential run above passed both assertions and isolation audits. No other process was terminated to obtain the final result.
+
+This extension remains local and uncommitted; it does not deploy changes or prove live report correctness.

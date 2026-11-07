@@ -1,0 +1,788 @@
+{
+  "evidenceKind": "mock-backed browser smoke; not live integration",
+  "base": "http://127.0.0.1:3100",
+  "generatedAt": "2026-10-26T16:22:02.360Z",
+  "results": [
+    {
+      "name": "public landing renders without horizontal overflow at 390px",
+      "status": "passed",
+      "details": {
+        "scroll": 390,
+        "client": 390
+      }
+    },
+    {
+      "name": "public landing renders without horizontal overflow at 768px",
+      "status": "passed",
+      "details": {
+        "scroll": 768,
+        "client": 768
+      }
+    },
+    {
+      "name": "public landing renders without horizontal overflow at 1440px",
+      "status": "passed",
+      "details": {
+        "scroll": 1440,
+        "client": 1440
+      }
+    },
+    {
+      "name": "unauthenticated report route redirects to sign in",
+      "status": "passed"
+    },
+    {
+      "name": "empty sign-in is blocked by required fields",
+      "status": "passed"
+    },
+    {
+      "name": "registration sends citizen payload and returns to sign-in",
+      "status": "passed"
+    },
+    {
+      "name": "fixture sign-in persists identity and opens citizen map",
+      "status": "passed"
+    },
+    {
+      "name": "citizen renders /trang-chu",
+      "status": "passed",
+      "details": {
+        "finalRoute": "/trang-chu",
+        "visibleCharacters": 669,
+        "scroll": 1440,
+        "client": 1440
+      }
+    },
+    {
+      "name": "citizen renders /chat",
+      "status": "passed",
+      "details": {
+        "finalRoute": "/chat",
+        "visibleCharacters": 539,
+        "scroll": 1440,
+        "client": 1440
+      }
+    },
+    {
+      "name": "citizen renders /bao-cao",
+      "status": "passed",
+      "details": {
+        "finalRoute": "/bao-cao",
+        "visibleCharacters": 853,
+        "scroll": 1440,
+        "client": 1440
+      }
+    },
+    {
+      "name": "citizen renders /theo-doi",
+      "status": "passed",
+      "details": {
+        "finalRoute": "/theo-doi",
+        "visibleCharacters": 909,
+        "scroll": 1440,
+        "client": 1440
+      }
+    },
+    {
+      "name": "citizen renders /ho-so",
+      "status": "passed",
+      "details": {
+        "finalRoute": "/ho-so",
+        "visibleCharacters": 1315,
+        "scroll": 1440,
+        "client": 1440
+      }
+    },
+    {
+      "name": "citizen renders /huong-dan",
+      "status": "passed",
+      "details": {
+        "finalRoute": "/huong-dan",
+        "visibleCharacters": 3885,
+        "scroll": 1440,
+        "client": 1440
+      }
+    },
+    {
+      "name": "relief renders /trang-chu",
+      "status": "passed",
+      "details": {
+        "finalRoute": "/trang-chu",
+        "visibleCharacters": 675,
+        "scroll": 1440,
+        "client": 1440
+      }
+    },
+    {
+      "name": "relief renders /chat",
+      "status": "passed",
+      "details": {
+        "finalRoute": "/chat",
+        "visibleCharacters": 551,
+        "scroll": 1440,
+        "client": 1440
+      }
+    },
+    {
+      "name": "relief renders /bao-cao",
+      "status": "passed",
+      "details": {
+        "finalRoute": "/bao-cao",
+        "visibleCharacters": 901,
+        "scroll": 1440,
+        "client": 1440
+      }
+    },
+    {
+      "name": "relief renders /theo-doi",
+      "status": "passed",
+      "details": {
+        "finalRoute": "/theo-doi",
+        "visibleCharacters": 866,
+        "scroll": 1440,
+        "client": 1440
+      }
+    },
+    {
+      "name": "relief renders /ho-so",
+      "status": "passed",
+      "details": {
+        "finalRoute": "/ho-so",
+        "visibleCharacters": 1469,
+        "scroll": 1440,
+        "client": 1440
+      }
+    },
+    {
+      "name": "relief renders /huong-dan",
+      "status": "passed",
+      "details": {
+        "finalRoute": "/huong-dan",
+        "visibleCharacters": 3885,
+        "scroll": 1440,
+        "client": 1440
+      }
+    },
+    {
+      "name": "relief renders /cuu-tro",
+      "status": "passed",
+      "details": {
+        "finalRoute": "/cuu-tro",
+        "visibleCharacters": 1007,
+        "scroll": 1440,
+        "client": 1440
+      }
+    },
+    {
+      "name": "relief renders /phan-cong",
+      "status": "passed",
+      "details": {
+        "finalRoute": "/phan-cong",
+        "visibleCharacters": 863,
+        "scroll": 1440,
+        "client": 1440
+      }
+    },
+    {
+      "name": "relief renders /nguoi-dung",
+      "status": "passed",
+      "details": {
+        "finalRoute": "/nguoi-dung",
+        "visibleCharacters": 667,
+        "scroll": 1440,
+        "client": 1440
+      }
+    },
+    {
+      "name": "relief renders /tong-quan",
+      "status": "passed",
+      "details": {
+        "finalRoute": "/tong-quan",
+        "visibleCharacters": 897,
+        "scroll": 1440,
+        "client": 1440
+      }
+    },
+    {
+      "name": "admin renders /trang-chu",
+      "status": "passed",
+      "details": {
+        "finalRoute": "/trang-chu",
+        "visibleCharacters": 677,
+        "scroll": 1440,
+        "client": 1440
+      }
+    },
+    {
+      "name": "admin renders /chat",
+      "status": "passed",
+      "details": {
+        "finalRoute": "/chat",
+        "visibleCharacters": 551,
+        "scroll": 1440,
+        "client": 1440
+      }
+    },
+    {
+      "name": "admin renders /bao-cao",
+      "status": "passed",
+      "details": {
+        "finalRoute": "/bao-cao",
+        "visibleCharacters": 903,
+        "scroll": 1440,
+        "client": 1440
+      }
+    },
+    {
+      "name": "admin renders /theo-doi",
+      "status": "passed",
+      "details": {
+        "finalRoute": "/theo-doi",
+        "visibleCharacters": 868,
+        "scroll": 1440,
+        "client": 1440
+      }
+    },
+    {
+      "name": "admin renders /ho-so",
+      "status": "passed",
+      "details": {
+        "finalRoute": "/ho-so",
+        "visibleCharacters": 1472,
+        "scroll": 1440,
+        "client": 1440
+      }
+    },
+    {
+      "name": "admin renders /huong-dan",
+      "status": "passed",
+      "details": {
+        "finalRoute": "/huong-dan",
+        "visibleCharacters": 3887,
+        "scroll": 1440,
+        "client": 1440
+      }
+    },
+    {
+      "name": "admin renders /cuu-tro",
+      "status": "passed",
+      "details": {
+        "finalRoute": "/cuu-tro",
+        "visibleCharacters": 1009,
+        "scroll": 1440,
+        "client": 1440
+      }
+    },
+    {
+      "name": "admin renders /phan-cong",
+      "status": "passed",
+      "details": {
+        "finalRoute": "/phan-cong",
+        "visibleCharacters": 865,
+        "scroll": 1440,
+        "client": 1440
+      }
+    },
+    {
+      "name": "admin renders /nguoi-dung",
+      "status": "passed",
+      "details": {
+        "finalRoute": "/nguoi-dung",
+        "visibleCharacters": 669,
+        "scroll": 1440,
+        "client": 1440
+      }
+    },
+    {
+      "name": "admin renders /tong-quan",
+      "status": "passed",
+      "details": {
+        "finalRoute": "/tong-quan",
+        "visibleCharacters": 899,
+        "scroll": 1440,
+        "client": 1440
+      }
+    },
+    {
+      "name": "citizen cannot access user management",
+      "status": "passed"
+    },
+    {
+      "name": "report search filters and restores fixture rows",
+      "status": "passed"
+    },
+    {
+      "name": "report detail resolves requested report identity",
+      "status": "passed"
+    },
+    {
+      "name": "report creation submits multipart evidence and reads back new record",
+      "status": "passed"
+    },
+    {
+      "name": "citizen edits own report and sees persisted fixture change",
+      "status": "passed"
+    },
+    {
+      "name": "chat sends fixture message and renders grounded source",
+      "status": "passed"
+    },
+    {
+      "name": "saved source snapshot renders archive content",
+      "status": "passed"
+    },
+    {
+      "name": "chat history reopens saved fixture conversation",
+      "status": "passed"
+    },
+    {
+      "name": "report service error is visible instead of false success",
+      "status": "passed"
+    },
+    {
+      "name": "light /bao-cao fits mobile viewport",
+      "status": "passed",
+      "details": {
+        "scroll": 390,
+        "client": 390
+      }
+    },
+    {
+      "name": "light /chat fits mobile viewport",
+      "status": "passed",
+      "details": {
+        "scroll": 390,
+        "client": 390
+      }
+    },
+    {
+      "name": "light /ho-so fits mobile viewport",
+      "status": "passed",
+      "details": {
+        "scroll": 390,
+        "client": 390
+      }
+    },
+    {
+      "name": "dark /bao-cao fits mobile viewport",
+      "status": "passed",
+      "details": {
+        "scroll": 390,
+        "client": 390
+      }
+    },
+    {
+      "name": "dark /chat fits mobile viewport",
+      "status": "passed",
+      "details": {
+        "scroll": 390,
+        "client": 390
+      }
+    },
+    {
+      "name": "dark /ho-so fits mobile viewport",
+      "status": "passed",
+      "details": {
+        "scroll": 390,
+        "client": 390
+      }
+    },
+    {
+      "name": "no uncaught browser exceptions",
+      "status": "passed"
+    }
+  ],
+  "requests": [
+    {
+      "method": "POST",
+      "path": "/auth/register"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/sign_in"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/profile"
+    },
+    {
+      "method": "GET",
+      "path": "/chat/sessions"
+    },
+    {
+      "method": "GET",
+      "path": "/reports/user"
+    },
+    {
+      "method": "GET",
+      "path": "/reports/user"
+    },
+    {
+      "method": "GET",
+      "path": "/socket.io/"
+    },
+    {
+      "method": "GET",
+      "path": "/socket.io/"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/profile"
+    },
+    {
+      "method": "GET",
+      "path": "/reports/user"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/profile"
+    },
+    {
+      "method": "GET",
+      "path": "/reports/user"
+    },
+    {
+      "method": "GET",
+      "path": "/chat/sessions"
+    },
+    {
+      "method": "GET",
+      "path": "/reports"
+    },
+    {
+      "method": "GET",
+      "path": "/reports"
+    },
+    {
+      "method": "GET",
+      "path": "/socket.io/"
+    },
+    {
+      "method": "GET",
+      "path": "/socket.io/"
+    },
+    {
+      "method": "GET",
+      "path": "/socket.io/"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/profile"
+    },
+    {
+      "method": "GET",
+      "path": "/reports"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/profile"
+    },
+    {
+      "method": "GET",
+      "path": "/reports"
+    },
+    {
+      "method": "GET",
+      "path": "/reports"
+    },
+    {
+      "method": "GET",
+      "path": "/reports"
+    },
+    {
+      "method": "GET",
+      "path": "/reports"
+    },
+    {
+      "method": "GET",
+      "path": "/reports"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/all"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/all"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/all"
+    },
+    {
+      "method": "GET",
+      "path": "/reports"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/all"
+    },
+    {
+      "method": "GET",
+      "path": "/reports"
+    },
+    {
+      "method": "GET",
+      "path": "/chat/sessions"
+    },
+    {
+      "method": "GET",
+      "path": "/reports"
+    },
+    {
+      "method": "GET",
+      "path": "/reports"
+    },
+    {
+      "method": "GET",
+      "path": "/socket.io/"
+    },
+    {
+      "method": "GET",
+      "path": "/socket.io/"
+    },
+    {
+      "method": "GET",
+      "path": "/socket.io/"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/profile"
+    },
+    {
+      "method": "GET",
+      "path": "/reports"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/profile"
+    },
+    {
+      "method": "GET",
+      "path": "/reports"
+    },
+    {
+      "method": "GET",
+      "path": "/reports"
+    },
+    {
+      "method": "GET",
+      "path": "/reports"
+    },
+    {
+      "method": "GET",
+      "path": "/reports"
+    },
+    {
+      "method": "GET",
+      "path": "/reports"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/all"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/all"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/all"
+    },
+    {
+      "method": "GET",
+      "path": "/reports"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/all"
+    },
+    {
+      "method": "GET",
+      "path": "/reports"
+    },
+    {
+      "method": "GET",
+      "path": "/reports/user"
+    },
+    {
+      "method": "GET",
+      "path": "/reports/user"
+    },
+    {
+      "method": "GET",
+      "path": "/reports/101"
+    },
+    {
+      "method": "GET",
+      "path": "/reports/101"
+    },
+    {
+      "method": "GET",
+      "path": "/reports/user"
+    },
+    {
+      "method": "GET",
+      "path": "/reports/user"
+    },
+    {
+      "method": "POST",
+      "path": "/locations/geocode"
+    },
+    {
+      "method": "POST",
+      "path": "/reports/create"
+    },
+    {
+      "method": "GET",
+      "path": "/reports/user"
+    },
+    {
+      "method": "GET",
+      "path": "/reports/user"
+    },
+    {
+      "method": "GET",
+      "path": "/reports/user"
+    },
+    {
+      "method": "GET",
+      "path": "/reports/user"
+    },
+    {
+      "method": "GET",
+      "path": "/reports/user"
+    },
+    {
+      "method": "PUT",
+      "path": "/reports/update/101"
+    },
+    {
+      "method": "GET",
+      "path": "/reports/user"
+    },
+    {
+      "method": "GET",
+      "path": "/reports/user"
+    },
+    {
+      "method": "GET",
+      "path": "/reports/user"
+    },
+    {
+      "method": "GET",
+      "path": "/chat/sessions"
+    },
+    {
+      "method": "POST",
+      "path": "/chat"
+    },
+    {
+      "method": "GET",
+      "path": "/chat/sources/qa-doc/versions/1"
+    },
+    {
+      "method": "GET",
+      "path": "/chat/sources/qa-doc/versions/1"
+    },
+    {
+      "method": "GET",
+      "path": "/chat/sessions"
+    },
+    {
+      "method": "GET",
+      "path": "/chat/sessions/qa-session/messages"
+    },
+    {
+      "method": "GET",
+      "path": "/reports/user"
+    },
+    {
+      "method": "GET",
+      "path": "/reports/user"
+    },
+    {
+      "method": "GET",
+      "path": "/reports/user"
+    },
+    {
+      "method": "GET",
+      "path": "/reports/user"
+    },
+    {
+      "method": "GET",
+      "path": "/chat/sessions"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/profile"
+    },
+    {
+      "method": "GET",
+      "path": "/reports/user"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/profile"
+    },
+    {
+      "method": "GET",
+      "path": "/reports/user"
+    },
+    {
+      "method": "GET",
+      "path": "/reports/user"
+    },
+    {
+      "method": "GET",
+      "path": "/reports/user"
+    },
+    {
+      "method": "GET",
+      "path": "/chat/sessions"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/profile"
+    },
+    {
+      "method": "GET",
+      "path": "/reports/user"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/profile"
+    },
+    {
+      "method": "GET",
+      "path": "/reports/user"
+    }
+  ],
+  "blockedExternalOrigins": [
+    "https://embed.windy.com",
+    "https://facehash.dev"
+  ],
+  "pageErrors": [],
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "WebSocket connection to 'ws://127.0.0.1:4310/socket.io/?EIO=4&transport=websocket' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "WebSocket connection to 'ws://127.0.0.1:4310/socket.io/?EIO=4&transport=websocket' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "WebSocket connection to 'ws://127.0.0.1:4310/socket.io/?EIO=4&transport=websocket' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "WebSocket connection to 'ws://127.0.0.1:4310/socket.io/?EIO=4&transport=websocket' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "WebSocket connection to 'ws://127.0.0.1:4310/socket.io/?EIO=4&transport=websocket' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+    "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector"
+  ]
+}

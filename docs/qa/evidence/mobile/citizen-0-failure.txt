@@ -1,0 +1,4 @@
+Directory listing for /
+_expo/
+assets/
+metadata.json
