@@ -39,11 +39,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  searchProvinces,
-  searchWards,
-  type DivisionOption,
-} from "@/features/location/api/vietnam-divisions";
+import { VietnamAddressPicker } from "@/features/location/components/vietnam-address-picker";
 import {
   geocodeReportLocation,
   reverseGeocodeLocation,
@@ -75,6 +71,7 @@ import {
   buildReportsOverviewSummary,
   formatReportsLastSyncedAt,
 } from "@/features/reports/lib/overview";
+import { formatReportDateTime } from "@/features/reports/lib/report-detail";
 import { useReportsStore } from "@/features/reports/store/reports-store";
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -219,11 +216,6 @@ function ReportForm({
   const [values, setValues] = useState(initialValues);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
-  const [selectedProvinceCode, setSelectedProvinceCode] = useState<number | null>(null);
-  const [provinceOptions, setProvinceOptions] = useState<DivisionOption[]>([]);
-  const [wardOptions, setWardOptions] = useState<DivisionOption[]>([]);
-  const [isLoadingProvinces, setIsLoadingProvinces] = useState(false);
-  const [isLoadingWards, setIsLoadingWards] = useState(false);
   const [pendingCoordinatesFallback, setPendingCoordinatesFallback] =
     useState<ReportFormValues | null>(null);
   const [locationAttribution, setLocationAttribution] =
@@ -247,63 +239,6 @@ function ReportForm({
     }));
   }
 
-  useEffect(() => {
-    let isActive = true;
-    const timeout = window.setTimeout(async () => {
-      try {
-        setIsLoadingProvinces(true);
-        const options = await searchProvinces(values.province);
-        if (isActive) {
-          setProvinceOptions(options);
-        }
-      } catch {
-        if (isActive) {
-          setProvinceOptions([]);
-        }
-      } finally {
-        if (isActive) {
-          setIsLoadingProvinces(false);
-        }
-      }
-    }, 250);
-
-    return () => {
-      isActive = false;
-      window.clearTimeout(timeout);
-    };
-  }, [values.province]);
-
-  useEffect(() => {
-    if (!selectedProvinceCode) {
-      setWardOptions([]);
-      return;
-    }
-
-    let isActive = true;
-    const timeout = window.setTimeout(async () => {
-      try {
-        setIsLoadingWards(true);
-        const options = await searchWards(selectedProvinceCode, values.ward);
-        if (isActive) {
-          setWardOptions(options);
-        }
-      } catch {
-        if (isActive) {
-          setWardOptions([]);
-        }
-      } finally {
-        if (isActive) {
-          setIsLoadingWards(false);
-        }
-      }
-    }, 250);
-
-    return () => {
-      isActive = false;
-      window.clearTimeout(timeout);
-    };
-  }, [selectedProvinceCode, values.ward]);
-
   const addressSuggestions = useMemo(
     () =>
       buildAddressSuggestions({
@@ -316,53 +251,12 @@ function ReportForm({
   );
   const selectedLocationParts = [values.province.trim(), values.ward.trim()].filter(Boolean);
   const hasGpsCoordinates = Boolean(values.lat.trim() && values.lng.trim());
-  const canEditWard = Boolean(selectedProvinceCode || values.province.trim());
-  const normalizedProvinceValue = values.province.trim().toLocaleLowerCase("vi-VN");
-  const normalizedWardValue = values.ward.trim().toLocaleLowerCase("vi-VN");
-  const visibleProvinceOptions = useMemo(
-    () =>
-      provinceOptions.filter(
-        (option) => option.name.trim().toLocaleLowerCase("vi-VN") !== normalizedProvinceValue,
-      ),
-    [normalizedProvinceValue, provinceOptions],
-  );
-  const visibleWardOptions = useMemo(
-    () =>
-      wardOptions.filter(
-        (option) => option.name.trim().toLocaleLowerCase("vi-VN") !== normalizedWardValue,
-      ),
-    [normalizedWardValue, wardOptions],
-  );
   const locationAttributionLabel = formatLocationAttribution(locationAttribution);
 
-  function handleProvinceInput(value: string) {
-    setValues((prev) => ({
-      ...prev,
-      province: value,
-      ward: "",
-      isLocationManuallyEdited: true,
-    }));
-    setSelectedProvinceCode(null);
-    setWardOptions([]);
-  }
-
-  function selectProvince(option: DivisionOption) {
-    setValues((prev) => ({
-      ...prev,
-      province: option.name,
-      ward: "",
-      isLocationManuallyEdited: true,
-    }));
-    setSelectedProvinceCode(option.code);
-    setWardOptions([]);
-  }
-
-  function handleWardInput(value: string) {
-    setManualLocationField("ward", value);
-  }
-
-  function selectWard(option: DivisionOption) {
-    setManualLocationField("ward", option.name);
+  function updateAddress(next: { province: string; ward: string }) {
+    setValues((previous) => previous.province === next.province && previous.ward === next.ward
+      ? previous
+      : { ...previous, ...next, isLocationManuallyEdited: true });
   }
 
   function toggleCategory(category: string) {
@@ -391,7 +285,6 @@ function ReportForm({
     try {
       const result = await reverseGeocodeLocation(coordinates);
       setValues((prev) => applyGeocodingResultToValues(prev, result));
-      setSelectedProvinceCode(result.province?.code ?? null);
       setLocationAttribution(result.attribution);
     } catch (error) {
       showAlert({
@@ -441,7 +334,6 @@ function ReportForm({
 
     const resolvedValues = applyGeocodingResultToValues(nextValues, result);
     setValues(resolvedValues);
-    setSelectedProvinceCode(result.province?.code ?? selectedProvinceCode);
     setLocationAttribution(result.attribution);
     return resolvedValues;
   }
@@ -492,18 +384,18 @@ function ReportForm({
     <>
       <form
         onSubmit={handleSubmit}
-        className="grid gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
+        className="workspace-section grid gap-4"
       >
-      <div>
-        <span className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
-          <ClipboardList className="size-4 text-sky-700" aria-hidden="true" />
+      <fieldset className="min-w-0">
+        <legend className="inline-flex items-center gap-2 text-sm font-semibold text-foreground">
+          <ClipboardList className="size-4 text-primary" aria-hidden="true" />
           Loại báo cáo
-        </span>
+        </legend>
         <div className="mt-2 flex flex-wrap gap-2">
           {CATEGORY_OPTIONS.map((option) => (
             <label
               key={option.value}
-              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700"
+              className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold text-foreground"
             >
               <input
                 type="checkbox"
@@ -514,132 +406,42 @@ function ReportForm({
             </label>
           ))}
         </div>
-      </div>
+      </fieldset>
 
-      <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
+      <label className="grid gap-1.5 text-sm font-semibold text-foreground">
         Mô tả
         <textarea
           value={values.description}
           onChange={(event) => setField("description", event.target.value)}
           rows={4}
-          className="min-h-28 rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
+          className="min-h-28 rounded-lg border border-input px-3 py-2 outline-none bg-background text-foreground focus-visible:outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30"
           required
         />
       </label>
 
-      <div className="grid gap-3 rounded-lg border border-border bg-muted/30 p-3">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <p className="text-sm font-bold text-foreground">Khu vực báo cáo</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Chọn tỉnh/thành phố trước, sau đó chọn hoặc nhập phường/xã để lọc gợi ý địa chỉ.
-            </p>
-          </div>
-          <div
-            data-location-summary="selected"
-            className="flex flex-wrap gap-2"
-            aria-live="polite"
-          >
-            {selectedLocationParts.length > 0 ? (
-              selectedLocationParts.map((part) => (
-                <Badge key={part} variant="outline">
-                  {part}
-                </Badge>
-              ))
-            ) : (
-              <Badge variant="secondary">Chưa chọn khu vực</Badge>
-            )}
-          </div>
+      <section className="grid gap-3 rounded-lg border border-border bg-muted/30 p-3" aria-label="Khu vực báo cáo">
+        <div>
+          <p className="text-sm font-bold text-foreground">Khu vực báo cáo</p>
+          <p className="mt-1 text-xs text-muted-foreground">Chọn tỉnh/thành phố, sau đó chọn phường/xã. Số nhà và tên đường được nhập riêng bên dưới.</p>
         </div>
-
-        <div className="grid gap-3 md:grid-cols-[1fr_1fr_8rem]">
-          <Field data-location-step="province">
-            <FieldLabel htmlFor="report-province">Tỉnh/Thành phố</FieldLabel>
-            <Input
-              id="report-province"
-              value={values.province}
-              onChange={(event) => handleProvinceInput(event.target.value)}
-              placeholder="Tìm tỉnh/thành phố"
-              required
-            />
-            {values.province.trim() ? (
-              <Badge variant={selectedProvinceCode ? "success" : "outline"} className="w-fit">
-                Tỉnh/Thành phố đã chọn: {values.province}
-              </Badge>
-            ) : (
-              <span className="text-xs text-muted-foreground">
-                Nhập tên tỉnh/thành phố để tìm từ danh mục hành chính.
-              </span>
-            )}
-            {visibleProvinceOptions.length > 0 ? (
-              <div className="grid max-h-40 gap-1 overflow-y-auto rounded-lg border border-border bg-popover p-1 shadow-sm">
-                {visibleProvinceOptions.map((option) => (
-                  <button
-                    key={option.code}
-                    type="button"
-                    onClick={() => selectProvince(option)}
-                    className="rounded-md px-2 py-1.5 text-left text-xs font-semibold text-popover-foreground hover:bg-accent hover:text-accent-foreground"
-                  >
-                    {option.name}
-                  </button>
-                ))}
-              </div>
-            ) : isLoadingProvinces ? (
-              <span className="text-xs font-medium text-muted-foreground">
-                Đang tải tỉnh/thành phố...
-              </span>
-            ) : null}
-          </Field>
-
-          <Field data-location-step="ward">
-            <FieldLabel htmlFor="report-ward">Phường/Xã</FieldLabel>
-            <Input
-              id="report-ward"
-              value={values.ward}
-              onChange={(event) => handleWardInput(event.target.value)}
-              disabled={!canEditWard}
-              placeholder={canEditWard ? "Tìm phường/xã" : "Chọn tỉnh/thành phố trước"}
-            />
-            {values.ward.trim() ? (
-              <Badge variant="success" className="w-fit">
-                Phường/Xã đã chọn: {values.ward}
-              </Badge>
-            ) : (
-              <span className="text-xs text-muted-foreground">
-                {canEditWard
-                  ? "Chọn từ danh sách gợi ý hoặc nhập thủ công nếu chưa có dữ liệu."
-                  : "Chọn tỉnh/thành phố trước"}
-              </span>
-            )}
-            {visibleWardOptions.length > 0 ? (
-              <div className="grid max-h-40 gap-1 overflow-y-auto rounded-lg border border-border bg-popover p-1 shadow-sm">
-                {visibleWardOptions.map((option) => (
-                  <button
-                    key={option.code}
-                    type="button"
-                    onClick={() => selectWard(option)}
-                    className="rounded-md px-2 py-1.5 text-left text-xs font-semibold text-popover-foreground hover:bg-accent hover:text-accent-foreground"
-                  >
-                    {option.name}
-                  </button>
-                ))}
-              </div>
-            ) : isLoadingWards ? (
-              <span className="text-xs font-medium text-muted-foreground">
-                Đang tải phường/xã...
-              </span>
-            ) : null}
-          </Field>
-
+        <VietnamAddressPicker
+          idPrefix="report"
+          value={{ province: values.province, ward: values.ward }}
+          onChange={updateAddress}
+          requiredProvince
+          disabled={isSubmitting || isLocating}
+        />
+        <div data-location-summary="selected" className="flex flex-wrap gap-2" aria-live="polite">
+          {selectedLocationParts.length ? selectedLocationParts.map(part => <Badge key={part} variant="outline">{part}</Badge>) : <Badge variant="secondary">Chưa chọn khu vực</Badge>}
         </div>
-      </div>
+      </section>
 
-      <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
+      <label className="grid gap-1.5 text-sm font-semibold text-foreground">
         Địa chỉ
           <input
             value={values.addressLine}
             onChange={(event) => setManualLocationField("addressLine", event.target.value)}
-          className="rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
+          className="rounded-lg border border-input px-3 py-2 outline-none bg-background text-foreground focus-visible:outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30"
           placeholder="Số nhà, tên đường"
         />
         {addressSuggestions.length > 0 ? (
@@ -649,7 +451,7 @@ function ReportForm({
                 key={suggestion}
                 type="button"
                 onClick={() => setManualLocationField("addressLine", suggestion)}
-                className="rounded-full border border-sky-200 px-3 py-1 text-xs font-semibold text-sky-700 hover:bg-sky-50"
+                className="min-h-10 rounded-lg border border-border px-3 py-2 text-xs font-semibold text-primary hover:bg-accent"
               >
                 {suggestion}
               </button>
@@ -657,10 +459,10 @@ function ReportForm({
           </div>
         ) : null}
       </label>
-      <div className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 md:grid-cols-[1fr_auto] md:items-center">
-        <div className="grid gap-1 text-sm text-slate-700">
+      <div className="grid gap-3 rounded-lg border border-border bg-muted p-3 md:grid-cols-[1fr_auto] md:items-center">
+        <div className="grid gap-1 text-sm text-foreground">
           <span className="font-semibold">Tọa độ GPS</span>
-          <span className="text-xs text-slate-600">
+          <span className="text-xs text-muted-foreground">
             {hasGpsCoordinates
               ? "Đã ghi nhận tọa độ từ thiết bị."
               : "Chưa có tọa độ GPS; báo cáo vẫn có thể gửi bằng địa chỉ đã nhập."}
@@ -669,7 +471,7 @@ function ReportForm({
             href="https://www.openstreetmap.org/copyright"
             target="_blank"
             rel="noreferrer"
-            className="text-xs font-medium text-sky-700 underline-offset-2 hover:underline"
+            className="text-xs font-medium text-primary underline-offset-2 hover:underline"
           >
             Dữ liệu địa lý: {locationAttributionLabel} / OpenStreetMap
           </a>
@@ -679,7 +481,7 @@ function ReportForm({
           onClick={fillCurrentLocation}
           disabled={isLocating}
           aria-busy={isLocating}
-          className="inline-flex items-center justify-center gap-2 rounded-lg border border-sky-200 px-3 py-2 text-sm font-semibold text-sky-700 hover:bg-sky-50"
+          className="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold text-primary hover:bg-accent"
         >
           <LocateFixed className="h-4 w-4" aria-hidden="true" />
           {isLocating ? "Đang lấy vị trí…" : "Dùng GPS"}
@@ -687,25 +489,25 @@ function ReportForm({
       </div>
 
       <div className="grid gap-3">
-        <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
+        <label className="grid gap-1.5 text-sm font-semibold text-foreground">
           <span className="inline-flex items-center gap-2">
-            <ImageIcon className="size-4 text-sky-700" aria-hidden="true" />
+            <ImageIcon className="size-4 text-primary" aria-hidden="true" />
             Tệp minh chứng
           </span>
           <input
             type="file"
             multiple
             onChange={(event) => setField("files", event.target.files)}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            className="rounded-lg border border-input px-3 py-2 text-sm"
           />
         </label>
       </div>
 
-      <div className="flex flex-wrap justify-end gap-2">
+      <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4">
         <button
           type="button"
           onClick={onCancel}
-          className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+          className="rounded-lg border border-input px-4 py-2 text-sm font-semibold text-foreground hover:bg-accent"
           disabled={isSubmitting}
         >
           <X className="mr-2 inline size-4 align-[-0.125em]" aria-hidden="true" />
@@ -713,7 +515,7 @@ function ReportForm({
         </button>
         <button
           type="submit"
-          className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-bold text-white hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-70"
+          className="min-h-11 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-70"
           disabled={isSubmitting}
         >
           <Send className="mr-2 inline size-4 align-[-0.125em]" aria-hidden="true" />
@@ -917,7 +719,7 @@ export function ReportWorkspace() {
   }
 
   return (
-    <div className="space-y-4" data-testid="report-workspace">
+    <div className="workspace-stack" data-testid="report-workspace">
       <OperationsBanner eyebrow="Báo cáo hiện trường" title={canManage ? "Xác minh thông tin. Ưu tiên hỗ trợ." : "Mỗi ghi nhận giúp ứng cứu chính xác hơn."} description={canManage ? "Kiểm tra vị trí và minh chứng trước khi cập nhật trạng thái. Các ca khẩn cấp cần được ưu tiên xác minh." : "Cung cấp vị trí, mô tả rõ tình hình và thêm minh chứng nếu an toàn. Theo dõi phản hồi ngay trong danh sách của bạn."}>
         {!canManage ? <Button type="button" onClick={() => { setEditingReport(null); setCreating(true); }}><Plus aria-hidden="true" />Báo cáo sự cố</Button> : <Button asChild variant="outline"><Link href="/cuu-tro">Hàng chờ cứu trợ</Link></Button>}
       </OperationsBanner>
@@ -1059,6 +861,7 @@ export function ReportWorkspace() {
 
       {isCreating ? (
         <ReportForm
+          key="new-report"
           initialValues={EMPTY_FORM}
           reports={reports}
           submitLabel="Gửi báo cáo"
@@ -1069,6 +872,7 @@ export function ReportWorkspace() {
 
       {editingReport ? (
         <ReportForm
+          key={`edit-report-${editingReport.id}`}
           initialValues={toFormValues(editingReport)}
           reports={reports}
           submitLabel="Lưu báo cáo"
@@ -1085,62 +889,69 @@ export function ReportWorkspace() {
       ) : null}
 
       {!isLoading && !loadError && filteredReports.length === 0 ? (
-        <div className="grid place-items-center gap-3 rounded-lg border border-slate-200 bg-white p-6 text-center text-slate-600">
-          <ClipboardList className="size-9 text-sky-700" aria-hidden="true" />
+        <div className="grid place-items-center gap-3 rounded-lg border border-border bg-card p-6 text-center text-muted-foreground">
+          <ClipboardList className="size-9 text-primary" aria-hidden="true" />
           <span>Không tìm thấy báo cáo.</span>
         </div>
       ) : null}
 
-      <div className="grid gap-3 lg:grid-cols-2">
+      <div className="grid gap-4 xl:grid-cols-2">
         {filteredReports.map((report) => (
           <article
             key={report.id ?? `${report.description}-${report.createdAt}`}
-            className="rounded-lg border bg-card p-4 shadow-sm"
+            className="min-w-0 rounded-xl border bg-card p-4"
           >
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                   Báo cáo #{report.id ?? "-"}
                 </p>
-                <h2 className="mt-1 text-lg font-bold text-card-foreground">
+                <h2 className="mt-1 text-base font-semibold text-card-foreground">
                   {categoryText(report)}
                 </h2>
               </div>
-              <Badge variant={statusBadgeVariant(statusOf(report))}>
-                {getReportStatusLabel(statusOf(report))}
-              </Badge>
+              <div className="flex flex-wrap gap-2">
+                {report.isUrgent ? <Badge variant="critical">Khẩn cấp</Badge> : null}
+                <Badge variant={statusBadgeVariant(statusOf(report))}>
+                  {getReportStatusLabel(statusOf(report))}
+                </Badge>
+              </div>
             </div>
 
-            <p className="mt-3 text-sm leading-6 text-muted-foreground">
-              {report.description || "Chưa có mô tả."}
+            <p className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+              <Clock3 className="size-3.5 shrink-0" aria-hidden="true" />
+              Thời gian tạo: {formatReportDateTime(report.createdAt ?? report.created_at)}
             </p>
             <dl className="mt-3 grid gap-2 text-sm text-muted-foreground">
               <div className="flex gap-2">
-                <dt className="flex w-24 items-center gap-1.5 font-semibold text-muted-foreground">
+                <dt className="flex w-24 shrink-0 items-center gap-1.5 font-semibold text-muted-foreground">
                   <MapPin className="size-4 shrink-0" aria-hidden="true" />
                   Địa chỉ
                 </dt>
-                <dd>{addressText(report) || "-"}</dd>
+                <dd className="min-w-0 break-words">{addressText(report) || "-"}</dd>
               </div>
               <div className="flex gap-2">
-                <dt className="flex w-24 items-center gap-1.5 font-semibold text-muted-foreground">
+                <dt className="flex w-24 shrink-0 items-center gap-1.5 font-semibold text-muted-foreground">
                   <LocateFixed className="size-4 shrink-0" aria-hidden="true" />
                   Toạ độ
                 </dt>
-                <dd>
+                <dd className="min-w-0 break-words">
                   {report.lat ?? "-"}, {report.lng ?? "-"}
                 </dd>
               </div>
               {identity?.role !== "citizen" && (
                 <div className="flex gap-2">
-                  <dt className="flex w-24 items-center gap-1.5 font-semibold text-muted-foreground">
+                  <dt className="flex w-24 shrink-0 items-center gap-1.5 font-semibold text-muted-foreground">
                     <UserRound className="size-4 shrink-0" aria-hidden="true" />
                     Người báo
                   </dt>
-                  <dd>{report.user?.username ?? report.userId ?? "-"}</dd>
+                  <dd className="min-w-0 break-words">{report.user?.username ?? report.userId ?? "-"}</dd>
                 </div>
               )}
             </dl>
+            <p className="mt-3 border-t border-border pt-3 text-sm leading-6 text-muted-foreground">
+              {report.description || "Chưa có mô tả."}
+            </p>
 
             <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
               <div className="flex flex-wrap gap-2">

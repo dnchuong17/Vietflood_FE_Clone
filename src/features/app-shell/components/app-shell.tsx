@@ -16,8 +16,8 @@ import {
 } from "@heroicons/react/24/solid";
 
 import { LoadingBar } from "@/components/feedback/loading-bar";
-import { Button } from "@/components/ui/button";
 import { MotionEnter } from "@/components/motion/gsap-motion";
+import { Button } from "@/components/ui/button";
 import type { UserRole } from "@/features/auth/lib/roles";
 import { getUserRoleLabel, normalizeRole } from "@/features/auth/lib/roles";
 import { useAuthIdentityState } from "@/features/auth/lib/use-auth-identity";
@@ -90,22 +90,23 @@ export function AppShell({ children, allowedRoles, title }: AppShellProps) {
   return (
     <main id="main-content" tabIndex={-1} className="operations-surface min-h-dvh bg-background pb-24 pt-[var(--navbar-height)] text-foreground lg:pb-8">
       <MotionEnter
-        className="mx-auto w-full max-w-[1440px] px-3 py-5 sm:px-6 lg:py-6"
+        distance={0}
+        className="mx-auto w-full max-w-[1440px] px-4 py-5 sm:px-6 lg:py-6"
       >
         {title ? (
-          <div className="mb-5 flex flex-wrap items-center justify-between gap-4 border-b border-border pb-5">
+          <div className="workspace-header">
             <div className="flex min-w-0 items-center gap-3">
               {TitleIcon ? (
-                <span className="flex size-12 shrink-0 items-center justify-center rounded-xl border border-primary/15 bg-card text-primary shadow-sm">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-md border border-border bg-card text-primary">
                   <TitleIcon className="size-5" aria-hidden="true" />
                 </span>
               ) : null}
               <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
+                <p className="text-xs font-medium text-muted-foreground">
                   {context.label} · {getUserRoleLabel(role)}
                 </p>
-                <h1 className="mt-1 text-2xl font-bold text-foreground">{title}</h1>
-                <p className="mt-1 hidden text-sm text-muted-foreground sm:block">{context.description}</p>
+                <h1 className="workspace-title mt-1">{title}</h1>
+                <p className="workspace-description">{context.description}</p>
               </div>
             </div>
             <nav className="flex flex-wrap gap-2" aria-label="Thao tác nhanh">

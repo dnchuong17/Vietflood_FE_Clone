@@ -3,6 +3,7 @@
 const { chromium } = require("playwright");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
+const { catalogue, choose } = require('./vietnam-address-picker.cjs');
 const base = process.env.QA_WEB_URL || "http://127.0.0.1:3105";
 const output = process.env.QA_OUTPUT || require("node:path").join(require("node:os").homedir(), ".hermes/cache/scratch/vietflood-incidents-qa");
 assert(["127.0.0.1", "localhost", "[::1]"].includes(new URL(base).hostname), "QA_WEB_URL must be localhost");
@@ -108,6 +109,7 @@ async function mock(route) {
       },
       body: JSON.stringify(body),
     });
+  if (await catalogue(route)) return;
   if (p.startsWith("/socket.io")) return route.abort();
   if (
     p.startsWith("/incidents") ||
@@ -331,8 +333,8 @@ function token(role, id) {
       .getByText("duong ngap nuoc, nguoi mac ket", { exact: true })
       .waitFor();
     checks.push("emergencies render without clustering");
-    await page.getByLabel("Tỉnh / thành phố", { exact: true }).fill("Đà Nẵng");
-    await page.getByLabel("Phường / xã", { exact: true }).fill("Hải Châu");
+    await choose(page, 'incident-filter-province', 'da nang', 'Thành phố Đà Nẵng');
+    await choose(page, 'incident-filter-ward', 'hai chau', 'Phường Hải Châu');
     await page.getByLabel("Từ ngày", { exact: true }).fill("2026-11-01");
     await page.getByLabel("Đến ngày", { exact: true }).fill("2026-11-02");
     await page.locator("#incident-status-filter").click();
@@ -341,11 +343,11 @@ function token(role, id) {
     await page.getByRole("option", { name: "Chưa đánh giá", exact: true }).click();
     const filtered = page.waitForRequest((r) => {
       const u = new URL(r.url());
-      return u.pathname === "/incidents" && u.searchParams.get("province") === "Đà Nẵng";
+      return u.pathname === "/incidents" && u.searchParams.get("province") === "Thành phố Đà Nẵng";
     });
     await page.getByRole("button", { name: "Áp dụng bộ lọc" }).click();
     const query = new URL((await filtered).url()).searchParams;
-    assert.equal(query.get("ward"), "Hải Châu");
+    assert.equal(query.get("ward"), "Phường Hải Châu");
     assert.equal(query.get("status"), "DETECTED");
     assert.equal(query.get("severity"), "UNKNOWN");
     assert.equal(query.get("from"), "2026-10-31T17:00:00.000Z");

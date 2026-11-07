@@ -17,10 +17,10 @@ const OVERLAYS = [
 export function Tools() {
   const { state, dispatch } = useHomeDisplayState();
   return (
-    <div className="space-y-4">
-      <fieldset>
-        <legend className="mb-2 text-xs font-bold text-muted-foreground">Lớp dữ liệu bản đồ</legend>
-        <div className="grid grid-cols-3 gap-2 lg:grid-cols-2">
+    <div className="workspace-stack">
+      <fieldset className="min-w-0">
+        <legend className="mb-3 text-sm font-semibold">Lớp dữ liệu bản đồ</legend>
+        <div className="grid grid-cols-2 gap-2">
           {OVERLAYS.map(({ value, label, icon: Icon }) => (
             <label key={value} className="relative cursor-pointer">
               <input className="peer sr-only" type="radio" name="map-overlay" value={value} checked={state.overlay === value} onChange={() => dispatch({ type: "setOverlay", payload: value })} />

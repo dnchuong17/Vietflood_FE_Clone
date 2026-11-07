@@ -3,6 +3,7 @@
 const {chromium} = require("playwright");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
+const { catalogue, choose } = require('./vietnam-address-picker.cjs');
 const path = require("node:path");
 const base = process.env.QA_WEB_URL || "http://127.0.0.1:3105";
 assert(["127.0.0.1","localhost","[::1]"].includes(new URL(base).hostname), "QA_WEB_URL must be localhost");
@@ -49,6 +50,7 @@ function check(label){checks.push(label);}
    const req=route.request(),url=new URL(req.url()),p=url.pathname;
    const cors={"Access-Control-Allow-Origin":new URL(base).origin,"Access-Control-Allow-Credentials":"true","Access-Control-Allow-Headers":"*","Access-Control-Allow-Methods":"*"};
    const fulfill=(body,status=200)=>route.fulfill({status,contentType:"application/json",headers:cors,body:JSON.stringify(body)});
+   if(await catalogue(route))return;
    if(p.startsWith("/socket.io")){blocked.push(req.url());return route.abort();}
    const api=p.startsWith("/incidents")||p.startsWith("/auth/")||p.startsWith("/ai/")||p==="/reports";
    if(api){
@@ -160,12 +162,12 @@ function check(label){checks.push(label);}
   state.editorConflict=true;await page.getByLabel("Tiêu đề biên tập",{exact:true}).fill("Bản có xung đột");await page.getByRole("button",{name:"Lưu bản biên tập",exact:true}).click();await page.getByRole("alert").filter({hasText:"Xung đột phiên bản"}).waitFor();
   assert.equal(state.edits.length,2);check("editor 409 leaves drafts and history intact with a visible conflict");
   await openAnalytics(s,"admin");
-  await page.getByLabel("Tỉnh / thành phố",{exact:true}).fill("Đà Nẵng");await page.getByLabel("Phường / xã",{exact:true}).fill("Hải Châu");
-  const scopedAnalytics=page.waitForResponse(r=>{const u=new URL(r.url());return u.pathname==="/incidents/analytics"&&u.searchParams.get("ward")==="Hải Châu";});
+  await choose(page,'incident-filter-province','da nang','Thành phố Đà Nẵng');await choose(page,'incident-filter-ward','hai chau','Phường Hải Châu');
+  const scopedAnalytics=page.waitForResponse(r=>{const u=new URL(r.url());return u.pathname==="/incidents/analytics"&&u.searchParams.get("ward")==="Phường Hải Châu";});
   await page.getByRole("button",{name:"Áp dụng bộ lọc"}).click();await scopedAnalytics;
   await page.getByText("Hiển thị 2/17 sự cố",{exact:false}).waitFor();
   await page.getByLabel("Kỳ báo cáo",{exact:true}).selectOption("week");await page.getByLabel("Tuần ISO",{exact:true}).fill("2020-W01");await page.getByRole("button",{name:"Tổng hợp báo cáo",exact:true}).click();await page.getByText("Chốt dữ liệu",{exact:false}).waitFor();
-  const weekly=new URLSearchParams(requests.filter(r=>r.path==="/incidents/report").at(-1).query);assert.equal(weekly.get("from"),"2019-12-29T17:00:00.000Z");assert.equal(weekly.get("to"),"2020-01-05T16:59:59.999Z");assert.equal(weekly.get("province"),"Đà Nẵng");assert.equal(weekly.get("ward"),"Hải Châu");
+  const weekly=new URLSearchParams(requests.filter(r=>r.path==="/incidents/report").at(-1).query);assert.equal(weekly.get("from"),"2019-12-29T17:00:00.000Z");assert.equal(weekly.get("to"),"2020-01-05T16:59:59.999Z");assert.equal(weekly.get("province"),"Thành phố Đà Nẵng");assert.equal(weekly.get("ward"),"Phường Hải Châu");
   check("geography scope and ISO week year boundary reach analytics/report in VN timezone");
   await page.getByLabel("Tuần ISO",{exact:true}).fill("2020-W02");assert.equal(await page.getByText("Chốt dữ liệu",{exact:false}).count(),0);check("changing report period clears prior snapshot instead of mislabeling stale data");
   await page.getByLabel("Kỳ báo cáo",{exact:true}).selectOption("area");await page.getByLabel("Ngày báo cáo",{exact:true}).fill("2026-01-01");await page.getByLabel("Ngày kết thúc báo cáo",{exact:true}).fill("2026-02-01");

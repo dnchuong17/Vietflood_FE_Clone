@@ -114,8 +114,8 @@ export function EmergencyStrip() {
           nhật.
         </p>
       ) : null}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-2">
           <ExclamationTriangleIcon
             className="size-5 text-destructive"
             aria-hidden="true"
@@ -139,17 +139,17 @@ export function EmergencyStrip() {
         xác nhận mức độ nghiêm trọng.
       </p>
       {expanded ? (
-        <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+        <ul className="mt-4 grid gap-3 xl:grid-cols-2">
           {data.items.map((item) => (
-            <li key={item.report_id} className="rounded-lg border bg-card p-3">
-              <p className="line-clamp-3 text-sm">
+            <li key={item.report_id} className="min-w-0 space-y-3 rounded-xl border border-destructive/20 bg-card p-4">
+              <p className="whitespace-pre-wrap break-words text-sm leading-6">
                 {item.snapshot.description}
               </p>
               <p className="my-2 text-xs text-muted-foreground">
                 {item.snapshot.ward} · {incidentDate(item.snapshot.createdAt)}
               </p>
               <Link
-                className="text-sm font-semibold text-primary underline"
+                className="inline-flex min-h-11 items-center rounded-lg text-sm font-semibold text-primary underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-ring"
                 href={
                   item.incident_id
                     ? `/su-co/${item.incident_id}`

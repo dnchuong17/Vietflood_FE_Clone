@@ -77,11 +77,11 @@ export function SiteHeader() {
     <>
       <header
         ref={headerRef}
-        className="sticky top-0 z-20 border-b border-border bg-card/95 shadow-[0_2px_12px_#09243b08] backdrop-blur-xl"
+        className="sticky top-0 z-20 border-b border-border bg-card"
         data-motion="site-header"
         data-motion-policy="prefers-reduced-motion"
       >
-        <div className="mx-auto grid h-[var(--navbar-height)] max-w-[1440px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 px-3 sm:gap-4 sm:px-6">
+        <div className="mx-auto grid h-[var(--navbar-height)] max-w-[1440px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 px-4 sm:gap-4 sm:px-6">
           <Link
             href="/"
             className="inline-flex min-w-0 items-center gap-2.5 font-bold"
@@ -104,9 +104,9 @@ export function SiteHeader() {
                     key={tab.href}
                     href={tab.href}
                     className={cn(
-                      "shrink-0 rounded-lg px-2.5 py-2 text-sm font-semibold transition sm:px-3",
+                      "shrink-0 rounded-sm px-2.5 py-2.5 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-ring focus-visible:-outline-offset-2 sm:px-3",
                       active
-                        ? "bg-primary text-primary-foreground shadow-sm"
+                        ? "bg-accent text-primary"
                         : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
                     )}
                     aria-current={active ? "page" : undefined}
@@ -162,7 +162,7 @@ export function SiteHeader() {
 
       {tabs.length > 0 ? (
         <nav
-          className="fixed inset-x-0 bottom-0 z-40 border-t bg-card/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur-xl lg:hidden"
+          className="fixed inset-x-0 bottom-0 z-40 border-t bg-card pb-[env(safe-area-inset-bottom)] lg:hidden"
           aria-label="Thanh tab di động"
         >
           <div
@@ -178,7 +178,7 @@ export function SiteHeader() {
                   key={tab.href}
                   href={tab.href}
                   className={cn(
-                    "flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 rounded-lg px-1 py-2 text-[11px] font-semibold transition",
+                    "flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 rounded-sm px-1 py-2 text-[11px] leading-4 font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-ring focus-visible:-outline-offset-2",
                     active
                       ? "bg-primary/10 text-primary"
                       : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
@@ -186,7 +186,7 @@ export function SiteHeader() {
                   aria-current={active ? "page" : undefined}
                 >
                   <Icon className="size-5" aria-hidden="true" />
-                  <span className="max-w-full truncate">{tab.label}</span>
+                  <span className="max-w-full text-center break-words">{tab.label}</span>
                 </Link>
               );
             })}

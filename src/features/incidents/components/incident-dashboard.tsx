@@ -23,6 +23,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ConfirmDialog } from "@/components/feedback/confirm-dialog";
 import { useAuthIdentity } from "@/features/auth/lib/use-auth-identity";
 import { ReliefDashboard } from "@/features/relief/components/relief-dashboard";
+import { VietnamAddressPicker } from "@/features/location/components/vietnam-address-picker";
 import {
   incidentGet,
   incidentChange,
@@ -64,6 +65,7 @@ export function IncidentDashboard({
     "incidents",
   );
   const [filters, setFilters] = useState<Filters>({});
+  const [addressFilter, setAddressFilter] = useState({ province: "", ward: "" });
   const analyticsFilters = useMemo(() => ({...filters,...(assignments && identity?.role === "relief" ? {assignedToMe:"true"}: {})}), [filters,assignments,identity?.role]);
   const [data, setData] = useState<Page<Incident> | null>(null),
     [overview, setOverview] = useState<Overview | null>(null);
@@ -143,19 +145,19 @@ export function IncidentDashboard({
   const [status, setStatus] = useState("all"),
     [severity, setSeverity] = useState("all");
   return (
-    <div className="space-y-5">
+    <div className="workspace-stack">
       <EmergencyStrip />
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="workspace-header flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-widest text-primary">
             Tình hình tại hiện trường
           </p>
-          <h2 className="mt-1 text-xl font-bold">
+          <h2 className="workspace-title mt-1">
             {assignments
               ? "Sự cố được phân công"
               : "Từ nhiều báo cáo đến một bức tranh chung"}
           </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="workspace-description mt-1">
             Mỗi nhận định đều có nguồn. Mỗi quyết định cứu trợ do con người xác
             nhận.
           </p>
@@ -177,7 +179,7 @@ export function IncidentDashboard({
             <Card key={label}>
               <CardContent className="p-4">
                 <p className="text-xs text-muted-foreground">{label}</p>
-                <p className="mt-2 text-3xl font-bold tabular-nums">{count}</p>
+                <p className="mt-2 text-2xl font-bold tabular-nums">{count}</p>
               </CardContent>
             </Card>
           ))}
@@ -189,7 +191,7 @@ export function IncidentDashboard({
           ))}
         </div>
       ) : null}
-      <div className="flex flex-wrap gap-2" aria-label="Chế độ xem cứu trợ">
+      <div className="workspace-toolbar flex flex-wrap gap-2" aria-label="Chế độ xem cứu trợ">
         <Button
           variant={view === "incidents" ? "default" : "outline"}
           onClick={() => setView("incidents")}
@@ -255,16 +257,14 @@ export function IncidentDashboard({
           ) : null}
           <form
             onSubmit={apply}
-            className="grid gap-3 rounded-xl border bg-card p-4 sm:grid-cols-2 lg:grid-cols-4"
+            className="workspace-toolbar grid items-end gap-4 sm:grid-cols-2 lg:grid-cols-4"
           >
-            <label className="grid gap-1.5 text-xs font-semibold">
-              Tỉnh / thành phố
-              <Input name="province" placeholder="Đà Nẵng" />
-            </label>
-            <label className="grid gap-1.5 text-xs font-semibold">
-              Phường / xã
-              <Input name="ward" placeholder="Hải Châu" />
-            </label>
+            <VietnamAddressPicker
+              idPrefix={assignments ? "assignment-filter" : "incident-filter"}
+              value={addressFilter}
+              onChange={setAddressFilter}
+              className="sm:col-span-2"
+            />
             <label className="grid gap-1.5 text-xs font-semibold">
               Từ ngày
               <Input name="from" type="date" />
@@ -306,6 +306,7 @@ export function IncidentDashboard({
               className="self-end"
               onClick={() => {
                 setFilters({});
+                setAddressFilter({ province: "", ward: "" });
                 setStatus("all");
                 setSeverity("all");
               }}
@@ -317,17 +318,17 @@ export function IncidentDashboard({
             <div className="grid gap-3">
               {data.items.map((item) => (
                 <Card key={item.id}>
-                  <CardContent className="grid gap-4 p-4 sm:grid-cols-[1fr_auto]">
+                  <CardContent className="grid min-w-0 gap-4 p-4 md:grid-cols-[minmax(0,1fr)_auto]">
                     <div>
                       <IncidentLink id={item.id}>{item.title}</IncidentLink>
-                      <p className="mt-1 text-sm text-muted-foreground">
+                      <p className="workspace-description mt-1">
                         {item.address || "Chưa xác định vị trí"}
                       </p>
                       <div className="mt-3">
                         <IncidentBadges incident={item} />
                       </div>
                     </div>
-                    <div className="text-sm sm:text-right">
+                    <div className="border-t pt-3 text-sm md:border-l md:border-t-0 md:pl-4 md:pt-0 md:text-right">
                       <p className="font-semibold tabular-nums">
                         {item.reportCount} báo cáo liên quan
                       </p>
@@ -389,7 +390,7 @@ function ReviewQueue({ onChange }: { onChange: () => void }) {
   }, [load]);
   return (
     <section className="space-y-4">
-      <h3 className="text-lg font-bold">Xem bằng chứng trước khi ghép nhóm</h3>
+      <h3 className="text-base font-semibold">Xem bằng chứng trước khi ghép nhóm</h3>
       {error ? (
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>

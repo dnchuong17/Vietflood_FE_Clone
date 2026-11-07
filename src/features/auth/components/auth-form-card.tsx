@@ -2,7 +2,34 @@ import type { ReactNode } from "react";
 import { ArrowUpRightIcon, MapPinIcon, ShieldCheckIcon } from "@heroicons/react/24/outline";
 
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
-import styles from "./auth-experience.module.css";
+const styles = {
+  "frame": "w-full max-w-5xl rounded-2xl border border-border bg-card text-card-foreground",
+  "frameInner": "grid min-w-0 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]",
+  "story": "order-2 flex min-w-0 flex-col gap-8 border-t border-border bg-muted p-6 lg:order-1 lg:border-r lg:border-t-0 lg:p-8",
+  "storyTop": "flex flex-wrap items-center justify-between gap-3",
+  "storyIndex": "text-xs font-semibold text-muted-foreground",
+  "storyTag": "text-xs text-muted-foreground",
+  "storyBody": "space-y-4 [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:leading-relaxed [&_em]:not-italic [&_em]:text-primary [&_p]:text-sm [&_p]:leading-6 [&_p]:text-muted-foreground",
+  "eyebrow": "text-xs font-semibold text-primary",
+  "contour": "hidden",
+  "contourCore": "hidden",
+  "contourRingOne": "hidden",
+  "contourRingTwo": "hidden",
+  "contourRingThree": "hidden",
+  "contourRingFour": "hidden",
+  "contourRingFive": "hidden",
+  "storyBottom": "mt-auto space-y-4 [&>p]:flex [&>p]:items-start [&>p]:gap-2 [&>p]:text-xs [&>p]:leading-5 [&>p]:text-muted-foreground [&>p>svg]:size-4 [&>p>svg]:shrink-0",
+  "signalCard": "flex items-center gap-3 border-t border-border pt-4 [&_strong]:block [&_strong]:text-sm [&_small]:block [&_small]:text-xs [&_small]:text-muted-foreground",
+  "signalIcon": "text-primary [&>svg]:size-5",
+  "signalArrow": "ml-auto size-4 shrink-0 text-muted-foreground",
+  "formCard": "order-1 min-w-0 gap-6 rounded-none border-0 bg-card p-6 shadow-none lg:order-2 lg:p-8",
+  "formHeader": "workspace-header flex-col items-start space-y-2 p-0",
+  "formEyebrow": "text-xs font-semibold text-primary",
+  "formTitle": "workspace-title",
+  "formDescription": "workspace-description",
+  "formContent": "min-w-0 p-0",
+  "note": "mt-4 border-t border-border pt-4 text-xs leading-5 text-muted-foreground"
+};
 
 type AuthFormCardProps = {
   title: string;

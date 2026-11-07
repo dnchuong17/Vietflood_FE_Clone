@@ -77,17 +77,17 @@ export function OverviewDashboard() {
   );
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="workspace-stack">
       {summaryError ? <section role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-critical/30 bg-critical/5 p-4"><div><h2 className="text-sm font-bold text-critical">Chưa thể đồng bộ tổng quan</h2><p className="mt-1 text-sm">{summaryError}</p><p className="mt-1 text-xs text-muted-foreground">Các chỉ số chưa phản ánh dữ liệu mới nhất.</p></div><Button type="button" variant="outline" disabled={isLoadingSummary} onClick={() => setReloadSummary((value) => value + 1)}>Thử lại</Button></section> : null}
-      <MotionReveal className="grid gap-3 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)]">
-        <Card>
+      <MotionReveal className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)]">
+        <Card className="sm:col-span-2 lg:col-span-1">
           <CardContent className="flex h-full flex-col justify-between gap-3 p-4">
             <div>
               <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                 <HomeIcon className="size-4 text-primary" aria-hidden="true" />
                 <span>Trang chủ hồ sơ</span>
               </div>
-              <h2 className="mt-1 text-xl font-bold text-card-foreground">
+              <h2 className="workspace-title mt-1">
                 {summary.greeting}
               </h2>
             </div>
@@ -103,7 +103,7 @@ export function OverviewDashboard() {
               <ClipboardDocumentCheckIcon className="size-4 text-primary" aria-hidden="true" />
               <span>Công việc đang mở</span>
             </div>
-            <p className="mt-2 text-3xl font-bold text-card-foreground">
+            <p className="mt-2 text-2xl font-bold tabular-nums text-card-foreground">
               {summary.openTasks}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
@@ -118,7 +118,7 @@ export function OverviewDashboard() {
               <BellAlertIcon className="size-4 text-primary" aria-hidden="true" />
               <span>Cảnh báo chưa đọc</span>
             </div>
-            <p className="mt-2 text-3xl font-bold text-card-foreground">
+            <p className="mt-2 text-2xl font-bold tabular-nums text-card-foreground">
               {summary.unreadAlerts}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">

@@ -1,3 +1,6 @@
+import { filterVietnamDivisions } from "../lib/vietnam-address";
+
+export const DIVISIONS_REQUEST_TIMEOUT_MS = 10_000;
 const VIETNAM_DIVISIONS_API_URL = "https://provinces.open-api.vn/api/v2";
 const CACHE_SCHEMA_VERSION = 2;
 const CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
@@ -29,7 +32,7 @@ function toDivisionOption(item: unknown): DivisionOption | null {
   }
 
   const record = item as UnknownRecord;
-  if (typeof record.code !== "number" || typeof record.name !== "string") {
+  if (typeof record.code !== "number" || !Number.isSafeInteger(record.code) || record.code <= 0 || typeof record.name !== "string" || !record.name.trim()) {
     return null;
   }
 
@@ -48,7 +51,7 @@ function toDivisionOption(item: unknown): DivisionOption | null {
 }
 
 function normalizeDivisionList(data: unknown): DivisionOption[] {
-  if (!Array.isArray(data)) {
+  if (!Array.isArray(data) || data.length === 0) {
     return [];
   }
 
@@ -92,7 +95,7 @@ function readCache(key: string): CacheEntry | null {
     }
 
     const data = normalizeDivisionList(parsed.data);
-    if (data.length !== parsed.data.length) {
+    if (!data.length || data.length !== parsed.data.length || new Set(data.map((item) => item.code)).size !== data.length || (key === WARDS_CACHE_KEY && data.some((item) => !Number.isSafeInteger(item.provinceCode) || item.provinceCode! <= 0))) {
       return null;
     }
 
@@ -115,7 +118,7 @@ function writeCache(key: string, entry: CacheEntry): void {
 }
 
 function isFresh(entry: CacheEntry): boolean {
-  return Date.now() - entry.fetchedAt < CACHE_TTL_MS;
+  return entry.fetchedAt <= Date.now() && Date.now() - entry.fetchedAt < CACHE_TTL_MS;
 }
 
 function getProvincesCache(): CacheEntry | null {
@@ -135,15 +138,31 @@ function getWardsCache(): CacheEntry | null {
 }
 
 async function fetchDivisions(path: string): Promise<DivisionOption[]> {
-  const response = await fetch(`${VIETNAM_DIVISIONS_API_URL}${path}`, {
-    cache: "no-store",
+  const controller = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  // Race also bounds broken transports that ignore AbortSignal (including body reads).
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      controller.abort();
+      reject(new Error("Hết thời gian tải địa giới hành chính. Vui lòng thử lại."));
+    }, DIVISIONS_REQUEST_TIMEOUT_MS);
   });
-
-  if (!response.ok) {
-    throw new Error("Không thể tải dữ liệu địa giới hành chính.");
+  try {
+    return await Promise.race([timeout, (async () => {
+      const response = await fetch(`${VIETNAM_DIVISIONS_API_URL}${path}`, { cache: "no-store", signal: controller.signal });
+      if (!response.ok) throw new Error("Không thể tải dữ liệu địa giới hành chính.");
+      const raw: unknown = await response.json();
+      const data = normalizeDivisionList(raw);
+      if (!Array.isArray(raw) || !data.length || data.length !== raw.length ||
+        new Set(data.map((item) => item.code)).size !== data.length ||
+        (path === "/w/" && data.some((item) => !Number.isSafeInteger(item.provinceCode) || item.provinceCode! <= 0))) {
+        throw new Error("Dữ liệu địa giới hành chính không hợp lệ. Vui lòng thử lại.");
+      }
+      return data;
+    })()]);
+  } finally {
+    clearTimeout(timer);
   }
-
-  return normalizeDivisionList(await response.json());
 }
 
 function refreshProvinces(): Promise<DivisionOption[]> {
@@ -231,24 +250,6 @@ function startDivisionLoads() {
   };
 }
 
-function normalizeSearch(value: string): string {
-  return value
-    .trim()
-    .toLocaleLowerCase("vi")
-    .replace(/đ/g, "d")
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "");
-}
-
-function filterByName(options: DivisionOption[], search: string): DivisionOption[] {
-  const normalizedSearch = normalizeSearch(search);
-  if (!normalizedSearch) {
-    return options;
-  }
-
-  return options.filter((option) => normalizeSearch(option.name).includes(normalizedSearch));
-}
-
 export async function prefetchVietnamDivisions(): Promise<void> {
   const loads = startDivisionLoads();
   await Promise.all([loads.provinces, loads.wards]);
@@ -257,7 +258,7 @@ export async function prefetchVietnamDivisions(): Promise<void> {
 export async function searchProvinces(search = ""): Promise<DivisionOption[]> {
   const { provinces, wards } = startDivisionLoads();
   void wards.catch(() => undefined);
-  return filterByName(await provinces, search);
+  return filterVietnamDivisions(await provinces, search);
 }
 
 export async function searchWards(
@@ -270,5 +271,10 @@ export async function searchWards(
     (ward) => ward.provinceCode === provinceCode,
   );
 
-  return filterByName(provinceWards, search);
+  return filterVietnamDivisions(provinceWards, search);
+}
+
+/** Explicit retry bypasses fresh caches without discarding previously good data. */
+export async function retryVietnamDivisions(dataset: "provinces" | "wards"): Promise<DivisionOption[]> {
+  return dataset === "provinces" ? refreshProvinces() : refreshWards();
 }

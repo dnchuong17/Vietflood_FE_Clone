@@ -22,7 +22,22 @@ import {
 } from "@/features/auth/lib/auth-storage";
 import { normalizeRole } from "@/features/auth/lib/roles";
 import { useAuthFormStore } from "@/features/auth/store/auth-form-store";
-import styles from "./auth-experience.module.css";
+const styles = {
+  "form": "workspace-stack",
+  "fields": "gap-4",
+  "fieldGrid": "grid min-w-0 gap-4 sm:grid-cols-2",
+  "fieldLabel": "text-sm font-medium text-foreground [&>span]:font-normal [&>span]:text-muted-foreground",
+  "inputShell": "flex min-w-0 items-center gap-1 rounded-xl border border-input bg-background pr-1 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/30",
+  "input": "min-w-0 border-0 bg-transparent shadow-none focus-visible:ring-0",
+  "eyeButton": "grid size-11 shrink-0 place-items-center rounded-lg text-muted-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring [&>svg]:size-5",
+  "primaryButton": "mt-2 min-h-11 w-full justify-between",
+  "buttonIcon": "[&>svg]:size-4",
+  "switchRow": "text-center text-sm text-muted-foreground",
+  "switchLink": "ml-1 font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring",
+  "sectionLabel": "text-base font-semibold text-foreground",
+  "sectionDivider": "h-px bg-border",
+  "hint": "text-xs text-muted-foreground"
+};
 
 export function LoginForm() {
   const router = useRouter();

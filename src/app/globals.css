@@ -5,27 +5,28 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --navbar-height: 72px;
+  --navbar-height: 64px;
   --font-body: var(--font-be-vietnam-pro), system-ui, sans-serif;
   --font-heading: var(--font-be-vietnam-pro), system-ui, sans-serif;
-  --background: oklch(0.97 0.012 240);
-  --foreground: oklch(0.23 0.045 250);
+  --background: #F5F7FA;
+  --foreground: #172B3A;
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.18 0.02 240);
+  --card-foreground: #172B3A;
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.18 0.02 240);
-  --primary: oklch(0.48 0.16 250);
-  --primary-foreground: oklch(0.99 0.01 230);
-  --secondary: oklch(0.94 0.02 230);
-  --secondary-foreground: oklch(0.22 0.03 240);
-  --muted: oklch(0.94 0.02 230);
-  --muted-foreground: oklch(0.43 0.035 245);
-  --accent: oklch(0.91 0.04 205);
-  --accent-foreground: oklch(0.22 0.04 230);
+  --popover-foreground: #172B3A;
+  --primary: #1266A8;
+  --primary-foreground: #FFFFFF;
+  --secondary: #EAF0F5;
+  --secondary-foreground: #172B3A;
+  --muted: #EAF0F5;
+  --muted-foreground: #526477;
+  --accent: #EAF0F5;
+  --accent-foreground: #172B3A;
   --destructive: oklch(0.58 0.22 28);
-  --border: oklch(0.87 0.02 235);
-  --input: oklch(0.87 0.02 235);
-  --ring: oklch(0.48 0.16 250);
+  --destructive-foreground: #FFFFFF;
+  --border: #DCE3E9;
+  --input: #7D8D9C;
+  --ring: #1266A8;
   --success: oklch(0.47 0.1 180);
   --success-foreground: oklch(0.98 0.02 160);
   --warning: oklch(0.74 0.15 75);
@@ -37,7 +38,7 @@
   --chart-3: oklch(0.74 0.15 75);
   --chart-4: oklch(0.58 0.22 28);
   --chart-5: oklch(0.48 0.07 265);
-  --radius: 0.875rem;
+  --radius: 0.75rem;
   --operations-navy: #09243b;
   --operations-teal: #57e0cf;
   --sidebar: oklch(0.97 0.01 230);
@@ -68,6 +69,7 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -90,32 +92,33 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-xl: 1rem;
+  --radius-2xl: 1rem;
 }
 
 .dark {
-  --background: oklch(0.16 0.02 240);
-  --foreground: oklch(0.96 0.01 230);
-  --card: oklch(0.21 0.025 240);
-  --card-foreground: oklch(0.96 0.01 230);
-  --popover: oklch(0.21 0.025 240);
-  --popover-foreground: oklch(0.96 0.01 230);
-  --primary: oklch(0.71 0.15 225);
-  --primary-foreground: oklch(0.13 0.03 240);
-  --secondary: oklch(0.27 0.03 240);
-  --secondary-foreground: oklch(0.94 0.01 230);
-  --muted: oklch(0.27 0.03 240);
-  --muted-foreground: oklch(0.72 0.02 235);
-  --accent: oklch(0.3 0.04 220);
-  --accent-foreground: oklch(0.96 0.01 230);
+  --background: #101923;
+  --foreground: #EDF3F8;
+  --card: #172532;
+  --card-foreground: #EDF3F8;
+  --popover: #172532;
+  --popover-foreground: #EDF3F8;
+  --primary: #7DC7F4;
+  --primary-foreground: #102B40;
+  --secondary: #233543;
+  --secondary-foreground: #EDF3F8;
+  --muted: #233543;
+  --muted-foreground: #AABAC8;
+  --accent: #2A3D4E;
+  --accent-foreground: #EDF3F8;
   --destructive: oklch(0.68 0.2 25);
-  --border: oklch(0.33 0.03 240);
-  --input: oklch(0.33 0.03 240);
-  --ring: oklch(0.71 0.15 225);
+  --destructive-foreground: #101923;
+  --border: #354957;
+  --input: #728797;
+  --ring: #7DC7F4;
   --success: oklch(0.68 0.13 165);
   --success-foreground: oklch(0.11 0.03 165);
   --warning: oklch(0.82 0.14 78);
@@ -167,8 +170,8 @@
   }
 
   h1 {
-    font-weight: 800;
-    letter-spacing: -0.035em;
+    font-weight: 700;
+    letter-spacing: -0.02em;
   }
 
   h2 {
@@ -212,16 +215,15 @@
     border-left: 4px solid var(--primary);
     border-radius: var(--radius);
     padding: 1.25rem;
-    background: linear-gradient(110deg, color-mix(in oklch, var(--primary) 6%, var(--card)), var(--card) 75%);
+    background: var(--card);
   }
 
   .operations-surface {
-    background-image: radial-gradient(ellipse at 100% 0, color-mix(in oklch, var(--primary) 6%, transparent), transparent 55%);
+    background-color: var(--background);
   }
 
   .operations-grid {
-    background-image: linear-gradient(#ffffff08 1px, transparent 1px), linear-gradient(90deg, #ffffff08 1px, transparent 1px);
-    background-size: 36px 36px;
+    background-image: none;
   }
 
   .metric-tile {
@@ -232,12 +234,61 @@
     font-variant-numeric: tabular-nums;
   }
 
-  .workspace-toolbar {
+  /* Shared screen contract: intrinsic wrapping, no imposed column counts. */
+  .workspace-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    min-width: 0;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .workspace-title {
+    font-size: 1.375rem;
+    line-height: 1.35;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    overflow-wrap: anywhere;
+  }
+
+  .workspace-description {
+    max-width: 72ch;
+    margin-top: 0.5rem;
+    color: var(--muted-foreground);
+    font-size: 0.875rem;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+  }
+
+  .workspace-section {
+    min-width: 0;
     border: 1px solid var(--border);
     border-radius: var(--radius);
     background: var(--card);
     padding: 1rem;
-    box-shadow: 0 2px 8px #09243b05;
+  }
+
+  .workspace-toolbar {
+    min-width: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--card);
+    padding: 1rem;
+  }
+
+  .workspace-stack {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  @media (min-width: 640px) {
+    .workspace-section { padding: 1.5rem; }
   }
 
   .map-workspace {
@@ -280,7 +331,7 @@
   .dark :where(.bg-white\/95),
   .dark :where(.bg-white\/96),
   .dark :where(.bg-slate-50\/80) {
-    background-color: color-mix(in oklch, var(--card) 88%, transparent);
+    background-color: var(--card);
   }
 
   .dark :where(.text-slate-950),

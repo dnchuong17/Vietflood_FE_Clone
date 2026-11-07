@@ -370,15 +370,15 @@ export function LiveTrackingPanel() {
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[22rem_minmax(0,1fr)]" data-testid="tracking-workspace">
-      <OperationsBanner className="lg:col-span-2" eyebrow="Kết nối hiện trường" title="Chia sẻ có chủ đích. Phối hợp an toàn." description="Chỉ bật chia sẻ khi bạn muốn gửi vị trí cho đội hỗ trợ. Bạn có thể dừng bất cứ lúc nào; giữ trang mở để tiếp tục cập nhật.">
+    <div className="grid items-start gap-4 xl:grid-cols-[20rem_minmax(0,1fr)]" data-testid="tracking-workspace">
+      <OperationsBanner className="xl:col-span-2" eyebrow="Kết nối hiện trường" title="Chia sẻ có chủ đích. Phối hợp an toàn." description="Chỉ bật chia sẻ khi bạn muốn gửi vị trí cho đội hỗ trợ. Bạn có thể dừng bất cứ lúc nào; giữ trang mở để tiếp tục cập nhật.">
         <Badge variant={isConnected ? "success" : "warning"}>{isConnected ? "Kênh vị trí đã kết nối" : "Kênh vị trí chưa kết nối"}</Badge>
       </OperationsBanner>
       <Card>
         <CardHeader>
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-2">
-              <RadioTower className="text-primary size-8" aria-hidden="true" />
+              <RadioTower className="text-primary size-5 shrink-0" aria-hidden="true" />
               <CardTitle>Chia sẻ vị trí</CardTitle>
             </div>
             <Badge variant={isConnected ? "success" : "critical"}>
@@ -390,7 +390,7 @@ export function LiveTrackingPanel() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <dl className="grid gap-2 text-sm text-muted-foreground">
+          <dl className="grid gap-3 divide-y divide-border text-sm text-muted-foreground [&>div]:pt-3 [&>div:first-child]:pt-0">
             <div className="flex justify-between gap-3">
               <dt>Kết nối</dt>
               <dd className="font-semibold text-foreground">
@@ -419,7 +419,7 @@ export function LiveTrackingPanel() {
               <AlertDescription>{socketHint}</AlertDescription>
             </Alert>
           ) : null}
-          <div className="flex gap-2 mt-4">
+          <div className="flex flex-wrap gap-2 border-t border-border pt-4 mt-4">
             {!isSharing ? (
               <Button type="button" onClick={startSharing}>
                 <LocateFixed data-icon="inline-start" aria-hidden="true" />
@@ -440,7 +440,7 @@ export function LiveTrackingPanel() {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <div className="flex items-center gap-2">
-                <Map className="text-primary size-8" aria-hidden="true"/>
+                <Map className="text-primary size-5 shrink-0" aria-hidden="true"/>
                 <CardTitle>
                   {canMonitor ? "Theo dõi trực tiếp" : "Vị trí trực tiếp của tôi"}
                 </CardTitle>
@@ -518,7 +518,7 @@ export function LiveTrackingPanel() {
               return (
                 <article
                   key={id}
-                  className="grid gap-3 rounded-lg border bg-background/60 p-3 text-sm md:grid-cols-[1fr_auto] md:items-center"
+                  className="grid min-w-0 gap-3 rounded-xl border bg-card p-4 text-sm xl:grid-cols-[minmax(0,1fr)_auto] xl:items-start"
                 >
                   <div>
                     <p className="font-bold text-foreground">

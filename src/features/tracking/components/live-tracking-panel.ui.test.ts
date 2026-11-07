@@ -5,6 +5,13 @@ import { describe, expect, it } from "vitest";
 const source = readFileSync(new URL("./live-tracking-panel.tsx", import.meta.url), "utf8");
 
 describe("live tracking panel UI", () => {
+  it("keeps sharing controls and operational roster in separate responsive columns", () => {
+    expect(source).toContain("xl:grid-cols-[20rem_minmax(0,1fr)]");
+    expect(source).toContain("flex flex-wrap gap-2 border-t border-border pt-4 mt-4");
+    expect(source).toContain("onClick={startSharing}");
+    expect(source).toContain("onClick={stopSharing}");
+  });
+
   it("uses shared shadcn UI primitives for tracking controls", () => {
     expect(source).toContain("@/components/ui/button");
     expect(source).toContain("@/components/ui/badge");

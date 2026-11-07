@@ -40,30 +40,30 @@ const ROLE_ICONS = {
 
 export function UserGuide() {
   return (
-    <div className="flex flex-col gap-5">
-      <MotionReveal><section className="rounded-lg border border-sky-200 bg-white p-5 shadow-sm">
-        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+    <div className="workspace-stack">
+      <MotionReveal><section className="workspace-section">
+        <div className="workspace-header flex flex-wrap items-start justify-between gap-4">
           <div className="flex max-w-3xl flex-col gap-2">
             <Badge className="w-fit gap-1.5" variant="secondary">
               <LifeBuoy className="size-3.5" aria-hidden="true" />
               Hướng dẫn đồng bộ với ứng dụng di động
             </Badge>
-            <h2 className="text-2xl font-bold tracking-normal text-slate-950">
+            <h2 className="workspace-title">
               Hướng dẫn sử dụng VietFlood
             </h2>
-            <p className="text-sm leading-6 text-slate-600">
+            <p className="text-sm leading-6 text-muted-foreground">
               Hướng dẫn web này phản ánh luồng trợ giúp trên ứng dụng di động và giữ mô hình
               vai trò trong phạm vi người dân, đội cứu trợ và quản trị viên.
             </p>
           </div>
-          <div className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">
+          <div className="inline-flex items-center gap-2 rounded-lg border border-border bg-muted px-3 py-2 text-sm font-semibold text-foreground">
             <ListChecks className="size-4" aria-hidden="true" />
             {GUIDE_SECTIONS.length} khu vực hướng dẫn
           </div>
         </div>
       </section></MotionReveal>
 
-      <MotionReveal><section className="grid gap-4 lg:grid-cols-3">
+      <MotionReveal><section className="grid gap-4 xl:grid-cols-3">
         {ROLE_GUIDES.map((guide) => {
           const Icon = ROLE_ICONS[guide.role];
 
@@ -71,7 +71,7 @@ export function UserGuide() {
             <Card key={guide.role}>
               <CardHeader>
                 <div className="flex items-center gap-2">
-                  <span className="flex size-9 items-center justify-center rounded-lg bg-sky-50 text-sky-700">
+                  <span className="flex size-9 items-center justify-center rounded-lg bg-muted text-primary">
                     <Icon className="size-4" aria-hidden="true" />
                   </span>
                   <div>
@@ -81,11 +81,11 @@ export function UserGuide() {
                 </div>
               </CardHeader>
               <CardContent className="flex flex-col gap-3">
-                <p className="text-sm leading-6 text-slate-600">{guide.summary}</p>
-                <ul className="flex flex-col gap-2 text-sm leading-6 text-slate-700">
+                <p className="text-sm leading-6 text-muted-foreground">{guide.summary}</p>
+                <ul className="flex flex-col gap-3 text-sm leading-6 text-foreground">
                   {guide.responsibilities.map((item) => (
                     <li key={item} className="flex gap-2">
-                      <span className="mt-2 size-1.5 shrink-0 rounded-full bg-sky-600" />
+                      <span className="mt-2 size-1.5 shrink-0 rounded-full bg-primary" />
                       <span>{item}</span>
                     </li>
                   ))}
@@ -104,7 +104,7 @@ export function UserGuide() {
             <Card key={section.title}>
               <CardHeader>
                 <div className="flex items-start gap-3">
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-teal-700">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-primary">
                     <Icon className="size-5" aria-hidden="true" />
                   </span>
                   <div className="flex flex-col gap-1">
@@ -115,10 +115,10 @@ export function UserGuide() {
               </CardHeader>
               <CardContent>
                 <Separator className="mb-4" />
-                <ul className="flex flex-col gap-2 text-sm leading-6 text-slate-700">
+                <ul className="flex flex-col gap-3 text-sm leading-6 text-foreground">
                   {section.points.map((point) => (
                     <li key={point} className="flex gap-2">
-                      <span className="mt-2 size-1.5 shrink-0 rounded-full bg-teal-600" />
+                      <span className="mt-2 size-1.5 shrink-0 rounded-full bg-primary" />
                       <span>{point}</span>
                     </li>
                   ))}

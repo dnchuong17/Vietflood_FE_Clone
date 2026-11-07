@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useId, useRef, type ReactNode } from "react";
 import {
     CheckIcon,
     ExclamationTriangleIcon,
     XMarkIcon,
 } from "@heroicons/react/24/solid";
 
+import { Button } from "@/components/ui/button";
 import { LoadingBar } from "@/components/feedback/loading-bar";
 import { MotionPresence } from "@/components/motion/gsap-motion";
 
@@ -33,6 +34,8 @@ export function ConfirmDialog({
     isConfirming = false,
     danger = false,
 }: ConfirmDialogProps) {
+    const titleId = useId();
+    const descriptionId = useId();
     const dialogRef = useRef<HTMLDivElement>(null);
     const cancelButtonRef = useRef<HTMLButtonElement>(null);
     const onCancelRef = useRef(onCancel);
@@ -46,7 +49,11 @@ export function ConfirmDialog({
     useEffect(() => {
         if (!isOpen) return;
         const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-        cancelButtonRef.current?.focus({ preventScroll: true });
+        const previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+        const focusFrame = requestAnimationFrame(() => {
+            (cancelButtonRef.current?.disabled ? dialogRef.current : cancelButtonRef.current)?.focus({ preventScroll: true });
+        });
         const onKeyDown = (event: KeyboardEvent) => {
             if (event.key === "Escape" && !isConfirmingRef.current) {
                 event.preventDefault();
@@ -54,8 +61,12 @@ export function ConfirmDialog({
                 return;
             }
             if (event.key !== "Tab") return;
-            const controls = Array.from(dialogRef.current?.querySelectorAll<HTMLButtonElement>("button:not([disabled])") ?? []);
-            if (!controls.length) return;
+            const controls = Array.from(dialogRef.current?.querySelectorAll<HTMLElement>("button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex='-1'])") ?? []);
+            if (!controls.length) {
+                event.preventDefault();
+                dialogRef.current?.focus();
+                return;
+            }
             const first = controls[0];
             const last = controls[controls.length - 1];
             if (!dialogRef.current?.contains(document.activeElement)) {
@@ -71,22 +82,19 @@ export function ConfirmDialog({
         };
         document.addEventListener("keydown", onKeyDown);
         return () => {
+            cancelAnimationFrame(focusFrame);
+            document.body.style.overflow = previousOverflow;
             document.removeEventListener("keydown", onKeyDown);
             previousFocus?.focus({ preventScroll: true });
         };
     }, [isOpen]);
 
-    const confirmButtonClass = danger
-        ? "rounded-lg bg-rose-600 px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
-        : "rounded-lg bg-teal-600 px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60";
-
-    const accentTextClass = danger ? "text-rose-700" : "text-teal-700";
-    const borderClass = danger ? "border-rose-200" : "border-teal-200";
+    const accentTextClass = danger ? "text-destructive" : "text-primary";
 
     return (
         <MotionPresence
             open={isOpen}
-            className="fixed inset-0 z-60 flex items-center justify-center bg-slate-950/55 px-4"
+            className="fixed inset-0 z-60 flex items-center justify-center overflow-y-auto bg-slate-950/55 px-4 py-6"
             onClick={() => {
                 if (!isConfirming) {
                     onCancel();
@@ -96,10 +104,13 @@ export function ConfirmDialog({
             <div
                 ref={dialogRef}
                 data-motion-panel
-                className={`w-full max-w-md rounded-2xl border bg-white p-5 shadow-2xl ${borderClass}`}
+                className="max-h-[calc(100dvh-3rem)] w-full max-w-md overflow-y-auto rounded-xl border border-border bg-card p-5 text-card-foreground shadow-lg focus-visible:outline-2 focus-visible:outline-ring"
+                tabIndex={-1}
                 role="alertdialog"
                 aria-modal="true"
-                aria-label={title}
+                aria-labelledby={titleId}
+                aria-describedby={descriptionId}
+                aria-busy={isConfirming}
                 onClick={(event) => event.stopPropagation()}
             >
                 <p className={`text-xs font-semibold uppercase tracking-[0.08em] ${accentTextClass}`}>
@@ -108,8 +119,8 @@ export function ConfirmDialog({
                         Xác nhận hành động
                     </span>
                 </p>
-                <h3 className="mt-1 text-lg font-bold text-slate-900">{title}</h3>
-                <div className="mt-2 text-sm text-slate-600">{description}</div>
+                <h3 id={titleId} className="mt-2 text-lg font-semibold text-foreground">{title}</h3>
+                <div id={descriptionId} className="mt-2 text-sm leading-6 text-muted-foreground">{description}</div>
 
                 {isConfirming ? (
                     <LoadingBar
@@ -119,26 +130,26 @@ export function ConfirmDialog({
                     />
                 ) : null}
 
-                <div className="mt-5 flex items-center justify-end gap-2">
-                    <button
+                <div className="mt-5 flex flex-wrap items-center justify-end gap-2">
+                    <Button
                         ref={cancelButtonRef}
                         type="button"
-                        className="rounded-lg border border-slate-300 px-3.5 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+                        variant="outline"
                         onClick={onCancel}
                         disabled={isConfirming}
                     >
                         <XMarkIcon className="mr-1.5 inline size-4 align-[-0.125em]" aria-hidden="true" />
                         {cancelLabel}
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                         type="button"
-                        className={confirmButtonClass}
+                        variant={danger ? "destructive" : "default"}
                         onClick={onConfirm}
                         disabled={isConfirming}
                     >
                         <CheckIcon className="mr-1.5 inline size-4 align-[-0.125em]" aria-hidden="true" />
                         {isConfirming ? "Đang xử lý..." : confirmLabel}
-                    </button>
+                    </Button>
                 </div>
             </div>
         </MotionPresence>

@@ -256,7 +256,7 @@ export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: b
   }
 
   return (
-    <div className="flex flex-col gap-4" data-testid="relief-workspace">
+    <div className="workspace-stack" data-testid="relief-workspace">
       <OperationsBanner eyebrow={assignmentMode ? "Điều phối lực lượng" : "Ưu tiên ứng cứu"} title={assignmentMode ? "Rõ nhiệm vụ. Sẵn sàng phối hợp." : "Tập trung vào những ca cần hỗ trợ."} description="Hàng chờ được sắp xếp theo mức độ ưu tiên. Kiểm tra vị trí, liên hệ và xác minh thông tin trước khi triển khai hỗ trợ.">
         <Badge variant={stats.awaiting > 0 ? "warning" : "outline"}>{stats.awaiting} chờ xử lý</Badge>
         <Button asChild variant="outline"><Link href="/theo-doi"><Map aria-hidden="true" />Vị trí hiện trường</Link></Button>
@@ -277,7 +277,7 @@ export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: b
                     <Icon className="size-4" aria-hidden="true" />
                   </span>
                 </div>
-                <p className="mt-2 text-3xl font-bold text-card-foreground">{value}</p>
+                <p className="mt-2 text-2xl font-bold tabular-nums text-card-foreground">{value}</p>
               </CardContent>
             </Card>
           );
@@ -287,7 +287,7 @@ export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: b
       <MotionReveal><Card className="bg-card">
         <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
           <div>
-            <h2 className="text-lg font-bold text-card-foreground">
+            <h2 className="text-base font-semibold text-card-foreground">
               {assignmentMode ? "Hàng đợi phân công vận hành" : "Hàng đợi cứu trợ"}
             </h2>
             <p className="text-sm text-muted-foreground">
@@ -296,7 +296,7 @@ export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: b
                 : "Các báo cáo hiện trường đang cần phân loại hoặc phản hồi."}
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button asChild variant="outline">
               <Link href="/trang-chu">
                 <Map data-icon="inline-start" aria-hidden="true" />
@@ -326,7 +326,7 @@ export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: b
 
       {!assignmentMode ? (
         <Card className="bg-card">
-          <CardContent className="grid gap-3 p-4">
+          <CardContent className="workspace-toolbar grid gap-4 p-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h3 className="text-base font-bold text-card-foreground">
@@ -413,7 +413,7 @@ export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: b
                 key={assignment.id}
                 className="bg-card"
               >
-                <CardContent className="grid gap-4 p-4 xl:grid-cols-[1fr_auto] xl:items-center">
+                <CardContent className="grid min-w-0 gap-4 p-4 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-start">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge variant="outline">#{assignment.report.id ?? "-"}</Badge>
@@ -426,19 +426,19 @@ export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: b
                       {assignment.title}
                     </h3>
                     <div className="mt-2 grid gap-2 text-sm text-muted-foreground md:grid-cols-3">
-                      <span className="inline-flex min-w-0 items-center gap-2">
+                      <span className="inline-flex min-w-0 items-start gap-2">
                         <UserRound className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                         <span className="truncate">{assignment.reporter}</span>
                       </span>
-                      <span className="inline-flex min-w-0 items-center gap-2">
+                      <span className="inline-flex min-w-0 items-start gap-2">
                         <Phone className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                         <span className="truncate">{assignment.contact}</span>
                       </span>
-                      <span className="inline-flex min-w-0 items-center gap-2">
+                      <span className="inline-flex min-w-0 items-start gap-2">
                         <MapPin className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-                        <span className="truncate">{assignment.location}</span>
+                        <span className="break-words">{assignment.location}</span>
                       </span>
-                      <span className="inline-flex min-w-0 items-center gap-2">
+                      <span className="inline-flex min-w-0 items-start gap-2">
                         <Clock className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                         <span className="truncate">{assignment.deadlineLabel}</span>
                       </span>
@@ -528,7 +528,7 @@ export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: b
                 </p>
               </div>
 
-              <div className="flex max-w-xl flex-wrap gap-1.5 lg:justify-end">
+              <div className="flex max-w-xl flex-wrap gap-2 border-t pt-3 lg:border-t-0 lg:pt-0 lg:justify-end">
                 {report.id ? (
                   <Button asChild variant="outline">
                     <Link href={`/bao-cao/${report.id}`}>

@@ -11,7 +11,7 @@ export function ReportSnapshot({ report }: { report: IncidentReport }) {
   return <div role="status" className="space-y-3 break-words">
     <p>Chốt dữ liệu {incidentDate(report.generatedAt)} · {report.coverage.incidentCount} sự cố · {report.coverage.complete ? "Phạm vi đầy đủ" : "Phạm vi không đầy đủ"} · {report.analytics.totalReports} báo cáo</p>
     {!report.incidents.length && <p>Không có sự cố trong kỳ báo cáo.</p>}
-    <ul className="space-y-3">{report.incidents.map(i => <li className="rounded border p-3 text-sm space-y-1" key={i.id}>
+    <ul className="space-y-3">{report.incidents.map(i => <li className="min-w-0 rounded-xl border bg-background p-4 text-sm space-y-3" key={i.id}>
       <IncidentLink id={i.id}>{i.title}</IncidentLink>
       <p>Chính thức: {SEVERITY_LABELS[i.severity]} · {STATUS_LABELS[i.status]} · Cứu trợ {i.assignee_id ? `#${i.assignee_id}` : "chưa phân công"}</p>
       <p>Ước tính ưu tiên: {SEVERITY_LABELS[i.priority.value]} — cần con người quyết định</p>
@@ -51,11 +51,11 @@ function ReportExportForm({ filters }: { filters: Filters }) {
     } catch (e) { if (!next.signal.aborted) setError(e instanceof Error ? e.message : "Không tạo được báo cáo."); }
     finally { if (!next.signal.aborted) setBusy(false); }
   }
-  return <section aria-label="Báo cáo theo yêu cầu" className="space-y-3 rounded-xl border bg-card p-4 min-w-0">
-    <h3 className="font-bold">Báo cáo theo yêu cầu</h3>
+  return <section aria-label="Báo cáo theo yêu cầu" className="workspace-section min-w-0 space-y-4">
+    <h3 className="text-base font-semibold">Báo cáo theo yêu cầu</h3>
     <p className="text-xs text-muted-foreground">Ngày/tuần ISO theo Việt Nam (UTC+7). Dùng khu vực, mức độ, trạng thái và phân công đang lọc; khoảng ngày báo cáo chọn bên dưới. Tối đa 31 ngày, 1.000 sự cố; máy chủ từ chối nếu quá lớn. Không có lịch tự động.</p>
-    <div className="grid items-end gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      <label className="grid gap-1 text-sm min-w-0">Kỳ báo cáo<select aria-label="Kỳ báo cáo" className="rounded border bg-background p-2" value={mode} onChange={e => { changed(); setMode(e.target.value); }}><option value="day">Ngày</option><option value="week">Tuần ISO</option><option value="area">Khu vực / khoảng ngày</option></select></label>
+    <div className="workspace-toolbar grid items-end gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <label className="grid gap-1 text-sm min-w-0">Kỳ báo cáo<select aria-label="Kỳ báo cáo" className="min-h-11 rounded-xl border border-input bg-background px-3 py-2 focus-visible:outline-2 focus-visible:outline-ring" value={mode} onChange={e => { changed(); setMode(e.target.value); }}><option value="day">Ngày</option><option value="week">Tuần ISO</option><option value="area">Khu vực / khoảng ngày</option></select></label>
       {mode === "week" ? <label className="grid gap-1 text-sm min-w-0">Tuần ISO<Input type="week" value={week} onChange={e => { changed(); setWeek(e.target.value); }} /></label> : <label className="grid gap-1 text-sm min-w-0">Ngày báo cáo<Input type="date" value={date} onChange={e => { changed(); setDate(e.target.value); }} /></label>}
       {mode === "area" && <label className="grid gap-1 text-sm min-w-0">Ngày kết thúc báo cáo<Input type="date" value={end} min={date} onChange={e => { changed(); setEnd(e.target.value); }} /></label>}
       <Button disabled={busy} onClick={() => void generate()}>Tổng hợp báo cáo</Button><Button variant="outline" disabled={busy} onClick={() => void generate(true)}>Tải PDF có xác thực</Button>

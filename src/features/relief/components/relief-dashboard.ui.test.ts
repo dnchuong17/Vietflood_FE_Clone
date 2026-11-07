@@ -8,6 +8,12 @@ const source = readFileSync(
 );
 
 describe("relief dashboard UI", () => {
+  it("wraps operational locations instead of truncating the destination", () => {
+    expect(source).toContain('<span className="break-words">{assignment.location}</span>');
+    expect(source).not.toContain('<span className="truncate">{assignment.location}</span>');
+    expect(source).toContain("minmax(0,1fr)_auto");
+  });
+
   it("uses shadcn cards, badges, buttons, and semantic colors", () => {
     expect(source).toContain("@/components/ui/card");
     expect(source).toContain("@/components/ui/badge");

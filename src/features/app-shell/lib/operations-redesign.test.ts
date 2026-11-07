@@ -24,7 +24,7 @@ describe("operations redesign", () => {
     expect((html.match(/checked=""/g) ?? []).length).toBe(1);
     const selectedRadio = html.match(/<input[^>]*type="radio"[^>]*checked=""[^>]*>/)?.[0];
     expect(selectedRadio).toContain('value="wind"');
-    expect(html).toContain("<fieldset>");
+    expect(html).toMatch(/<fieldset(?:\s[^>]*)?>/);
     expect(html).toContain("<legend");
     expect(html).toContain('role="switch"');
     expect(html).toContain('id="weather-statistics"');

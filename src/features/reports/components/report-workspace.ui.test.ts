@@ -5,6 +5,18 @@ import { describe, expect, it } from "vitest";
 const source = readFileSync(new URL("./report-workspace.tsx", import.meta.url), "utf8");
 
 describe("report workspace UI", () => {
+  it("prioritizes report location before narrative and preserves a readable narrow layout", () => {
+    const cards = source.slice(source.indexOf("filteredReports.map"));
+    expect(cards.indexOf("addressText(report)")).toBeLessThan(cards.indexOf('report.description || "Chưa có mô tả."'));
+    expect(cards).toContain("min-w-0 break-words");
+    expect(cards).toContain("formatReportDateTime(report.createdAt ?? report.created_at)");
+    expect(cards).toContain('report.isUrgent ? <Badge variant="critical">Khẩn cấp</Badge>');
+    expect(source).toContain('<fieldset className="min-w-0">');
+    expect(source).toMatch(/<legend[^>]*>[\s\S]*?Loại báo cáo[\s\S]*?<\/legend>/);
+    expect(source).not.toContain("bg-white");
+    expect(source).not.toContain("text-slate-");
+  });
+
   it("uses shared shadcn primitives for filters, forms, and actions", () => {
     expect(source).toContain("@/components/ui/button");
     expect(source).toContain("@/components/ui/input");
@@ -21,23 +33,22 @@ describe("report workspace UI", () => {
   });
 
   it("wires v2 province and ward suggestions into the report form", () => {
-    expect(source).toContain("@/features/location/api/vietnam-divisions");
-    expect(source).toContain("searchProvinces(values.province)");
-    expect(source).toContain("searchWards(selectedProvinceCode, values.ward)");
+    expect(source).toContain("@/features/location/components/vietnam-address-picker");
+    expect(source).toContain("<VietnamAddressPicker");
+    expect(source).toContain("requiredProvince");
     expect(source).toContain("@/features/reports/lib/address-suggestions");
     expect(source).not.toContain('formData.append("district"');
   });
 
   it("shows selected province and ward state in the location picker", () => {
-    expect(source).toContain('data-location-step="province"');
-    expect(source).toContain('data-location-step="ward"');
-    expect(source).toContain("Chọn tỉnh/thành phố trước");
-    expect(source).toContain("visibleProvinceOptions");
-    expect(source).toContain("visibleWardOptions");
+    expect(source).toContain('idPrefix="report"');
+    expect(source).toContain("value={{ province: values.province, ward: values.ward }}");
+    expect(source).toContain("onChange={updateAddress}");
+    expect(source).not.toContain("visibleProvinceOptions");
+    expect(source).not.toContain("visibleWardOptions");
     expect(source).toContain('data-location-summary="selected"');
     expect(source).toContain("selectedLocationParts");
-    expect(source).toContain("Tỉnh/Thành phố đã chọn");
-    expect(source).toContain("Phường/Xã đã chọn");
+    expect(source).toContain('key={`edit-report-${editingReport.id}`}');
   });
 
   it("tracks manual location edits while keeping GPS coordinates internal", () => {

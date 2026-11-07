@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const PROVINCES_CACHE_KEY = "vietflood.divisions.v2.provinces";
 const WARDS_CACHE_KEY = "vietflood.divisions.v2.wards";
@@ -41,6 +41,7 @@ async function loadClient() {
 }
 
 describe("Vietnam divisions cache", () => {
+  afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
   beforeEach(() => {
     vi.resetModules();
     vi.restoreAllMocks();
@@ -191,5 +192,61 @@ describe("Vietnam divisions cache", () => {
     expect(JSON.parse(window.localStorage.getItem(PROVINCES_CACHE_KEY) ?? "{}")).toEqual(
       expect.objectContaining({ schemaVersion: 2, data: provinces }),
     );
+  });
+
+  it.each([[], {}, [{ code: 1, name: " " }], [{ code: -1, name: "Bad" }], [{ code: 1.5, name: "Bad" }], [{ code: 1, name: "Good" }, { code: 1, name: "Duplicate" }], [{ code: 1, name: "Good" }, null]].map((payload) => [payload]))("rejects invalid/empty provider data %j without caching it", async (payload) => {
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, json: async () => payload })));
+    const client = await loadClient();
+    await expect(client.retryVietnamDivisions("provinces")).rejects.toThrow("không hợp lệ");
+    expect(window.localStorage.getItem(PROVINCES_CACHE_KEY)).toBeNull();
+  });
+
+  it("requires valid ward parents and never replaces a good cache on failure", async () => {
+    const fetchMock = createFetchMock();
+    vi.stubGlobal("fetch", fetchMock);
+    const client = await loadClient();
+    await client.prefetchVietnamDivisions();
+    const before = window.localStorage.getItem(WARDS_CACHE_KEY);
+    fetchMock.mockImplementation(async () => ({ ok: true, json: async () => [{ code: 5, name: "Phường lạ" }] }));
+    await expect(client.retryVietnamDivisions("wards")).rejects.toThrow("không hợp lệ");
+    expect(window.localStorage.getItem(WARDS_CACHE_KEY)).toBe(before);
+    await expect(client.searchWards(48)).resolves.toHaveLength(1);
+  });
+
+  it("rejects fresh but empty/malformed caches, then permits a retry after outage", async () => {
+    window.localStorage.setItem(PROVINCES_CACHE_KEY, JSON.stringify({ schemaVersion: 2, fetchedAt: Date.now(), data: [] }));
+    const fetchMock = vi.fn().mockRejectedValue(new Error("offline"));
+    vi.stubGlobal("fetch", fetchMock);
+    const client = await loadClient();
+    await expect(client.retryVietnamDivisions("provinces")).rejects.toThrow("offline");
+    fetchMock.mockImplementation(createFetchMock());
+    await expect(client.searchProvinces("TP.HCM")).resolves.toEqual([provinces[1]]);
+  });
+
+  it("explicit retry bypasses a fresh cache and deduplicates concurrent retries", async () => {
+    vi.stubGlobal("fetch", createFetchMock());
+    const client = await loadClient();
+    await client.prefetchVietnamDivisions();
+    const updated = [{ code: 1, name: "Thành phố Hà Nội" }];
+    const fetchMock = vi.fn(async () => ({ ok: true, json: async () => updated }));
+    vi.stubGlobal("fetch", fetchMock);
+    await Promise.all([client.retryVietnamDivisions("provinces"), client.retryVietnamDivisions("provinces")]);
+    await expect(client.searchProvinces("HN")).resolves.toEqual(updated);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("bounds an unresponsive transport, aborts it, then permits fresh retry", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn(() => new Promise<never>(() => {}));
+    vi.stubGlobal("fetch", fetchMock);
+    const client = await loadClient();
+    const request = client.retryVietnamDivisions("provinces");
+    const rejection = expect(request).rejects.toThrow("Hết thời gian");
+    await vi.advanceTimersByTimeAsync(client.DIVISIONS_REQUEST_TIMEOUT_MS);
+    await rejection;
+    const call = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(call[1].signal?.aborted).toBe(true);
+    vi.stubGlobal("fetch", createFetchMock());
+    await expect(client.retryVietnamDivisions("provinces")).resolves.toEqual(provinces);
   });
 });

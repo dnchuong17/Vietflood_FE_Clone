@@ -284,8 +284,8 @@ export function ReportDetail({ reportId }: { reportId: string }) {
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="workspace-stack">
+      <div className="workspace-toolbar flex flex-wrap items-center justify-between gap-3">
         <Button asChild variant="outline">
           <Link href="/bao-cao">
             <ArrowLeft data-icon="inline-start" aria-hidden="true" />
@@ -303,7 +303,7 @@ export function ReportDetail({ reportId }: { reportId: string }) {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
               <CardDescription>Báo cáo #{report.id ?? "-"}</CardDescription>
-              <CardTitle className="mt-2 leading-tight">
+              <CardTitle className="workspace-title mt-2 break-words">
                 {getReportTitle(report)}
               </CardTitle>
             </div>
@@ -320,12 +320,12 @@ export function ReportDetail({ reportId }: { reportId: string }) {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="flex flex-col gap-4">
+        <CardContent className="workspace-stack">
           <p className="text-sm leading-6 text-muted-foreground">
             {report.description || "Chưa có mô tả."}
           </p>
 
-          <div className="grid gap-3 md:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <DetailMetric label="Loại báo cáo" value={categoryText(report)} />
             <DetailMetric
               label="Mức độ"
@@ -367,7 +367,7 @@ export function ReportDetail({ reportId }: { reportId: string }) {
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -378,7 +378,7 @@ export function ReportDetail({ reportId }: { reportId: string }) {
               Địa chỉ, tọa độ và thao tác dẫn đường cho đội cứu trợ.
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-4">
+          <CardContent className="workspace-stack">
             <div className="rounded-lg border bg-muted/30 p-4">
               <p className="text-sm font-semibold text-foreground">
                 {buildReportAddress(report) || "Chưa có địa chỉ"}
@@ -471,7 +471,7 @@ export function ReportDetail({ reportId }: { reportId: string }) {
 
 function DetailMetric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border bg-background p-3">
+    <div className="min-w-0 border-t border-border py-3">
       <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
         {label}
       </p>

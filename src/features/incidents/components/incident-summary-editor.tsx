@@ -33,19 +33,19 @@ export function IncidentSummaryEditor({ incident, admin, onSaved }: { incident: 
     finally { setBusy(false); }
   }
   const edit = incident.editorialSummary;
-  return <section className="rounded-xl border bg-card p-4 space-y-3 break-words" aria-label="Biên tập tóm tắt Admin">
-    <h3 className="font-bold">Tóm tắt biên tập của Admin</h3>
+  return <section className="workspace-section min-w-0 space-y-4 break-words" aria-label="Biên tập tóm tắt Admin">
+    <h3 className="text-base font-semibold">Tóm tắt biên tập của Admin</h3>
     <p className="text-xs text-muted-foreground">Tách biệt với AI và mức độ chính thức; không sửa báo cáo gốc. Phiên bản bằng chứng {incident.evidence_version}.</p>
-    {edit ? <article className="rounded border p-3"><h4 className="font-semibold">{edit.title}</h4><p className="whitespace-pre-wrap text-sm">{edit.body}</p><EditProvenance edit={edit} />{(edit.stale || edit.pipeline !== "incidents-v2" || edit.evidenceVersion !== incident.evidence_version) && <p className="text-sm text-amber-700 dark:text-amber-300">Bản biên tập cũ — cần đối chiếu bằng chứng mới / pipeline mới.</p>}</article> : <p className="text-sm">Chưa có bản biên tập Admin.</p>}
-    {admin && !incident.merged_into && <details><summary className="cursor-pointer text-sm font-semibold">Biên tập tóm tắt</summary><div className="mt-3 grid gap-3">
+    {edit ? <article className="space-y-3 rounded-xl border bg-background p-4"><h4 className="font-semibold">{edit.title}</h4><p className="whitespace-pre-wrap text-sm">{edit.body}</p><EditProvenance edit={edit} />{(edit.stale || edit.pipeline !== "incidents-v2" || edit.evidenceVersion !== incident.evidence_version) && <p className="text-sm text-amber-700 dark:text-amber-300">Bản biên tập cũ — cần đối chiếu bằng chứng mới / pipeline mới.</p>}</article> : <p className="text-sm">Chưa có bản biên tập Admin.</p>}
+    {admin && !incident.merged_into && <details><summary className="cursor-pointer text-sm font-semibold">Biên tập tóm tắt</summary><div className="mt-4 grid gap-4 border-t border-border pt-4">
       <div className="grid gap-1 text-sm"><label htmlFor={`${id}-title`}>Tiêu đề biên tập</label><Input id={`${id}-title`} value={title} minLength={3} maxLength={200} onChange={e => setTitle(e.target.value)} /></div>
-      <div className="grid gap-1 text-sm"><label htmlFor={`${id}-body`}>Nội dung biên tập</label><textarea id={`${id}-body`} className="rounded border bg-background p-2 min-h-28" value={body} minLength={3} maxLength={4000} onChange={e => setBody(e.target.value)} /></div>
+      <div className="grid gap-1 text-sm"><label htmlFor={`${id}-body`}>Nội dung biên tập</label><textarea id={`${id}-body`} className="min-h-36 rounded-xl border border-input bg-background p-3 text-sm leading-6 focus-visible:outline-2 focus-visible:outline-ring" value={body} minLength={3} maxLength={4000} onChange={e => setBody(e.target.value)} /></div>
       <div className="grid gap-1 text-sm"><label htmlFor={`${id}-reason`}>Lý do biên tập</label><Input id={`${id}-reason`} value={reason} minLength={3} maxLength={1000} onChange={e => setReason(e.target.value)} /></div>
       <Button disabled={busy || title.trim().length < 3 || title.trim().length > 200 || body.trim().length < 3 || body.trim().length > 4000 || reason.trim().length < 3} onClick={() => void save()}>Lưu bản biên tập</Button>
     </div></details>}
     {error && <p role="alert" className="text-sm text-destructive">{error}</p>}{saved && <p role="status">Đã lưu bản biên tập; lịch sử đã được tải lại.</p>}
     <Button variant="outline" onClick={() => void load()}>Xem lịch sử biên tập</Button>
-    {history && <ol className="space-y-2">{history.items.map(item => <li key={item.id} className="border-l-2 pl-3 text-sm"><strong>{item.title}</strong><p className="whitespace-pre-wrap">{item.body}</p><EditProvenance edit={item} />{item.stale && <p className="text-xs">Bản biên tập cũ</p>}</li>)}{!history.items.length && <li>Chưa có lịch sử biên tập.</li>}</ol>}
+    {history && <ol className="space-y-4">{history.items.map(item => <li key={item.id} className="border-l-2 pl-3 text-sm"><strong>{item.title}</strong><p className="whitespace-pre-wrap">{item.body}</p><EditProvenance edit={item} />{item.stale && <p className="text-xs">Bản biên tập cũ</p>}</li>)}{!history.items.length && <li>Chưa có lịch sử biên tập.</li>}</ol>}
     {history?.nextCursor && <Button variant="ghost" onClick={() => void load(history.nextCursor!)}>Tải thêm biên tập</Button>}
   </section>;
 }

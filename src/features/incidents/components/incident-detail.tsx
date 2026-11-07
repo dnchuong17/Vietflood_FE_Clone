@@ -254,7 +254,7 @@ export function IncidentDetail({ incidentId }: { incidentId: string }) {
     incident?.facts.filter((f) => f.provenance === "verified").map((f) => f.id),
   );
   return (
-    <div className="space-y-5">
+    <div className="workspace-stack">
       <Link
         href="/cuu-tro"
         className="inline-flex items-center gap-2 text-sm font-semibold text-primary"
@@ -292,9 +292,9 @@ export function IncidentDetail({ incidentId }: { incidentId: string }) {
               </AlertDescription>
             </Alert>
           ) : null}
-          <div className="flex flex-wrap justify-between gap-3">
+          <div className="workspace-header flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-bold">{incident.title}</h2>
+              <h2 className="workspace-title break-words">{incident.title}</h2>
               <p className="mb-3 mt-2 text-sm text-muted-foreground">
                 {incident.address || "Chưa xác định vị trí"} ·{" "}
                 {incident.reportCount} báo cáo
@@ -306,8 +306,8 @@ export function IncidentDetail({ incidentId }: { incidentId: string }) {
               Cập nhật
             </Button>
           </div>
-          <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
-            <div className="space-y-5 min-w-0">
+          <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
+            <div className="workspace-stack min-w-0">
               {incident.analysisRequired && <p role="status" className="rounded border p-3 text-sm">Phân tích cũ / chờ phân tích lại với incidents-v2. Không coi bằng chứng cũ là đã xác minh hiện hành.</p>}
               <PriorityEvidence priority={incident.priority} onSource={id=>void revealSource(id)} />
               <IncidentSummaryEditor key={incident.id} incident={incident} admin={admin} onSaved={refresh}/>
@@ -321,7 +321,7 @@ export function IncidentDetail({ incidentId }: { incidentId: string }) {
                   </p>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-3 gap-3 text-center">
+                  <div className="grid gap-3 text-center sm:grid-cols-3">
                     {[
                       ["Đường bị chặn", incident.blockedRoadReports],
                       ["Người mắc kẹt", incident.strandedPeopleReports],
@@ -370,7 +370,7 @@ export function IncidentDetail({ incidentId }: { incidentId: string }) {
                         verifiedIds={verifiedIds}
                         onSource={(id) => void revealSource(id)}
                       />
-                      <p className="text-sm">
+                      <div className="text-sm">
                         AI đề xuất mức độ:{" "}
                         <strong>
                           {
@@ -382,7 +382,7 @@ export function IncidentDetail({ incidentId }: { incidentId: string }) {
                         <Badge variant="outline">
                           Ước tính, chưa phải quyết định
                         </Badge>
-                      </p>
+                      </div>
                       <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
                         <h3 className="font-semibold">
                           Khuyến nghị để người phụ trách xem xét
@@ -418,10 +418,10 @@ export function IncidentDetail({ incidentId }: { incidentId: string }) {
               </Card>
               <section
                 aria-labelledby="source-reports-title"
-                className="space-y-3"
+                className="workspace-stack"
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h3 id="source-reports-title" className="text-lg font-bold">
+                  <h3 id="source-reports-title" className="text-base font-semibold">
                     Báo cáo gốc · {incident.reportCount}
                   </h3>
                   {admin ? (
@@ -512,7 +512,7 @@ export function IncidentDetail({ incidentId }: { incidentId: string }) {
                 </CardContent>
               </Card>
             </div>
-            <aside className="space-y-5">
+            <aside className="workspace-stack min-w-0">
               <Card>
                 <CardHeader>
                   <CardTitle>Vị trí đại diện</CardTitle>

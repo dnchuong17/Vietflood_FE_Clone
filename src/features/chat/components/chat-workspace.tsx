@@ -15,6 +15,7 @@ import Link from "next/link";
 import { createPortal } from "react-dom";
 import {
   ArrowDownIcon,
+  ArrowUpIcon,
   ArrowPathIcon,
   CheckIcon,
   ChatBubbleLeftRightIcon,
@@ -23,6 +24,10 @@ import {
   PlusIcon,
   PaperClipIcon,
   MapPinIcon,
+  MagnifyingGlassIcon,
+  ShieldCheckIcon,
+  DocumentTextIcon,
+  ExclamationTriangleIcon,
   Squares2X2Icon,
   TrashIcon,
   XMarkIcon,
@@ -47,10 +52,22 @@ import { EvidenceReply } from "./evidence-reply";
 
 const MESSAGE_LIMIT = 2000;
 const STARTER_PROMPTS = [
+  "Tạo báo cáo ngập lụt",
   "Tôi cần chuẩn bị gì trước lũ?",
-  "Làm sao để báo cáo điểm ngập?",
-  "Tôi xem trạng thái báo cáo ở đâu?",
+  "Làm gì khi nước bắt đầu dâng?",
 ];
+const STARTER_DETAILS = [
+  "Ghi nhận tình hình tại khu vực của bạn.",
+  "Lên kế hoạch và chuẩn bị vật dụng cần thiết.",
+  "Tìm hiểu cách ứng phó và giữ an toàn.",
+];
+const STARTER_ICONS = [DocumentTextIcon, ShieldCheckIcon, ExclamationTriangleIcon];
+
+export function filterLoadedSessions(sessions: ChatSession[], query: string): ChatSession[] {
+  const normalize = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D").toLocaleLowerCase("vi-VN");
+  const term = normalize(query.trim());
+  return term ? sessions.filter((session) => normalize(session.title || "Cuộc trò chuyện mới").includes(term)) : sessions;
+}
 
 function formatTime(value: string | null): string {
   if (!value) return "";
@@ -89,7 +106,8 @@ export function ChatWorkspace() {
   const [reportEvidence, setReportEvidence] = useState<File[]>([]);
   const [reportLocation, setReportLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [clearReportLocation, setClearReportLocation] = useState(false);
-  // Attachments stay device-only until confirmation and belong to one proposal.
+  // Device-only files/GPS belong to the proposal, not the history selection.
+  // Keep references in this mounted workspace; never upload/store them early.
   const reportAttachmentDraftsRef = useRef(new Map<string, {
     actionId: string;
     evidence: File[];
@@ -102,6 +120,10 @@ export function ChatWorkspace() {
   const [isLoadingMoreSessions, setIsLoadingMoreSessions] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [historySearch, setHistorySearch] = useState("");
+  const [actionDecision, setActionDecision] = useState<"confirm" | "cancel" | null>(null);
+  const [locationStatus, setLocationStatus] = useState<"idle" | "requesting" | "unavailable">("idle");
+  const locationRequestRef = useRef(0);
   const [error, setError] = useState<string | null>(null);
   const [errorAction, setErrorAction] = useState<"sessions" | "messages" | "older" | "send" | "delete" | null>(null);
   const [retryDraft, setRetryDraft] = useState<string | null>(null);
@@ -224,7 +246,7 @@ export function ChatWorkspace() {
     const dialog = historyDialogRef.current;
     const trigger = historyTriggerRef.current;
     const focusable = () => Array.from(dialog?.querySelectorAll<HTMLElement>(
-      'button:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
+      'button:not([disabled]), input:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
     ) ?? []);
     focusable()[0]?.focus();
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -305,6 +327,9 @@ export function ChatWorkspace() {
   };
 
   const startNewChat = () => {
+    locationRequestRef.current += 1;
+    setLocationStatus("idle");
+    setHistorySearch("");
     activeSessionRef.current = null;
     shouldFollowRef.current = true;
     setIsAtBottom(true);
@@ -326,6 +351,8 @@ export function ChatWorkspace() {
   };
 
   const openSession = async (session: ChatSession) => {
+    locationRequestRef.current += 1;
+    setLocationStatus("idle");
     activeSessionRef.current = session.sessionId;
     shouldFollowRef.current = true;
     setIsAtBottom(true);
@@ -504,6 +531,7 @@ export function ChatWorkspace() {
     setIsSending(true);
     setError(null);
     setErrorAction(null);
+    setActionDecision(decision);
     setMessages((current) => [...current, {
       id: clientMessageId, role: "user", kind: "legacy", content: text, createdAt: new Date().toISOString(),
     }]);
@@ -548,18 +576,25 @@ export function ChatWorkspace() {
       setError(errorMessage(decisionError));
       setErrorAction("messages");
     } finally {
+      setActionDecision(null);
       setIsSending(false);
     }
   };
 
   const requestReportLocation = async () => {
+    const requestId = ++locationRequestRef.current;
+    setLocationStatus("requesting");
     try {
-      const position = await getDeviceLocation();
-      setReportLocation({ latitude: position.coords.latitude, longitude: position.coords.longitude });
-      setClearReportLocation(false);
-      setError(null);
+        const position = await getDeviceLocation();
+        if (requestId !== locationRequestRef.current) return;
+        setLocationStatus("idle");
+        setReportLocation({ latitude: position.coords.latitude, longitude: position.coords.longitude });
+        setClearReportLocation(false);
+        setError(null);
     } catch (error) {
-      setError(getDeviceLocationError(error));
+        if (requestId !== locationRequestRef.current) return;
+        setLocationStatus("unavailable");
+        setError(getDeviceLocationError(error));
     }
   };
 
@@ -611,7 +646,6 @@ export function ChatWorkspace() {
     setErrorAction(null);
     try {
       await deleteChatSession(sessionToDelete.sessionId);
-      reportAttachmentDraftsRef.current.delete(sessionToDelete.sessionId);
       setSessions((current) => current.filter((item) => item.sessionId !== sessionToDelete.sessionId));
       if (activeSessionId === sessionToDelete.sessionId) startNewChat();
       setSessionToDelete(null);
@@ -629,6 +663,7 @@ export function ChatWorkspace() {
   };
 
   const activeSession = sessions.find((session) => session.sessionId === activeSessionId);
+  const filteredSessions = filterLoadedSessions(sessions, historySearch);
   const retryError = () => {
     if (errorAction === "sessions") void loadSessions();
     if (errorAction === "messages" && activeSession) void openSession(activeSession);
@@ -639,22 +674,27 @@ export function ChatWorkspace() {
 
   const historyPanel = (mobile: boolean) => (
     <>
-      <div className="flex items-start justify-between gap-3 border-b border-border/70 px-5 py-5">
+      <div className="flex items-start justify-between gap-3 border-b border-border px-4 py-4">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">VietFlood</p>
-          <h2 className="mt-1 text-lg font-bold tracking-tight text-sidebar-foreground">Lịch sử trò chuyện</h2>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Không gian hỗ trợ</p>
+          <h2 className="mt-1 text-sm font-semibold text-sidebar-foreground">Lịch sử trò chuyện</h2>
         </div>
         {mobile ? (
-          <Button type="button" variant="ghost" size="icon" className="size-11 shrink-0" onClick={() => setIsHistoryOpen(false)} aria-label="Đóng lịch sử">
+          <Button data-testid="chat-history-close" type="button" variant="ghost" size="icon" className="size-11 shrink-0" onClick={() => setIsHistoryOpen(false)} aria-label="Đóng lịch sử">
             <XMarkIcon className="size-5" aria-hidden="true" />
           </Button>
         ) : null}
       </div>
-      <div className="px-4 py-4">
-        <Button data-testid="chat-new-conversation" className="h-11 w-full justify-start rounded-xl" onClick={startNewChat} disabled={isSending}>
+      <div className="space-y-3 px-3 py-3">
+        <Button data-testid="chat-new-conversation" className="h-11 w-full justify-start rounded-[10px]" onClick={startNewChat} disabled={isSending}>
           <PlusIcon className="size-4" aria-hidden="true" />
           Cuộc trò chuyện mới
         </Button>
+        <label className={styles.historySearch}>
+          <MagnifyingGlassIcon className="size-4 shrink-0" aria-hidden="true" />
+          <input data-testid="chat-history-search" type="search" value={historySearch} onChange={(event) => setHistorySearch(event.target.value)} placeholder="Tìm cuộc trò chuyện" aria-label="Tìm trong lịch sử đã tải" />
+        </label>
+        {sessionsCursor ? <p className="text-xs leading-5 text-muted-foreground">Chỉ tìm trong lịch sử đã tải. Tải thêm để tìm các hội thoại cũ hơn.</p> : null}
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-4" aria-busy={isLoadingSessions}>
         <p className="mb-2 px-2 text-xs font-semibold text-muted-foreground">Gần đây</p>
@@ -662,11 +702,11 @@ export function ChatWorkspace() {
           <div className="space-y-2 px-1" role="status" aria-label="Đang tải lịch sử">
             {[0, 1, 2].map((item) => <div key={item} className="h-16 animate-pulse rounded-xl bg-muted motion-reduce:animate-none" />)}
           </div>
-        ) : sessions.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-border px-4 py-5 text-sm leading-6 text-muted-foreground">Chưa có cuộc trò chuyện nào. Hãy bắt đầu bằng một câu hỏi.</p>
+        ) : filteredSessions.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-border px-4 py-5 text-sm leading-6 text-muted-foreground" role="status">{historySearch.trim() ? "Không tìm thấy cuộc trò chuyện trong lịch sử đã tải. Thử từ khóa khác." : "Chưa có cuộc trò chuyện nào. Hãy bắt đầu bằng một câu hỏi."}</p>
         ) : (
           <ul className="space-y-1.5">
-            {sessions.map((session) => (
+            {filteredSessions.map((session) => (
               <li key={session.sessionId}>
                 <div className={cn(
                   "group flex min-h-16 items-center gap-1 rounded-xl border-l-2 pl-3 pr-1 transition-colors",
@@ -696,7 +736,7 @@ export function ChatWorkspace() {
   );
 
   return (
-    <section className={cn(styles.chatFrame, "relative grid grid-cols-1 overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm lg:grid-cols-[300px_minmax(0,1fr)]")} aria-label="Trợ lý VietFlood">
+    <section data-testid="chat-workspace" className={cn(styles.chatFrame, "relative grid grid-cols-1 overflow-hidden rounded-2xl border border-border bg-card lg:grid-cols-[260px_minmax(0,1fr)]")} aria-label="Trợ lý VietFlood">
       <aside className="hidden min-h-0 flex-col border-r border-border/70 bg-sidebar lg:flex" aria-label="Lịch sử hội thoại">
         {historyPanel(false)}
       </aside>
@@ -709,14 +749,14 @@ export function ChatWorkspace() {
       </MotionPresence>
 
       <div className="flex min-h-0 min-w-0 flex-col">
-        <header className="flex min-h-[76px] items-center justify-between gap-3 border-b border-border/70 px-3 sm:px-6">
+        <header className="flex min-h-16 items-center justify-between gap-3 border-b border-border px-4 py-3 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
-            <Button ref={historyTriggerRef} variant="ghost" size="icon" className="size-11 shrink-0 lg:hidden" onClick={() => setIsHistoryOpen(true)} aria-label="Mở lịch sử hội thoại" aria-expanded={isHistoryOpen}>
+            <Button data-testid="chat-history-toggle" ref={historyTriggerRef} variant="ghost" size="icon" className="size-11 shrink-0 lg:hidden" onClick={() => setIsHistoryOpen(true)} aria-label="Mở lịch sử hội thoại" aria-expanded={isHistoryOpen}>
               <Squares2X2Icon aria-hidden="true" />
             </Button>
             <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><ChatBubbleLeftRightIcon className="size-5" aria-hidden="true" /></span>
             <div className="min-w-0">
-              <h1 className="truncate text-base font-bold tracking-tight sm:text-lg">Trợ lý VietFlood</h1>
+              <h1 className="truncate text-base font-semibold tracking-tight">Trợ lý VietFlood</h1>
               <p className="truncate text-xs text-muted-foreground">{activeSession?.title || "Hỏi đáp về an toàn lũ và dịch vụ VietFlood"}</p>
             </div>
           </div>
@@ -732,7 +772,7 @@ export function ChatWorkspace() {
         ) : null}
 
         <div className="relative min-h-0 flex-1">
-          <div ref={messageListRef} className="h-full overflow-y-auto bg-background/50 px-4 py-6 sm:px-8 sm:py-8" aria-label="Tin nhắn hội thoại">
+          <div ref={messageListRef} className="h-full overflow-y-auto overscroll-contain bg-background/40 px-3 py-5 sm:px-6 sm:py-6" aria-label="Tin nhắn hội thoại">
             {activeSessionId && messagesCursor ? (
               <div className="mb-7 flex justify-center">
                 <Button variant="outline" className="min-h-11 rounded-xl" onClick={() => void loadOlderMessages()} disabled={isLoadingOlderMessages}>
@@ -748,18 +788,23 @@ export function ChatWorkspace() {
                 <div className="h-24 w-2/3 animate-pulse rounded-2xl bg-muted motion-reduce:animate-none" />
               </div>
             ) : messages.length === 0 ? (
-              <div className={cn(styles.waterlines, "relative mx-auto flex min-h-full max-w-2xl flex-col items-center justify-center overflow-hidden rounded-2xl px-4 py-8 text-center sm:px-8")}>
-                <div className="relative z-10 flex w-full min-w-0 flex-col items-center">
-                  <span className="mb-5 flex size-14 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary"><ChatBubbleLeftRightIcon className="size-7" aria-hidden="true" /></span>
-                  <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Bạn cần biết gì về lũ?</h2>
-                  <p className="mt-3 max-w-md text-sm leading-6 text-muted-foreground">Hỏi cách chuẩn bị, xử lý tình huống an toàn hoặc xem thông tin báo cáo của bạn.</p>
-                  <div className="mt-6 flex w-full max-w-full snap-x snap-mandatory gap-2 overflow-x-auto pb-1 sm:grid sm:grid-cols-2 sm:overflow-visible">
-                    {STARTER_PROMPTS.map((prompt, index) => (
-                      <button key={prompt} type="button" onClick={() => { setDraft(prompt); textareaRef.current?.focus({ preventScroll: true }); }} className={cn("min-h-12 min-w-[230px] flex-none snap-start rounded-xl border border-border bg-card/95 px-4 py-3 text-left text-sm font-medium leading-5 text-foreground shadow-sm transition-colors hover:border-primary/50 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-w-0", index === 0 ? "sm:col-span-2" : "")}>
-                        {prompt}
-                      </button>
-                    ))}
+              <div className={styles.emptyState}>
+                <div className="flex w-full min-w-0 flex-col items-center">
+                  <span className={styles.emptyIcon}><ChatBubbleLeftRightIcon className="size-7" aria-hidden="true" /></span>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-primary">An toàn · Chuẩn bị · Ứng phó</p>
+                  <h2 className="workspace-title text-center">Cùng bạn chủ động trước lũ</h2>
+                  <p className="mt-3 max-w-md text-sm leading-6 text-muted-foreground">Bắt đầu từ một câu hỏi hoặc ghi nhận tình hình ngập lụt tại khu vực của bạn.</p>
+                  <div className={styles.starterGrid}>
+                    {STARTER_PROMPTS.map((prompt, index) => {
+                      const Icon = STARTER_ICONS[index];
+                      return <button data-testid={index === 0 ? "chat-prompt-create-report" : undefined} key={prompt} type="button" onClick={() => { setDraft(prompt); textareaRef.current?.focus({ preventScroll: true }); }} className={styles.starterCard}>
+                        <Icon className="size-5 text-primary" aria-hidden="true" />
+                        <span className="text-sm font-semibold leading-5">{prompt}</span>
+                        <span className="text-xs leading-5 text-muted-foreground">{STARTER_DETAILS[index]}</span>
+                      </button>;
+                    })}
                   </div>
+                  <p className="mt-4 text-xs leading-5 text-muted-foreground">Chọn gợi ý để soạn tin nhắn. Bạn có thể chỉnh sửa trước khi gửi.</p>
                 </div>
               </div>
             ) : (
@@ -769,9 +814,9 @@ export function ChatWorkspace() {
                   const feedback = copyFeedback?.id === message.id ? copyFeedback.text : null;
                   return (
                     <article key={message.id} data-chat-message-id={message.id} className={cn("flex gap-2.5 sm:gap-3", isUser ? "justify-end" : "justify-start")}>
-                      {!isUser ? <span className="mt-1 flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><ChatBubbleLeftRightIcon className="size-4" aria-hidden="true" /></span> : null}
-                      <div className={cn("min-w-0 max-w-[88%] sm:max-w-[76%]", isUser ? "text-right" : "text-left")}>
-                        <div className={cn("inline-block rounded-2xl px-4 py-3 text-left text-sm leading-6 shadow-sm sm:px-5", isUser ? "rounded-br-md bg-primary text-primary-foreground" : "rounded-bl-md border border-border bg-card text-card-foreground")}>
+                      {!isUser ? <span className="mt-1 flex size-8 shrink-0 items-center justify-center rounded-[10px] border border-border bg-card text-primary"><ChatBubbleLeftRightIcon className="size-4" aria-hidden="true" /></span> : null}
+                      <div className={cn("min-w-0", isUser ? "max-w-[88%] text-right sm:max-w-[80%]" : "flex-1 text-left")}>
+                        <div className={cn("rounded-xl px-4 py-3 text-left text-sm leading-6", isUser ? "rounded-br-md bg-primary text-primary-foreground" : "border border-border bg-card text-card-foreground")}>
                           <EvidenceReply message={message} />
                         </div>
                         <div className={cn("mt-1.5 flex min-h-11 items-center gap-2 px-1 text-xs text-muted-foreground", isUser ? "justify-end" : "justify-start")}>
@@ -787,17 +832,7 @@ export function ChatWorkspace() {
                     </article>
                   );
                 })}
-                {pendingAction?.status === "collecting" ? (
-                  <p className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm leading-6 text-muted-foreground" role="status">
-                    Thao tác đang chờ thêm thông tin. Hãy nhập thông tin còn thiếu vào ô bên dưới.
-                  </p>
-                ) : null}
-                {pendingAction?.status === "awaiting_confirmation" ? (
-                  <div className="flex flex-wrap gap-2 rounded-xl border border-primary/20 bg-primary/5 p-3" aria-label="Xác nhận thao tác">
-                    <Button type="button" className="min-h-11" disabled={isSending} onClick={() => void decidePendingAction("confirm")}>Xác nhận thực hiện</Button>
-                    <Button type="button" variant="outline" className="min-h-11" disabled={isSending} onClick={() => void decidePendingAction("cancel")}>Hủy thao tác</Button>
-                  </div>
-                ) : null}
+
                 {isSending ? (
                   <div className="flex items-start gap-2.5" role="status" aria-label="Trợ lý đang trả lời">
                     <span className="mt-1 flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><ChatBubbleLeftRightIcon className="size-4" aria-hidden="true" /></span>
@@ -821,18 +856,27 @@ export function ChatWorkspace() {
         <p className="sr-only" aria-live="polite">{announcement}</p>
         <p className="sr-only" role="status">{copyFeedback?.text ?? ""}</p>
 
-        <footer className="border-t border-border/70 bg-card px-3 py-3 sm:px-6 sm:py-4">
-          {pendingAction?.intent === "create_report" ? (
-            <section data-testid="chat-report-task" className="mx-auto mb-3 max-w-3xl rounded-xl border border-primary/20 bg-primary/5 p-3" aria-label="Tùy chọn báo cáo">
-              <p className="text-sm font-semibold">Thông tin tùy chọn cho báo cáo</p>
-              <p className="mt-1 text-xs text-muted-foreground">GPS và ảnh chỉ được gửi khi bạn xác nhận tạo báo cáo.</p>
+        <footer className="shrink-0 space-y-4 border-t border-border bg-card px-4 py-4 sm:px-6">
+          {pendingAction ? (
+            <section data-testid="chat-report-task" className={styles.reportTask} aria-label={pendingAction.intent === "create_report" ? "Tùy chọn báo cáo" : "Xác nhận thao tác"} aria-busy={actionDecision !== null}>
+              <div className={styles.reportTaskBody}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold">{pendingAction.intent === "create_report" ? "Bản nháp báo cáo" : "Thao tác đang chờ"}</p>
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground" role="status">{actionDecision === "confirm" ? "Đang gửi xác nhận · Chờ kết quả từ hệ thống" : actionDecision === "cancel" ? "Đang hủy thao tác" : pendingAction.status === "collecting" ? "Đang thu thập thông tin · Bổ sung thông tin qua tin nhắn bên dưới." : "Chờ bạn xác nhận · Kiểm tra nội dung trợ lý đã tóm tắt trước khi thực hiện."}</p>
+                </div>
+                <DocumentTextIcon className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden="true" />
+              </div>
+              {pendingAction.intent === "create_report" ? <>
+              <p className="mt-2 text-xs leading-5 text-muted-foreground">GPS và ảnh là tùy chọn, chỉ được gửi khi bạn xác nhận tạo báo cáo.</p>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground" role="status">{reportEvidence.length} ảnh đã chọn · {locationStatus === "requesting" ? "GPS: đang yêu cầu vị trí" : reportLocation ? "GPS: đã lấy vị trí từ thiết bị" : clearReportLocation ? "GPS: đã chọn bỏ qua" : locationStatus === "unavailable" ? "GPS: không lấy được vị trí" : "GPS: chưa chọn trên thiết bị"}</p>
               {reportLocation || reportEvidence.length ? <p data-testid="chat-selected-attachments" className="mt-1 text-xs leading-5" role="status">
                 {reportLocation ? `GPS đã chọn: ${reportLocation.latitude.toFixed(6)}, ${reportLocation.longitude.toFixed(6)}. ` : ""}
                 {reportEvidence.length ? `${reportEvidence.length} ảnh đã chọn. ` : ""}
                 Bản tóm tắt của trợ lý chưa bao gồm lựa chọn trên thiết bị; GPS/ảnh sẽ đính kèm khi bạn xác nhận.
               </p> : null}
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <Button type="button" variant="outline" size="sm" disabled={isSending} onClick={requestReportLocation}>
+              <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3">
+                <Button type="button" variant="outline" size="sm" disabled={isSending || locationStatus === "requesting"} onClick={requestReportLocation}>
                   <MapPinIcon data-icon="inline-start" aria-hidden="true" />
                   {reportLocation ? "Đã thêm GPS" : "Chia sẻ GPS"}
                 </Button>
@@ -841,26 +885,32 @@ export function ChatWorkspace() {
                   Thêm ảnh ({reportEvidence.length}/5)
                 </Button>
                 <input ref={evidenceInputRef} type="file" accept="image/*" multiple className="sr-only" onChange={chooseReportEvidence} aria-label="Chọn ảnh minh chứng" />
-                {reportLocation ? <span className="text-xs text-muted-foreground">Vị trí đã lấy từ thiết bị</span> : null}
-                {reportLocation ? <Button type="button" variant="ghost" size="sm" disabled={isSending} onClick={() => { setReportLocation(null); setClearReportLocation(true); }}>Gỡ GPS</Button> : <Button type="button" variant="ghost" size="sm" disabled={isSending} onClick={() => setClearReportLocation(true)}>Bỏ qua GPS</Button>}
+                {reportLocation ? <Button type="button" variant="ghost" size="sm" disabled={isSending} onClick={() => { locationRequestRef.current += 1; setLocationStatus("idle"); setReportLocation(null); setClearReportLocation(true); }}>Gỡ GPS</Button> : <Button type="button" variant="ghost" size="sm" disabled={isSending} onClick={() => { locationRequestRef.current += 1; setLocationStatus("idle"); setClearReportLocation(true); }}>Bỏ qua GPS</Button>}
               </div>
               {reportEvidence.length ? (
                 <ul className="mt-2 flex flex-wrap gap-2" aria-label="Ảnh đã chọn">
                   {reportEvidence.map((file, index) => (
                     <li key={`${file.name}-${file.lastModified}-${index}`} className="flex items-center gap-2 rounded-md border bg-background px-2 py-1 text-xs">
                       <span className="max-w-48 truncate">{file.name}</span>
-                      <button type="button" className="font-semibold text-destructive" disabled={isSending} onClick={() => setReportEvidence((current) => current.filter((_, itemIndex) => itemIndex !== index))} aria-label={`Gỡ ảnh ${file.name}`}>Gỡ</button>
+                      <button type="button" className="inline-flex min-h-11 items-center rounded-lg px-2 font-semibold text-destructive focus-visible:outline-2 focus-visible:outline-ring" disabled={isSending} onClick={() => setReportEvidence((current) => current.filter((_, itemIndex) => itemIndex !== index))} aria-label={`Gỡ ảnh ${file.name}`}>Gỡ</button>
                     </li>
                   ))}
                 </ul>
               ) : null}
+              </> : null}
+              </div>
+              <div className={cn(styles.reportTaskActions, "mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3")} aria-label="Xác nhận thao tác">
+                {pendingAction.status === "awaiting_confirmation" ? <Button type="button" className="min-h-11 rounded-[10px]" disabled={isSending || locationStatus === "requesting"} onClick={() => void decidePendingAction("confirm")}>{actionDecision === "confirm" ? "Đang xác nhận..." : "Xác nhận thực hiện"}</Button> : null}
+                <Button type="button" variant="outline" className="min-h-11 rounded-[10px]" disabled={isSending} onClick={() => void decidePendingAction("cancel")}>Hủy thao tác</Button>
+              </div>
             </section>
           ) : null}
-          <form id="chat-composer" onSubmit={submitMessage} className="mx-auto max-w-3xl">
+          <form id="chat-composer" onSubmit={submitMessage} className="mx-auto w-full min-w-0 max-w-[760px]">
             <label htmlFor="chat-message" className="sr-only">Tin nhắn của bạn</label>
-            <div className="flex items-end gap-2 rounded-2xl border border-input bg-background p-2 shadow-sm transition-colors focus-within:border-primary/70 focus-within:ring-2 focus-within:ring-primary/15">
+            <div className="flex items-end gap-2 rounded-xl border border-input bg-background p-2 transition-colors focus-within:border-primary/70 focus-within:ring-2 focus-within:ring-primary/15">
               <textarea
                 id="chat-message"
+                data-testid="chat-message-input"
                 ref={textareaRef}
                 value={draft}
                 onChange={(event) => setDraft(event.target.value.slice(0, MESSAGE_LIMIT))}
@@ -876,11 +926,11 @@ export function ChatWorkspace() {
                 className="max-h-36 min-h-11 flex-1 resize-y bg-transparent px-2 py-2.5 text-base leading-6 text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-0 sm:text-sm"
                 readOnly={isSending}
               />
-              <Button type="submit" size="icon" className="size-11 shrink-0" disabled={isSending || !draft.trim()} aria-label="Gửi tin nhắn">
-                <ArrowDownIcon className="size-5 rotate-[-90deg]" aria-hidden="true" />
+              <Button data-testid="chat-send-button" type="submit" size="icon" className="size-11 shrink-0 rounded-[10px]" disabled={isSending || !draft.trim()} aria-label="Gửi tin nhắn">
+                <ArrowUpIcon className="size-5" aria-hidden="true" />
               </Button>
             </div>
-            <div className="mt-2 flex items-center justify-between gap-3 px-1 text-xs text-muted-foreground">
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-1 text-xs leading-5 text-muted-foreground">
               <span>Enter để gửi, Shift + Enter để xuống dòng</span>
               <span aria-live="polite">{draft.length}/{MESSAGE_LIMIT.toLocaleString("vi-VN")}</span>
             </div>

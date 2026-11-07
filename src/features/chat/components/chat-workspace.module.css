@@ -1,6 +1,116 @@
 .chatFrame {
   height: calc(100dvh - var(--navbar-height) - 7rem);
   min-height: 380px;
+  color: var(--foreground);
+}
+
+.historySearch {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0 10px;
+  background: var(--card);
+  color: var(--muted-foreground);
+}
+
+.historySearch:focus-within {
+  border-color: var(--ring);
+  outline: 2px solid color-mix(in oklch, var(--ring) 20%, transparent);
+}
+
+.historySearch input {
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  background: transparent;
+  font-size: 13px;
+  color: var(--foreground);
+}
+
+.historySearch input:focus-visible {
+  outline: none;
+}
+
+.historySearch input::placeholder {
+  color: var(--muted-foreground);
+}
+
+.emptyState {
+  display: flex;
+  min-height: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  align-items: center;
+  padding: 24px 0;
+  text-align: center;
+}
+
+.emptyIcon {
+  display: flex;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 22px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in oklch, var(--primary) 20%, var(--border));
+  border-radius: 14px;
+  background: color-mix(in oklch, var(--accent) 45%, var(--card));
+  color: var(--primary);
+}
+
+.starterGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  width: 100%;
+  margin-top: 28px;
+}
+
+.starterCard {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 16px;
+  background: var(--card);
+  color: var(--foreground);
+  text-align: left;
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+
+.starterCard:hover {
+  border-color: var(--primary);
+  background: color-mix(in oklch, var(--primary) 3%, var(--card));
+}
+
+.reportTask {
+  display: flex;
+  flex-direction: column;
+  max-width: 760px;
+  max-height: min(34dvh, 310px);
+  overflow: hidden;
+  margin: 0 auto 12px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--primary);
+  border-radius: 10px;
+  padding: 12px;
+  background: color-mix(in oklch, var(--accent) 15%, var(--card));
+}
+
+.reportTaskBody {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.reportTaskActions {
+  flex-shrink: 0;
 }
 
 @media (min-width: 1024px) {
@@ -9,25 +119,36 @@
   }
 }
 
-.waterlines::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: repeating-radial-gradient(
-    ellipse 88% 54% at 50% 104%,
-    transparent 0 29px,
-    color-mix(in oklch, var(--primary) 13%, transparent) 30px 31px
-  );
-  -webkit-mask-image: linear-gradient(to top, black, transparent 82%);
-  mask-image: linear-gradient(to top, black, transparent 82%);
+@media (max-width: 639px) {
+  .starterGrid {
+    grid-template-columns: minmax(0, 1fr);
+    margin-top: 20px;
+    gap: 8px;
+  }
+
+  .starterCard {
+    display: grid;
+    grid-template-columns: 20px minmax(0, 1fr);
+    gap: 4px 12px;
+    padding: 12px;
+  }
+
+  .starterCard svg {
+    grid-row: span 2;
+    margin-top: 2px;
+  }
+
+  .emptyState {
+    padding: 12px 0;
+  }
+
+  .emptyIcon {
+    margin-bottom: 16px;
+  }
 }
 
-.waterlines::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(to bottom, var(--card), transparent 54%);
-  opacity: 0.6;
+@media (prefers-reduced-motion: reduce) {
+  .starterCard {
+    transition: none;
+  }
 }

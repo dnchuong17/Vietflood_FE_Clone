@@ -42,7 +42,7 @@ import { getUserRoleLabel, normalizeRole } from "@/features/auth/lib/roles";
 import { useAuthIdentity } from "@/features/auth/lib/use-auth-identity";
 import type { AuthProfile } from "@/features/auth/types/auth";
 import { buildProfileHomeSummary } from "@/features/home/lib/profile-home-summary";
-import { searchProvinces, searchWards } from "@/features/location/api/vietnam-divisions";
+import { VietnamAddressPicker } from "@/features/location/components/vietnam-address-picker";
 import {
   buildChangePasswordPayload,
   validateChangePasswordForm,
@@ -98,16 +98,8 @@ export function ProfileSettings() {
   const isChangingPassword = useProfileStore(
     (state) => state.isChangingPassword,
   );
-  const selectedProvinceCode = useProfileStore(
-    (state) => state.selectedProvinceCode,
-  );
-  const provinceOptions = useProfileStore((state) => state.provinceOptions);
-  const wardOptions = useProfileStore((state) => state.wardOptions);
-  const isLoadingProvinces = useProfileStore(
-    (state) => state.isLoadingProvinces,
-  );
-  const isLoadingWards = useProfileStore((state) => state.isLoadingWards);
   const setProfile = useProfileStore((state) => state.setProfile);
+  const setForm = useProfileStore((state) => state.setForm);
   const setFormField = useProfileStore((state) => state.setFormField);
   const setPasswordField = useProfileStore((state) => state.setPasswordField);
   const resetPasswordForm = useProfileStore((state) => state.resetPasswordForm);
@@ -119,22 +111,6 @@ export function ProfileSettings() {
   const setChangingPassword = useProfileStore(
     (state) => state.setChangingPassword,
   );
-  const setSelectedProvinceCode = useProfileStore(
-    (state) => state.setSelectedProvinceCode,
-  );
-  const setProvinceOptions = useProfileStore(
-    (state) => state.setProvinceOptions,
-  );
-  const setWardOptions = useProfileStore((state) => state.setWardOptions);
-  const setLoadingProvinces = useProfileStore(
-    (state) => state.setLoadingProvinces,
-  );
-  const setLoadingWards = useProfileStore((state) => state.setLoadingWards);
-  const handleProvinceInput = useProfileStore(
-    (state) => state.handleProvinceInput,
-  );
-  const selectProvince = useProfileStore((state) => state.selectProvince);
-  const selectWard = useProfileStore((state) => state.selectWard);
 
   async function loadProfile() {
     const token = getAccessToken();
@@ -203,84 +179,6 @@ export function ProfileSettings() {
     };
   }, [identityRole]);
 
-  useEffect(() => {
-    let isCurrent = true;
-    const timeoutId = window.setTimeout(async () => {
-      try {
-        setLoadingProvinces(true);
-        const options = await searchProvinces(form.province);
-        if (isCurrent) {
-          setProvinceOptions(options);
-        }
-      } catch {
-        if (isCurrent) {
-          setProvinceOptions([]);
-        }
-      } finally {
-        if (isCurrent) {
-          setLoadingProvinces(false);
-        }
-      }
-    }, 180);
-
-    return () => {
-      isCurrent = false;
-      window.clearTimeout(timeoutId);
-    };
-  }, [form.province, setLoadingProvinces, setProvinceOptions]);
-
-  useEffect(() => {
-    if (!selectedProvinceCode) {
-      setWardOptions([]);
-      return;
-    }
-
-    let isCurrent = true;
-    const timeoutId = window.setTimeout(async () => {
-      try {
-        setLoadingWards(true);
-        const options = await searchWards(selectedProvinceCode, form.ward);
-        if (isCurrent) {
-          setWardOptions(options);
-        }
-      } catch {
-        if (isCurrent) {
-          setWardOptions([]);
-        }
-      } finally {
-        if (isCurrent) {
-          setLoadingWards(false);
-        }
-      }
-    }, 180);
-
-    return () => {
-      isCurrent = false;
-      window.clearTimeout(timeoutId);
-    };
-  }, [
-    form.ward,
-    selectedProvinceCode,
-    setLoadingWards,
-    setWardOptions,
-  ]);
-
-  const normalizedProvinceValue = form.province.trim().toLocaleLowerCase("vi-VN");
-  const normalizedWardValue = form.ward.trim().toLocaleLowerCase("vi-VN");
-  const visibleProvinceOptions = useMemo(
-    () =>
-      provinceOptions.filter(
-        (option) => option.name.trim().toLocaleLowerCase("vi-VN") !== normalizedProvinceValue,
-      ),
-    [normalizedProvinceValue, provinceOptions],
-  );
-  const visibleWardOptions = useMemo(
-    () =>
-      wardOptions.filter(
-        (option) => option.name.trim().toLocaleLowerCase("vi-VN") !== normalizedWardValue,
-      ),
-    [normalizedWardValue, wardOptions],
-  );
   const addressSuggestions = useMemo(
     () =>
       buildAddressSuggestions({
@@ -300,24 +198,6 @@ export function ProfileSettings() {
     () => getProfileHomeActions(profileHomeRole),
     [profileHomeRole],
   );
-
-  useEffect(() => {
-    if (selectedProvinceCode || !normalizedProvinceValue) {
-      return;
-    }
-
-    const exactProvince = provinceOptions.find(
-      (option) => option.name.trim().toLocaleLowerCase("vi-VN") === normalizedProvinceValue,
-    );
-    if (exactProvince) {
-      setSelectedProvinceCode(exactProvince.code);
-    }
-  }, [
-    normalizedProvinceValue,
-    provinceOptions,
-    selectedProvinceCode,
-    setSelectedProvinceCode,
-  ]);
 
   function updateField<T extends keyof ProfileForm>(field: T, value: ProfileForm[T]) {
     setFormField(field, value);
@@ -410,14 +290,13 @@ export function ProfileSettings() {
   const profileLocation = buildProfileLocation(profile, "Chưa cập nhật");
   const avatarUrl = buildProfileAvatarUrl(profile);
   const missingValue = "Chưa cập nhật";
-  const canEditWard = Boolean(selectedProvinceCode || form.province.trim());
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[1fr_24rem]">
-      <div className="flex flex-col gap-4">
+    <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
+      <div className="workspace-stack min-w-0">
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between gap-3">
+            <div className="workspace-header flex flex-wrap items-start justify-between gap-3">
               <div>
                 <CardTitle>Tổng quan cá nhân</CardTitle>
                 <CardDescription>{summary.greeting}</CardDescription>
@@ -461,7 +340,7 @@ export function ProfileSettings() {
                 style={{ backgroundImage: `url("${avatarUrl}")` }}
               />
               <div className="min-w-0">
-                <CardTitle className="truncate">{displayName}</CardTitle>
+                <CardTitle className="break-words">{displayName}</CardTitle>
                 <CardDescription>{profile?.username ?? missingValue}</CardDescription>
                 <Badge variant="secondary" className="mt-2 gap-1.5">
                   <UserCircle className="size-3.5" aria-hidden="true" />
@@ -517,9 +396,9 @@ export function ProfileSettings() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSaveProfile} className="flex flex-col gap-4">
-              <FieldGroup>
-                <div className="grid gap-3 sm:grid-cols-3">
+            <form onSubmit={handleSaveProfile} className="workspace-stack min-w-0">
+              <FieldGroup className="gap-4">
+                <div className="grid gap-4 sm:grid-cols-2">
                   {[
                     ["first_name", "Tên"],
                     ["middle_name", "Tên đệm"],
@@ -554,60 +433,16 @@ export function ProfileSettings() {
                   ))}
                 </div>
 
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <Field>
-                    <FieldLabel>Tỉnh/Thành phố</FieldLabel>
-                    <Input
-                      value={form.province}
-                      onChange={(event) => handleProvinceInput(event.target.value)}
-                      placeholder="Nhập tỉnh hoặc thành phố"
-                    />
-                    {visibleProvinceOptions.length > 0 ? (
-                      <div className="rounded-md border bg-popover shadow-sm">
-                        {visibleProvinceOptions.slice(0, 6).map((option) => (
-                          <button
-                            key={option.code}
-                            type="button"
-                            className="block w-full px-3 py-2 text-left text-sm font-medium text-popover-foreground hover:bg-accent hover:text-accent-foreground"
-                            onClick={() => selectProvince(option)}
-                          >
-                            {option.name}
-                          </button>
-                        ))}
-                      </div>
-                    ) : isLoadingProvinces ? (
-                      <p className="text-xs text-muted-foreground">
-                        Đang tìm tỉnh/thành phố...
-                      </p>
-                    ) : null}
-                  </Field>
-
-                  <Field>
-                    <FieldLabel>Phường/Xã</FieldLabel>
-                    <Input
-                      value={form.ward}
-                      onChange={(event) => updateField("ward", event.target.value)}
-                      placeholder="Chọn hoặc nhập phường/xã"
-                      disabled={!canEditWard}
-                    />
-                    {visibleWardOptions.length > 0 ? (
-                      <div className="rounded-md border bg-popover shadow-sm">
-                        {visibleWardOptions.slice(0, 6).map((option) => (
-                          <button
-                            key={option.code}
-                            type="button"
-                            className="block w-full px-3 py-2 text-left text-sm font-medium text-popover-foreground hover:bg-accent hover:text-accent-foreground"
-                            onClick={() => selectWard(option)}
-                          >
-                            {option.name}
-                          </button>
-                        ))}
-                      </div>
-                    ) : isLoadingWards ? (
-                      <p className="text-xs text-muted-foreground">Đang tìm phường/xã...</p>
-                    ) : null}
-                  </Field>
-                </div>
+                <VietnamAddressPicker
+                  key={profile?.id ?? profile?.username ?? "profile"}
+                  idPrefix="profile"
+                  value={{ province: form.province, ward: form.ward }}
+                  onChange={(next) =>
+                    setForm({ ...useProfileStore.getState().form, ...next })
+                  }
+                  disabled={isSaving}
+                  className="grid gap-3 sm:grid-cols-2"
+                />
 
                 <Field>
                   <FieldLabel>Địa chỉ</FieldLabel>
@@ -633,7 +468,7 @@ export function ProfileSettings() {
                 </Field>
               </FieldGroup>
 
-              <div className="flex justify-end">
+              <div className="flex justify-end border-t border-border pt-4">
                 <Button type="submit" disabled={isSaving}>
                   <Save data-icon="inline-start" aria-hidden="true" />
                   {isSaving ? "Đang lưu..." : "Lưu hồ sơ"}
@@ -644,7 +479,7 @@ export function ProfileSettings() {
         </Card>
       </div>
 
-      <div className="flex flex-col gap-4">
+      <div className="workspace-stack min-w-0">
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
@@ -681,104 +516,122 @@ export function ProfileSettings() {
             </div>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleChangePassword} className="flex flex-col gap-4">
-              <FieldGroup>
+            <form onSubmit={handleChangePassword} className="workspace-stack min-w-0">
+              <FieldGroup className="gap-4">
                 <Field>
-                  <FieldLabel>Mật khẩu hiện tại</FieldLabel>
-                  <Input
-                    type={visiblePasswords.currentPassword ? "text" : "password"}
-                    value={passwordForm.currentPassword}
-                    onChange={(event) =>
-                      setPasswordField("currentPassword", event.target.value)
-                    }
-                    required
-                    disabled={isChangingPassword}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    aria-label={
-                      visiblePasswords.currentPassword
-                        ? "Ẩn mật khẩu hiện tại"
-                        : "Hiện mật khẩu hiện tại"
-                    }
-                    onClick={() =>
-                      togglePasswordVisibility("currentPassword")
-                    }
-                    disabled={isChangingPassword}
-                  >
-                    {visiblePasswords.currentPassword ? (
-                      <EyeOff aria-hidden="true" />
-                    ) : (
-                      <Eye aria-hidden="true" />
-                    )}
-                  </Button>
+                  <FieldLabel htmlFor="profile-current-password">Mật khẩu hiện tại</FieldLabel>
+                  <div className="flex min-w-0 items-center gap-2">
+                    <Input
+                      id="profile-current-password"
+                      autoComplete="current-password"
+                      className="min-w-0"
+                      type={visiblePasswords.currentPassword ? "text" : "password"}
+                      value={passwordForm.currentPassword}
+                      onChange={(event) =>
+                        setPasswordField("currentPassword", event.target.value)
+                      }
+                      required
+                      disabled={isChangingPassword}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="shrink-0"
+                      aria-label={
+                        visiblePasswords.currentPassword
+                          ? "Ẩn mật khẩu hiện tại"
+                          : "Hiện mật khẩu hiện tại"
+                      }
+                      onClick={() =>
+                        togglePasswordVisibility("currentPassword")
+                      }
+                      disabled={isChangingPassword}
+                    >
+                      {visiblePasswords.currentPassword ? (
+                        <EyeOff aria-hidden="true" />
+                      ) : (
+                        <Eye aria-hidden="true" />
+                      )}
+                    </Button>
+                  </div>
                 </Field>
                 <Field>
-                  <FieldLabel>Mật khẩu mới</FieldLabel>
-                  <Input
-                    type={visiblePasswords.newPassword ? "text" : "password"}
-                    minLength={6}
-                    value={passwordForm.newPassword}
-                    onChange={(event) =>
-                      setPasswordField("newPassword", event.target.value)
-                    }
-                    required
-                    disabled={isChangingPassword}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    aria-label={
-                      visiblePasswords.newPassword
-                        ? "Ẩn mật khẩu mới"
-                        : "Hiện mật khẩu mới"
-                    }
-                    onClick={() =>
-                      togglePasswordVisibility("newPassword")
-                    }
-                    disabled={isChangingPassword}
-                  >
-                    {visiblePasswords.newPassword ? (
-                      <EyeOff aria-hidden="true" />
-                    ) : (
-                      <Eye aria-hidden="true" />
-                    )}
-                  </Button>
+                  <FieldLabel htmlFor="profile-new-password">Mật khẩu mới</FieldLabel>
+                  <div className="flex min-w-0 items-center gap-2">
+                    <Input
+                      id="profile-new-password"
+                      autoComplete="new-password"
+                      className="min-w-0"
+                      type={visiblePasswords.newPassword ? "text" : "password"}
+                      minLength={6}
+                      value={passwordForm.newPassword}
+                      onChange={(event) =>
+                        setPasswordField("newPassword", event.target.value)
+                      }
+                      required
+                      disabled={isChangingPassword}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="shrink-0"
+                      aria-label={
+                        visiblePasswords.newPassword
+                          ? "Ẩn mật khẩu mới"
+                          : "Hiện mật khẩu mới"
+                      }
+                      onClick={() =>
+                        togglePasswordVisibility("newPassword")
+                      }
+                      disabled={isChangingPassword}
+                    >
+                      {visiblePasswords.newPassword ? (
+                        <EyeOff aria-hidden="true" />
+                      ) : (
+                        <Eye aria-hidden="true" />
+                      )}
+                    </Button>
+                  </div>
                 </Field>
                 <Field>
-                  <FieldLabel>Xác nhận mật khẩu mới</FieldLabel>
-                  <Input
-                    type={visiblePasswords.confirmPassword ? "text" : "password"}
-                    value={passwordForm.confirmPassword}
-                    onChange={(event) =>
-                      setPasswordField("confirmPassword", event.target.value)
-                    }
-                    required
-                    disabled={isChangingPassword}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    aria-label={
-                      visiblePasswords.confirmPassword
-                        ? "Ẩn mật khẩu xác nhận"
-                        : "Hiện mật khẩu xác nhận"
-                    }
-                    onClick={() =>
-                      togglePasswordVisibility("confirmPassword")
-                    }
-                    disabled={isChangingPassword}
-                  >
-                    {visiblePasswords.confirmPassword ? (
-                      <EyeOff aria-hidden="true" />
-                    ) : (
-                      <Eye aria-hidden="true" />
-                    )}
-                  </Button>
+                  <FieldLabel htmlFor="profile-confirm-password">Xác nhận mật khẩu mới</FieldLabel>
+                  <div className="flex min-w-0 items-center gap-2">
+                    <Input
+                      id="profile-confirm-password"
+                      autoComplete="new-password"
+                      className="min-w-0"
+                      type={visiblePasswords.confirmPassword ? "text" : "password"}
+                      value={passwordForm.confirmPassword}
+                      onChange={(event) =>
+                        setPasswordField("confirmPassword", event.target.value)
+                      }
+                      required
+                      disabled={isChangingPassword}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="shrink-0"
+                      aria-label={
+                        visiblePasswords.confirmPassword
+                          ? "Ẩn mật khẩu xác nhận"
+                          : "Hiện mật khẩu xác nhận"
+                      }
+                      onClick={() =>
+                        togglePasswordVisibility("confirmPassword")
+                      }
+                      disabled={isChangingPassword}
+                    >
+                      {visiblePasswords.confirmPassword ? (
+                        <EyeOff aria-hidden="true" />
+                      ) : (
+                        <Eye aria-hidden="true" />
+                      )}
+                    </Button>
+                  </div>
                 </Field>
               </FieldGroup>
               <Button type="submit" variant="outline" disabled={isChangingPassword}>

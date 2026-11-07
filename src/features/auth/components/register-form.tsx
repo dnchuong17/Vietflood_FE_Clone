@@ -16,7 +16,23 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { register } from "@/features/auth/api/sign-in";
 import { useAuthFormStore } from "@/features/auth/store/auth-form-store";
-import styles from "./auth-experience.module.css";
+import { VietnamAddressPicker } from "@/features/location/components/vietnam-address-picker";
+const styles = {
+  "form": "workspace-stack",
+  "fields": "gap-4",
+  "fieldGrid": "grid min-w-0 gap-4 sm:grid-cols-2",
+  "fieldLabel": "text-sm font-medium text-foreground [&>span]:font-normal [&>span]:text-muted-foreground",
+  "inputShell": "flex min-w-0 items-center gap-1 rounded-xl border border-input bg-background pr-1 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/30",
+  "input": "min-w-0 border-0 bg-transparent shadow-none focus-visible:ring-0",
+  "eyeButton": "grid size-11 shrink-0 place-items-center rounded-lg text-muted-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring [&>svg]:size-5",
+  "primaryButton": "mt-2 min-h-11 w-full justify-between",
+  "buttonIcon": "[&>svg]:size-4",
+  "switchRow": "text-center text-sm text-muted-foreground",
+  "switchLink": "ml-1 font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring",
+  "sectionLabel": "text-base font-semibold text-foreground",
+  "sectionDivider": "h-px bg-border",
+  "hint": "text-xs text-muted-foreground"
+};
 
 export function RegisterForm() {
   const router = useRouter();
@@ -71,7 +87,8 @@ export function RegisterForm() {
   return (
     <form className={styles.form} onSubmit={handleSubmit}>
       <FieldGroup className={styles.fields}>
-        <p className={styles.sectionLabel}>Thông tin tài khoản</p>
+        <fieldset className="grid min-w-0 gap-4">
+        <legend className="mb-4 text-base font-semibold">Thông tin tài khoản</legend>
         <div className={styles.fieldGrid}>
           <Field>
             <FieldLabel className={styles.fieldLabel} htmlFor="register-first-name">Tên</FieldLabel>
@@ -99,8 +116,9 @@ export function RegisterForm() {
           </div>
         </Field>
 
-        <div className={styles.sectionDivider} aria-hidden="true" />
-        <p className={styles.sectionLabel}>Liên hệ & khu vực</p>
+        </fieldset>
+        <fieldset className="grid min-w-0 gap-4 border-t border-border pt-4">
+        <legend className="pr-2 text-base font-semibold">Liên hệ & khu vực</legend>
         <div className={styles.fieldGrid}>
           <Field>
             <FieldLabel className={styles.fieldLabel} htmlFor="register-email">Email</FieldLabel>
@@ -118,17 +136,22 @@ export function RegisterForm() {
           <div className={styles.inputShell}><Input className={styles.input} id="register-address" name="street-address" value={form.address_line} onChange={(event) => updateField("address_line", event.target.value)} autoComplete="street-address" placeholder="Số nhà, tên đường" /></div>
         </Field>
 
-        <div className={styles.fieldGrid}>
-          <Field>
-            <FieldLabel className={styles.fieldLabel} htmlFor="register-province">Tỉnh/Thành phố <span>(không bắt buộc)</span></FieldLabel>
-            <div className={styles.inputShell}><Input className={styles.input} id="register-province" name="address-level1" value={form.province} onChange={(event) => updateField("province", event.target.value)} autoComplete="address-level1" placeholder="Tỉnh, thành phố" /></div>
-          </Field>
+        <VietnamAddressPicker
+          idPrefix="register"
+          value={{ province: form.province, ward: form.ward }}
+          onChange={(next) =>
+            useAuthFormStore.setState((state) => ({
+              register: { ...state.register, ...next },
+            }))
+          }
+          disabled={isSubmitting}
+          className={styles.fieldGrid}
+          inputClassName={styles.input}
+          provinceName="address-level1"
+          wardName="address-level3"
+        />
 
-          <Field>
-            <FieldLabel className={styles.fieldLabel} htmlFor="register-ward">Phường/Xã <span>(không bắt buộc)</span></FieldLabel>
-            <div className={styles.inputShell}><Input className={styles.input} id="register-ward" name="address-level3" value={form.ward} onChange={(event) => updateField("ward", event.target.value)} placeholder="Phường, xã" /></div>
-          </Field>
-        </div>
+        </fieldset>
 
         <Button type="submit" className={styles.primaryButton} disabled={isSubmitting}>
           <span>{isSubmitting ? "Đang tạo tài khoản..." : "Tạo tài khoản người dân"}</span>

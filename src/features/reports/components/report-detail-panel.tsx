@@ -137,12 +137,12 @@ export function ReportDetailPanel({ reportId }: { reportId: number }) {
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[1fr_22rem]">
+    <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
       <Card>
         <CardHeader>
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <CardTitle>{detail.title}</CardTitle>
+              <CardTitle className="workspace-title break-words">{detail.title}</CardTitle>
               <CardDescription>Báo cáo #{report.id ?? reportId}</CardDescription>
             </div>
             <Badge variant={statusBadgeVariant(detail.status)}>
@@ -150,13 +150,13 @@ export function ReportDetailPanel({ reportId }: { reportId: number }) {
             </Badge>
           </div>
         </CardHeader>
-        <CardContent className="flex flex-col gap-4">
+        <CardContent className="workspace-stack min-w-0">
           <p className="text-sm leading-6 text-muted-foreground">
             {report.description || "Chưa có mô tả."}
           </p>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-lg border bg-muted/40 p-3">
+          <div className="grid gap-4 border-y border-border py-4 sm:grid-cols-2">
+            <div className="min-w-0 space-y-2">
               <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
                 <MapPin className="size-4 text-primary" aria-hidden="true" />
                 Vị trí
@@ -169,7 +169,7 @@ export function ReportDetailPanel({ reportId }: { reportId: number }) {
               </p>
             </div>
             {identity?.role !== "citizen" && (
-              <div className="rounded-lg border bg-muted/40 p-3">
+              <div className="min-w-0 space-y-2">
                 <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
                   <UserRound className="size-4 text-primary" aria-hidden="true" />
                   Người báo
@@ -184,7 +184,7 @@ export function ReportDetailPanel({ reportId }: { reportId: number }) {
             )}
           </div>
 
-          <div className="rounded-lg border bg-muted/40 p-3">
+          <div className="min-w-0 space-y-2">
             <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
               <ImageIcon className="size-4 text-primary" aria-hidden="true" />
               Minh chứng
@@ -213,7 +213,7 @@ export function ReportDetailPanel({ reportId }: { reportId: number }) {
         </CardContent>
       </Card>
 
-      <div className="flex flex-col gap-4">
+      <div className="workspace-stack min-w-0">
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">

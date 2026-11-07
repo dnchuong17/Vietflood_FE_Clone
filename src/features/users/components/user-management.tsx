@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import {
   DocumentTextIcon as DocumentText,
   ArrowPathIcon as RefreshCw,
@@ -64,6 +64,7 @@ import {
   toOverviewUserRole,
 } from "@/features/users/lib/overview";
 import { useUsersStore } from "@/features/users/store/users-store";
+import { VietnamAddressPicker } from "@/features/location/components/vietnam-address-picker";
 import { cn } from "@/lib/utils";
 
 function displayName(user: ManagedUser): string {
@@ -93,6 +94,7 @@ function reportStatusBadgeVariant(status: ReportStatus): BadgeProps["variant"] {
 
 export function UserManagement() {
   const { showAlert } = useGlobalAlert();
+  const addressPickerRef = useRef<HTMLDivElement>(null);
   const identity = useAuthIdentity();
   const role = normalizeRole(identity?.role);
   const canDelete = canDeleteUsers(role);
@@ -244,6 +246,12 @@ export function UserManagement() {
     if (!selectedUser?.id) {
       return;
     }
+    // This panel is not a native form: explicitly reject uncommitted picker
+    // searches before sending the previously saved address by mistake.
+    const addressInputs = addressPickerRef.current?.querySelectorAll("input");
+    if (addressInputs && Array.from(addressInputs).some((input) => !input.reportValidity())) {
+      return;
+    }
 
     try {
       setSaving(true);
@@ -338,8 +346,8 @@ export function UserManagement() {
   }
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_24rem]">
-      <div className="flex flex-col gap-3">
+    <div className="grid items-start gap-4 2xl:grid-cols-[minmax(0,1fr)_24rem]">
+      <div className="workspace-stack min-w-0">
         <Card>
           <CardContent className="flex flex-col gap-4 p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -347,7 +355,7 @@ export function UserManagement() {
                 <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                   Danh bạ điều hành
                 </p>
-                <h2 className="text-lg font-bold text-card-foreground">
+                <h2 className="text-base font-semibold text-card-foreground">
                   Tổng quan người dùng
                 </h2>
               </div>
@@ -407,15 +415,16 @@ export function UserManagement() {
         </Card>
 
         <Card>
-          <CardContent className="grid gap-3 p-4 md:grid-cols-[1fr_auto_auto] md:items-end">
+          <CardContent className="workspace-toolbar grid gap-4 p-4 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-end">
             <Field>
-              <FieldLabel>Tìm người dùng</FieldLabel>
+              <FieldLabel htmlFor="user-search">Tìm người dùng</FieldLabel>
               <div className="relative">
                 <Search
                   className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
                   aria-hidden="true"
                 />
                 <Input
+                  id="user-search"
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder="Tên, tên đăng nhập, thư điện tử, số điện thoại"
@@ -424,9 +433,9 @@ export function UserManagement() {
               </div>
             </Field>
             <Field>
-              <FieldLabel>Vai trò</FieldLabel>
+              <FieldLabel htmlFor="user-role-filter">Vai trò</FieldLabel>
               <Select value={roleFilter} onValueChange={setRoleFilter}>
-                <SelectTrigger className="w-full md:w-48">
+                <SelectTrigger id="user-role-filter" className="w-full md:w-48">
                   <SelectValue placeholder="Tất cả vai trò" />
                 </SelectTrigger>
                 <SelectContent>
@@ -453,7 +462,7 @@ export function UserManagement() {
         </Card>
 
         <Card className="overflow-hidden">
-          <div className="grid grid-cols-[4rem_1fr_8rem] border-b border-border bg-muted px-3 py-2 text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground md:grid-cols-[4rem_1fr_1fr_8rem]">
+          <div className="grid grid-cols-[2.5rem_minmax(0,1fr)_6rem] border-b border-border bg-muted px-3 py-2 text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground md:grid-cols-[3rem_minmax(0,1fr)_minmax(0,1fr)_8rem]">
             <span>Mã</span>
             <span className="inline-flex items-center gap-1.5">
               <UserRound className="size-3.5" aria-hidden="true" />
@@ -481,7 +490,7 @@ export function UserManagement() {
                   type="button"
                   onClick={() => selectUser(user)}
                   className={cn(
-                    "grid w-full grid-cols-[4rem_1fr_8rem] gap-2 border-b border-border px-3 py-3 text-left text-sm transition last:border-b-0 hover:bg-accent md:grid-cols-[4rem_1fr_1fr_8rem]",
+                    "grid w-full grid-cols-[2.5rem_minmax(0,1fr)_6rem] gap-2 border-b border-border px-3 py-3 text-left text-sm transition last:border-b-0 hover:bg-accent md:grid-cols-[3rem_minmax(0,1fr)_minmax(0,1fr)_8rem]",
                     selectedUser?.id === user.id && "bg-accent",
                   )}
                 >
@@ -489,7 +498,7 @@ export function UserManagement() {
                     {user.id ?? "-"}
                   </span>
                   <span>
-                    <span className="block font-semibold text-foreground">
+                    <span className="block break-words font-semibold text-foreground">
                       {displayName(user)}
                     </span>
                     <span className="text-muted-foreground">@{user.username}</span>
@@ -520,12 +529,12 @@ export function UserManagement() {
       <Card>
         <CardContent className="p-4">
         {selectedUser ? (
-          <div className="flex flex-col gap-3">
+          <div className="workspace-stack min-w-0">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                 Chỉnh sửa người dùng
               </p>
-              <h2 className="text-lg font-bold text-card-foreground">
+              <h2 className="text-base font-semibold text-card-foreground">
                 {displayName(selectedUser)}
               </h2>
             </div>
@@ -537,9 +546,6 @@ export function UserManagement() {
                 ["last_name", "Họ"],
                 ["email", "Địa chỉ thư điện tử"],
                 ["phone", "Số điện thoại"],
-                ["province", "Tỉnh/Thành phố"],
-                ["ward", "Phường/Xã"],
-                ["address_line", "Địa chỉ"],
               ].map(([field, label]) => (
                 <Field key={field}>
                   <FieldLabel>{label}</FieldLabel>
@@ -554,6 +560,26 @@ export function UserManagement() {
                   />
                 </Field>
               ))}
+              <div ref={addressPickerRef}>
+                <VietnamAddressPicker
+                  key={selectedUser.id ?? selectedUser.username}
+                  idPrefix="user-address"
+                  value={{ province: form.province ?? "", ward: form.ward ?? "" }}
+                  onChange={(next) =>
+                    useUsersStore.setState((state) => ({
+                      form: { ...state.form, ...next },
+                    }))
+                  }
+                  disabled={isSaving || isSavingRole}
+                />
+              </div>
+              <Field>
+                <FieldLabel>Địa chỉ</FieldLabel>
+                <Input
+                  value={form.address_line ?? ""}
+                  onChange={(event) => updateField("address_line", event.target.value)}
+                />
+              </Field>
             </FieldGroup>
 
             {role === "admin" ? (
@@ -618,7 +644,7 @@ export function UserManagement() {
               </div>
             )}
 
-            <div className="flex flex-wrap gap-2 pt-2">
+            <div className="flex flex-wrap gap-2 border-t border-border pt-4">
               <Button
                 type="button"
                 onClick={() => void handleSave()}
