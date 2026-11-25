@@ -9,7 +9,6 @@ import {
   ClipboardDocumentCheckIcon as ClipboardCheck,
   ClockIcon as Clock,
   EyeIcon as Eye,
-  ExclamationTriangleIcon as AlertTriangle,
   MagnifyingGlassIcon as Search,
   MapIcon as Map,
   MapPinIcon as MapPin,
@@ -70,7 +69,6 @@ const PRIORITY_BADGE_VARIANTS: Record<
   AssignmentPriority,
   BadgeProps["variant"]
 > = {
-  urgent: "critical",
   high: "warning",
   medium: "secondary",
   low: "success",
@@ -165,7 +163,7 @@ export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: b
         ["Tổng phân công", assignmentStats.total],
         ["Chờ nhận việc", assignmentStats.assigned],
         ["Đang thực hiện", assignmentStats.inProgress],
-        ["Khẩn cấp", assignmentStats.urgent],
+        ["Hoàn thành", assignmentStats.completed],
       ]
     : [
         ["Tổng số", stats.total],
@@ -175,7 +173,7 @@ export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: b
         ["Sẵn tuyến đường", stats.routeReady],
       ];
   const statCardIcons = assignmentMode
-    ? [ClipboardCheck, Clock, ArrowRight, AlertTriangle]
+    ? [ClipboardCheck, Clock, ArrowRight, CheckCircle2]
     : [ClipboardCheck, Clock, RefreshCw, CheckCircle2, Map];
   const reliefQueueFilters = useMemo(
     () => [
@@ -199,9 +197,6 @@ export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: b
       searchQuery,
     )
       .sort((first, second) => {
-        if (Boolean(first.isUrgent) !== Boolean(second.isUrgent)) {
-          return first.isUrgent ? -1 : 1;
-        }
         const firstTime = first.createdAt ? new Date(first.createdAt).getTime() : 0;
         const secondTime = second.createdAt ? new Date(second.createdAt).getTime() : 0;
         return secondTime - firstTime;
@@ -209,7 +204,6 @@ export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: b
   }, [queueFilter, searchQuery, reports]);
   const assignmentQueue = useMemo(() => {
     const priorityWeight: Record<AssignmentPriority, number> = {
-      urgent: 0,
       high: 1,
       medium: 2,
       low: 3,
@@ -515,9 +509,6 @@ export function ReliefDashboard({ assignmentMode = false }: { assignmentMode?: b
                   <Badge variant={statusBadgeVariant(statusOf(report))}>
                     {getReportStatusLabel(statusOf(report))}
                   </Badge>
-                  {report.isUrgent ? (
-                    <Badge variant="critical">khẩn cấp</Badge>
-                  ) : null}
                 </div>
                 <h3 className="mt-2 text-base font-bold text-card-foreground">
                   {report.description || "Chưa có mô tả"}

@@ -139,7 +139,7 @@ async function main() {
             await card.getByText(labels[r.status],{exact:true}).waitFor();
             await card.getByText(/Người báo:.*QA Synthetic/).waitFor();
           }
-          await page.locator('article[data-report-id="101"]').getByText('Khẩn cấp',{exact:true}).waitFor();
+          assert.equal(await page.locator('article[data-report-id]').getByText('Khẩn cấp',{exact:true}).count(), 0, 'Legacy flags must not render urgency badges');
           assert.equal(await page.locator('a[href^="/su-co/"]').count(), 0);
           assert(!/Intelligence|điểm AI|xếp hạng AI|duyệt ghép nhóm/i.test(await page.locator('main').innerText()), 'Invented AI/incident workflow');
           return picture(page, label+'-initial');
@@ -192,6 +192,7 @@ async function main() {
         await run('actual report detail navigation without operational write', async () => {
           await load(); await page.locator('article[data-report-id="101"] a[href="/bao-cao/101"]').first().click(); await page.waitForURL('**/bao-cao/101');
           await page.getByText(reports[0].description,{exact:true}).first().waitFor(); await page.getByText('Báo cáo #101',{exact:true}).first().waitFor();
+          assert.equal(await page.getByText('Khẩn cấp',{exact:true}).count(), 0, 'Report detail must not render an urgency badge');
           assert(requests.some(r=>r.label===label && r.path==='/reports/101'), 'Detail API never requested'); return picture(page,label+'-detail-101');
         });
         await run('loading is explicit, then recovers', async () => {

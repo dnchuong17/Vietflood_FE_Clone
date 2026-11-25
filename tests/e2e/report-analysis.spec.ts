@@ -67,8 +67,8 @@ const test = base.extend<{ dataset: Dataset }>({
   }, { auto: true }],
 });
 
-async function metrics(page: Page, total: number, urgent: number, open: number, locations: number) {
-  for (const [id, value] of [['total', total], ['urgent', urgent], ['open', open], ['locations', locations]] as const) {
+async function metrics(page: Page, total: number, resolved: number, open: number, locations: number) {
+  for (const [id, value] of [['total', total], ['resolved', resolved], ['open', open], ['locations', locations]] as const) {
     await expect(page.getByTestId(`analysis-${id}`)).toHaveText(String(value));
   }
 }
@@ -133,10 +133,10 @@ test.describe('admin report analytics', () => {
     await metrics(page, 8, 2, 4, 4);
     await expectIds(page, canonical.map(report => report.id!), 8);
     await apply(page);
-    await metrics(page, 2, 1, 2, 2);
+    await metrics(page, 2, 0, 2, 2);
     await expectIds(page, [202, 206], 8);
     await page.locator('#relief-filter-search').fill('SYNTHETIC-NO-MATCH');
-    await metrics(page, 2, 1, 2, 2);
+    await metrics(page, 2, 0, 2, 2);
     await apply(page);
     await metrics(page, 0, 0, 0, 0);
     await expectIds(page, [], 8);
@@ -153,17 +153,17 @@ test.describe('admin report analytics', () => {
     await page.goto('/cuu-tro');
     await metrics(page, 8, 2, 4, 4);
     const before = reportReads(scenario.requests);
-    for (const [label, ids, urgent, open, locations] of [
-      ['Chờ xử lý', [201, 205], 1, 2, 1],
-      ['Đã xác minh', [202, 206], 1, 2, 2],
-      ['Đã xử lý', [203, 207], 0, 0, 2],
+    for (const [label, ids, resolved, open, locations] of [
+      ['Chờ xử lý', [201, 205], 0, 2, 1],
+      ['Đã xác minh', [202, 206], 0, 2, 2],
+      ['Đã xử lý', [203, 207], 2, 0, 2],
       ['Từ chối', [204, 208], 0, 0, 1],
     ] as const) {
       // Reset restores the chart's full applied scope before the next drilldown.
       await reset(page);
       await page.getByRole('button', { name: `Lọc trạng thái ${label}`, exact: true }).click();
       await expectIds(page, [...ids], 8);
-      await metrics(page, 2, urgent, open, locations);
+      await metrics(page, 2, resolved, open, locations);
     }
     expect(reportReads(scenario.requests)).toBe(before);
   });
@@ -186,36 +186,40 @@ test.describe('admin report analytics', () => {
     expect(reportReads(scenario.requests)).toBe(before);
   });
 
-  test('urgent quick scope combines safely with location, clears empty scope and resets locally', async ({ page, scenario }, testInfo) => {
-    await page.goto('/cuu-tro');
-    await metrics(page, 8, 2, 4, 4);
-    const before = reportReads(scenario.requests);
-    const urgent = page.getByRole('button', { name: 'Chỉ xem báo cáo khẩn cấp', exact: true });
+  test('true and false urgency flags do not change rendered IDs, rankings or metrics', async ({ page, dataset, scenario }, testInfo) => {
     const places = page.getByRole('list', { name: 'Các địa điểm không lặp', exact: true });
-    // Both first locations have one urgent report; more open reports wins the tie.
+    const chart = page.getByTestId('report-area-chart');
+    const snapshot = async () => {
+      await expectIds(page, canonical.map(report => report.id!), 8);
+      await metrics(page, 8, 2, 4, 4);
+      await expect(places.getByRole('button')).toHaveCount(4);
+      await expect(chart.getByTestId('area-ranking-item')).toHaveCount(2);
+      await expect(page.getByTestId('analysis-urgent')).toHaveCount(0);
+      await expect(page.getByRole('button', { name: 'Chỉ xem báo cáo khẩn cấp', exact: true })).toHaveCount(0);
+      await expect(page.getByText('Khẩn cấp', { exact: true })).toHaveCount(0);
+      const ids = await page.locator('article[data-report-id]').evaluateAll(elements => elements.map(element => element.getAttribute('data-report-id')));
+      const locations = await places.getByRole('button').allTextContents();
+      const provinces = await chart.getByTestId('area-ranking-item').allTextContents();
+      await chart.getByRole('button', { name: 'Phường/xã', exact: true }).click();
+      await expect(chart).toHaveAttribute('data-area-level', 'ward');
+      await expect(chart.getByTestId('area-ranking-item')).toHaveCount(2);
+      const wards = await chart.getByTestId('area-ranking-item').allTextContents();
+      const values = await Promise.all(['total', 'resolved', 'open', 'locations'].map(id => page.getByTestId(`analysis-${id}`).innerText()));
+      await chart.getByRole('button', { name: 'Tỉnh/thành', exact: true }).click();
+      return { ids, locations, provinces, wards, metrics: values };
+    };
+    await page.goto('/cuu-tro');
+    const baseline = await snapshot();
     await expect(places.getByRole('button').first()).toHaveAccessibleName(/^Xem báo cáo tại 12 đường kiểm thử/);
-    await urgent.click();
-    await expect(urgent).toHaveAttribute('aria-pressed', 'true');
-    await expectIds(page, [201, 206], 8);
-    await metrics(page, 8, 2, 4, 4);
-    await sharedLocation(page).click();
-    await expectIds(page, [201], 8);
-    await page.getByRole('button', { name: 'Bỏ chọn địa điểm', exact: true }).click();
-    await expectIds(page, [201, 206], 8);
-    await page.getByRole('button', { name: /^Xem báo cáo tại 34 đường kiểm thử/ }).click();
-    await expectIds(page, [], 8);
-    await expect(page.getByText('Không có báo cáo trong phạm vi địa điểm và khẩn cấp đang chọn.', { exact: true })).toBeVisible();
-    await evidence(page, testInfo, 'analysis-empty-quick-scope');
-    await page.getByRole('button', { name: 'Bỏ chọn phạm vi nhanh', exact: true }).click();
-    await expectIds(page, canonical.map(report => report.id!), 8);
-    await urgent.click();
-    await page.getByRole('button', { name: 'Bỏ lọc khẩn cấp', exact: true }).click();
-    await expectIds(page, canonical.map(report => report.id!), 8);
-    await urgent.click();
-    await reset(page);
-    await expect(urgent).toHaveAttribute('aria-pressed', 'false');
-    await expectIds(page, canonical.map(report => report.id!), 8);
-    expect(reportReads(scenario.requests)).toBe(before);
+    for (const flag of [false, true]) {
+      // Preserve both legacy spellings in the API payload; only flags change.
+      dataset.rows = syntheticRows().map(report => ({ ...report, isUrgent: flag, is_urgent: flag }));
+      const before = reportReads(scenario.requests);
+      await page.reload();
+      await expect.poll(() => reportReads(scenario.requests)).toBeGreaterThan(before);
+      expect(await snapshot()).toEqual(baseline);
+      await evidence(page, testInfo, `analysis-ignored-urgency-${flag}`);
+    }
   });
 
   test('Recharts ranks deduped province and ward areas, bar and keyboard drilldown preserve totals', async ({ page, scenario }, testInfo) => {
@@ -249,8 +253,6 @@ test.describe('admin report analytics', () => {
     const first = ranks.first().getByRole('button');
     await first.focus(); await page.keyboard.press('Enter');
     await expectIds(page, [201, 202], 8);
-    await page.getByRole('button', { name: 'Chỉ xem báo cáo khẩn cấp', exact: true }).click();
-    await expectIds(page, [201], 8);
     await reset(page);
     await expectIds(page, canonical.map(report => report.id!), 8);
     await expect(page.getByRole('button', { name: 'Bỏ chọn khu vực', exact: true })).toHaveCount(0);
@@ -284,12 +286,12 @@ test.describe('admin report analytics', () => {
     scenario.mode = 'loading';
     await page.goto('/cuu-tro');
     await expect(page.getByText(/Đang tải báo cáo/).first()).toBeVisible();
-    for (const id of ['total', 'urgent', 'open', 'locations']) await expect(page.getByTestId(`analysis-${id}`)).toHaveCount(0);
+    for (const id of ['total', 'resolved', 'open', 'locations']) await expect(page.getByTestId(`analysis-${id}`)).toHaveCount(0);
     await expect(page.locator('article[data-report-id]')).toHaveCount(0);
     await expect(page.getByText(/^0\s*\/\s*0\s+báo cáo$/)).toHaveCount(0);
     scenario.mode = 'error'; dataset.release();
     await expect(page.getByText(/SYNTHETIC reports outage/).first()).toBeVisible();
-    for (const id of ['total', 'urgent', 'open', 'locations']) await expect(page.getByTestId(`analysis-${id}`)).toHaveCount(0);
+    for (const id of ['total', 'resolved', 'open', 'locations']) await expect(page.getByTestId(`analysis-${id}`)).toHaveCount(0);
     await expect(page.getByText(/^0\s*\/\s*0\s+báo cáo$/)).toHaveCount(0);
     scenario.mode = 'data';
     await page.getByRole('button', { name: 'Thử lại', exact: true }).click();
@@ -311,7 +313,7 @@ test.describe('admin report analytics', () => {
     dataset.rows = [canonical[0]];
     scenario.mode = 'data';
     await page.getByRole('button', { name: 'Thử lại', exact: true }).click();
-    await metrics(page, 1, 1, 1, 1);
+    await metrics(page, 1, 0, 1, 1);
     await expectIds(page, [201], 1);
     await expect(page.getByText(/Dữ liệu hiển thị là từ lần tải trước/)).toHaveCount(0);
     await expect(page.getByText(/SYNTHETIC reports outage/)).toHaveCount(0);
@@ -331,7 +333,7 @@ test.describe('admin report analytics', () => {
     }));
     dataset.rows = [...many, { ...many[0] }];
     await page.goto('/cuu-tro');
-    await metrics(page, 15, 1, 15, 1);
+    await metrics(page, 15, 0, 15, 1);
     await expect(page.locator('article[data-report-id]')).toHaveCount(12);
     await counter(page, 15, 15);
     const first = await page.locator('article[data-report-id]').evaluateAll(elements => elements.map(element => Number(element.getAttribute('data-report-id'))));
@@ -341,7 +343,7 @@ test.describe('admin report analytics', () => {
     await page.getByRole('button', { name: 'Trang báo cáo sau', exact: true }).click();
     await expect(page.locator('article[data-report-id]')).toHaveCount(3);
     await counter(page, 15, 15);
-    await metrics(page, 15, 1, 15, 1);
+    await metrics(page, 15, 0, 15, 1);
     const last = await page.locator('article[data-report-id]').evaluateAll(elements => elements.map(element => Number(element.getAttribute('data-report-id'))));
     expect([...first, ...last].sort((a, b) => a - b)).toEqual(many.map(report => report.id!));
     await expect(page.getByRole('button', { name: 'Trang báo cáo sau', exact: true })).toBeDisabled();

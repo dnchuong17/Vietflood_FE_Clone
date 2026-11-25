@@ -14,7 +14,7 @@ for (const role of ['admin', 'relief'] as const) {
       for (const [id, label] of [[101, 'Chờ xử lý'], [102, 'Đã xác minh'], [103, 'Đã xử lý'], [104, 'Từ chối']] as const) {
         await expect(page.locator(`article[data-report-id="${id}"]`).getByText(label, { exact: true })).toBeVisible();
       }
-      await expect(page.locator('article[data-report-id="101"]').getByText('Khẩn cấp', { exact: true })).toBeVisible();
+      await expect(page.locator('article[data-report-id]').getByText('Khẩn cấp', { exact: true })).toHaveCount(0);
       for (const id of [106, 107]) await expect(page.locator(`article[data-report-id="${id}"]`).getByText('Chưa có ngày gửi', { exact: true })).toBeVisible();
       await expect(page.locator('a[href^="/su-co/"]')).toHaveCount(0);
       expect(scenario.requests.some(request => request.path === '/reports' && request.method === 'GET')).toBe(true);
@@ -95,6 +95,7 @@ for (const role of ['admin', 'relief'] as const) {
       await expect(page).toHaveURL(/\/bao-cao\/101$/);
       await expect(page.getByText(reports[0].description, { exact: true }).first()).toBeVisible();
       await expect(page.getByText('Báo cáo #101', { exact: true }).first()).toBeVisible();
+      await expect(page.getByText('Khẩn cấp', { exact: true })).toHaveCount(0);
       expect(scenario.requests.some(request => request.path === '/reports/101')).toBe(true);
     });
 

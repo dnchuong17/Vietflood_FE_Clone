@@ -4,15 +4,15 @@
 
 The operational route lives in `Vietflood_FE_Clone`, not the separate minimal `VietFlood_FE` application. The admin-only analysis panel uses the existing role-scoped `listReports(role)` collection. Relief retains the original report list and filters; citizen/anonymous route guards remain unchanged. No backend/mobile edits, commits, deployments or production mutations were performed.
 
-The existing in-progress dashboard, API normalization and test-tooling changes were preserved. This completion added urgent-report drilldown, location priority ordering, empty quick-scope recovery and browser regression coverage; it verified the existing deduplication and analysis behavior rather than replacing it.
+The dashboard retains API normalization, deduplication and the existing test tooling. The current web-only change removes urgency classification, counts, quick scopes and ordering effects. Stored API fields and original report content remain unchanged. Historical acceptance below describes earlier implementations, not a fresh pass for this change.
 
 ## Dashboard
 
-- Unique-ID report total, pending/verified unfinished count, explicit urgent count and identified-location count.
+- Unique-ID report total, pending/verified unfinished count, resolved count and identified-location count.
 - Clickable status distribution, last seven report-bearing Vietnam calendar dates, province distribution and location drilldown.
-- Locations ordered by urgent report count, unfinished count, total reports and stable label/key tie-break.
-- Admin quick urgency toggle combines with location selection and resets the report page. Clearing either scope restores the corresponding list; Apply, Reset and quick status changes clear quick urgency selection.
-- Charts remain based on the full applied-filter collection, independent of list pagination and quick location/urgency drilldown. The quick-scope notice explicitly states this boundary.
+- Locations ordered by total reports, unfinished count and stable key tie-break; urgency flags do not affect ordering.
+- Region and exact-location drilldown scope original reports without an urgency toggle. Clearing the quick scope restores the list; Apply, Reset and quick status changes clear selection.
+- Charts remain based on the full applied-filter collection, independent of list pagination and quick location/region drilldown. The quick-scope notice explicitly states this boundary.
 - Date/address/status/search filters remain draft-until-Apply; invalid filters preserve the previous applied scope. Date handling is inclusive Vietnam UTC+7 with open endpoints and no inherited incident 31-day restriction.
 - Original reports retain detail links. Pagination renders at most twelve reports per page without changing summary counts.
 - Loading, API failure, marked stale refresh data, actual empty collections, filter-empty and quick-scope-empty states remain distinct.
@@ -58,18 +58,18 @@ Two test harness assumptions were corrected without weakening behavior: comparis
 
 All browser API/catalogue results are explicitly synthetic, fulfilled in memory with external network/write guards. Relief tests require zero incident requests, unexpected API requests, operational writes and uncaught page exceptions. Other explicit profile/chat mutation regression scenarios remain fixture-only. Results are not proof of live backend/database RBAC, production availability, real weather/maps/media, native behavior or full WCAG conformance. No real flood reports or accounts were created or removed.
 
-## Regional Recharts dashboard — current extension
+## Regional Recharts dashboard
 
 The current extension installs pinned `recharts@3.10.1` and its matching React peer `react-is@19.2.3` using the project's npm lockfile. Official Recharts BarChart guidance and installed TypeScript declarations were consulted. Existing unrelated dependency advisories were not force-upgraded.
 
-- `report-areas.ts` builds separate administrative province and province-qualified ward rollups. Volume is the primary ordering, then urgency, unfinished count and deterministic key tie-breaks. Known division aliases are normalized only for lookup; labels and source reports are retained.
+- `report-areas.ts` builds separate administrative province and province-qualified ward rollups. Volume is the primary ordering, then unfinished count and deterministic key tie-breaks. Known division aliases are normalized only for lookup; labels and source reports are retained.
 - Repeated valid report IDs count once. Different IDs remain distinct even with identical content/addresses. Same ward names in different provinces never share a group.
-- The main horizontal Recharts BarChart shows the top eight regions by report volume. An adjacent, scrollable full ranking retains every region and full Vietnamese name, with urgent/open counts and share of the complete applied scope.
-- Province/ward controls switch the regional granularity. Clicking a bar or pressing Enter on a ranked row scopes original reports without fetching/writing the API or changing chart totals. Region selection combines with urgency; selecting a precise location replaces region selection. Apply, Reset, status changes or changing region level clear the selected region.
+- The main horizontal Recharts BarChart shows the top eight regions by report volume. An adjacent, scrollable full ranking retains every region and full Vietnamese name, with total/open counts and share of the complete applied scope.
+- Province/ward controls switch the regional granularity. Clicking a bar or pressing Enter on a ranked row scopes original reports without fetching/writing the API or changing chart totals. Selecting a precise location replaces region selection; urgency flags never narrow the list. Apply, Reset, status changes or changing region level clear the selected region.
 - Missing province/ward values are disclosed separately and remain in overall counts/list. GPS alone is not reverse-geocoded into an invented administrative area. Administrative aggregation is not exact-location deduplication or incident merging.
-- The daily trend now uses Recharts AreaChart with total and urgent series; urgent counts are explicitly a subset of total. Charts use theme tokens, accessible textual alternatives, fixed responsive parent heights, and no chart entrance animation.
+- The daily trend uses Recharts AreaChart with the total-report series only. Charts use theme tokens, accessible textual alternatives, fixed responsive parent heights, and no chart entrance animation.
 
-### Fresh verification of this extension
+### Historical verification before urgency removal
 
 - Unit tests: **66 files / 388 tests passed**, including six additional regional grouping tests.
 - TypeScript, scoped relief/E2E ESLint, `git diff --check`, and production build: passed.
@@ -83,4 +83,25 @@ Final regression report: `test-results/qa-regressions/2026-11-07T16-45-09-407Z-4
 
 Earlier attempts in this extension are not final passes: a concurrent local E2E run occupied port 3105 and removed shared report files during one regression run. That run's individual checks passed but the required browser/context audit was incomplete. Its status stayed failed; the final sequential run above passed both assertions and isolation audits. No other process was terminated to obtain the final result.
 
-This extension remains local and uncommitted; it does not deploy changes or prove live report correctness.
+The current urgency-removal changes remain local and uncommitted; they do not deploy changes or prove live report correctness.
+
+## Web urgency removal — verified November 25, 2026
+
+The approved web-only change removes urgency badges/counts/filters/series, urgency-based ordering and assignment deadline overrides. Dashboard cards now show unique reports, unfinished reports, resolved reports and identified locations. Regional Recharts, exact-location drilldown, duplicate protection, original source descriptions, attachments/GPS/contact, guards and operational actions remain. Severity-derived high/medium/low assignment behavior and official incident severity are retained; API DTO fields and backend storage are unchanged.
+
+Incident/assignment views no longer mount or poll the emergency feed or show estimated-priority evidence in detail/web export. The incident overview's `highPriority` card is also removed: the backend aggregate includes emergency source flags, so retaining it would indirectly preserve urgency classification. Its API contract remains intact.
+
+Fresh final verification after the aggregate-card fix:
+
+- Unit: **67 files / 409 tests passed**.
+- TypeScript, scoped ESLint, diff whitespace checks and production builds: passed.
+- Playwright: **140/140 passed**, no skipped, unexpected or flaky cases; 1440/390px × light/dark. Includes true/false legacy-flag invariance of IDs, rankings and metrics, region/bar/keyboard drilldown, filtering, retry/stale data, pagination and guards.
+- Five fixture UI regression suites: **291/291 passed** (100 relief + 35 address + 109 broad UI + 29 chat + 18 attachment confirmation). Broad UI includes **64/64 route cases**, zero emergency-feed calls, unknown API requests and uncaught page exceptions. Relief records zero incident requests, operational writes, unknown API requests and page exceptions.
+- Desktop-light summary and narrow-dark region charts, report list/detail, incident detail and final four-card assignment overview screenshots were visually inspected. Original prose containing “khẩn cấp” remains visible; product badges/filters are absent. This is sampled visual inspection, not a full accessibility audit.
+
+Preserved final evidence:
+
+- E2E: `/Users/macbook/.hermes/cache/scratch/remove-web-urgency/e2e-final/results.json`, run started `2026-11-25T16:51:37.368Z`.
+- QA: `test-results/qa-regressions/2026-11-25T16-53-26-251Z-52491/summary.json`, preserved with screenshots/network audits at `/Users/macbook/.hermes/cache/scratch/remove-web-urgency/qa-final-verified/`.
+
+The first QA attempt failed only its aggregate count contract: adding the explicit emergency-feed safety check raised broad UI from 108 to 109. The runner manifest was corrected and all suites rerun. Historical passing totals above remain unchanged and are not counted as current evidence. All results use synthetic localhost fixtures, not live backend/production/native acceptance. No backend/mobile changes, data migrations, commits, pushes or deployments were performed.

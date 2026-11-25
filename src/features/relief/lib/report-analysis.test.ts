@@ -57,7 +57,7 @@ describe("exact locations and province rollups", () => {
     expect(result.locations).toHaveLength(1);
     expect(result.locations[0]).toMatchObject({ precision: "address", reports: [first, second], open: 2 });
     expect(result.locations[0].label).toBe("12/3 Lê Lợi, Phường Bến Nghé, TP. HCM");
-    expect(result.provinces).toEqual([{ key: "ho chi minh", label: "TP. HCM", total: 2, urgent: 0 }]);
+    expect(result.provinces).toEqual([{ key: "ho chi minh", label: "TP. HCM", total: 2, }]);
   });
   it("preserves house numbers, slash, hyphen, punctuation and street accents", () => {
     const streets = ["12/3 Lê Lợi", "123 Lê Lợi", "12-3 Lê Lợi", "12/3 Le Loi", "12/3 Lê Lợi.", "13/3 Lê Lợi"];
@@ -98,21 +98,21 @@ describe("exact locations and province rollups", () => {
     const result = analyzeReports(rows);
     expect(result.locations).toEqual([]);
     expect(result.unknownLocationReports).toBe(4);
-    expect(result.provinces.find(province => province.key === "")).toEqual({ key: "", label: "Chưa rõ tỉnh/thành", total: 3, urgent: 0 });
+    expect(result.provinces.find(province => province.key === "")).toEqual({ key: "", label: "Chưa rõ tỉnh/thành", total: 3, });
   });
 });
 
 describe("analysis counters and dates", () => {
-  it("counts every status and only boolean true urgency with nullish alias precedence", () => {
+  it("counts every status without interpreting legacy urgency flags", () => {
     const rows = [
       make(1, { status: " pending ", isUrgent: true }), make(2, { status: "VERIFIED", is_urgent: true }),
       make(3, { status: "resolved", isUrgent: false, is_urgent: true }), make(4, { status: "rejected" }),
       make(5, { status: undefined }), make(6, { status: "future", isUrgent: "true" as unknown as boolean }),
     ];
     const result = analyzeReports(rows);
-    expect(result).toMatchObject({ total: 6, urgent: 2, open: 3, statuses: { pending: 2, verified: 1, resolved: 1, rejected: 1, unknown: 1 } });
-    expect(result.locations[0]).toMatchObject({ urgent: 2, open: 3 });
-    expect(result.provinces[0]).toMatchObject({ total: 6, urgent: 2 });
+    expect(result).toMatchObject({ total: 6, open: 3, statuses: { pending: 2, verified: 1, resolved: 1, rejected: 1, unknown: 1 } });
+    expect(result.locations[0]).toMatchObject({ open: 3 });
+    expect(result.provinces[0]).toMatchObject({ total: 6, });
     expect(reportStatus({ status: "" })).toBe("unknown");
     expect(reportStatus({})).toBe("pending");
   });
@@ -125,13 +125,25 @@ describe("analysis counters and dates", () => {
       make(5, { createdAt: "invalid" }), make(6, { createdAt: undefined }), make(7, { createdAt: "" }),
     ]);
     expect(result.days).toEqual([
-      { date: "2026-11-01", total: 1, urgent: 0 }, { date: "2026-11-02", total: 2, urgent: 1 },
-      { date: "2026-11-04", total: 1, urgent: 1 },
+      { date: "2026-11-01", total: 1, }, { date: "2026-11-02", total: 2, },
+      { date: "2026-11-04", total: 1, },
     ]);
     expect(result.undated).toBe(3);
   });
+  it("legacy urgency flags cannot change aggregates or preserve urgency-derived fields", () => {
+    const rows = [make(1), make(2, { status: "resolved" })];
+    const project = (records: FloodReport[]) => {
+      const result = analyzeReports(records);
+      return { ...result, locations: result.locations.map(({ reports, ...group }) => ({ ...group, reportIds: reports.map(report => report.id) })) };
+    };
+    expect(project(rows.map(row => ({ ...row, isUrgent: true, is_urgent: true })))).toEqual(project(rows));
+    const result = analyzeReports(rows);
+    expect(result).not.toHaveProperty("urgent");
+    expect(result.locations[0]).not.toHaveProperty("urgent");
+    expect(result.days[0]).not.toHaveProperty("urgent");
+  });
   it("returns empty, fully numeric counters", () => {
-    expect(analyzeReports([])).toEqual({ total: 0, urgent: 0, open: 0, statuses: { pending: 0, verified: 0, resolved: 0, rejected: 0, unknown: 0 }, locations: [], unknownLocationReports: 0, provinces: [], days: [], undated: 0, duplicateCandidates: [] });
+    expect(analyzeReports([])).toEqual({ total: 0, open: 0, statuses: { pending: 0, verified: 0, resolved: 0, rejected: 0, unknown: 0 }, locations: [], unknownLocationReports: 0, provinces: [], days: [], undated: 0, duplicateCandidates: [] });
   });
 });
 
@@ -145,7 +157,6 @@ describe("advisory duplicate candidates", () => {
     expect(result.duplicateCandidates[0].reason).toContain("không tự gộp");
     expect(result.total).toBe(2);
     expect(result.open).toBe(2);
-    expect(result.urgent).toBe(1);
     expect(result.locations[0].reports).toEqual([first, second]);
     expect(result.days[0].total).toBe(2);
     expect(result.provinces[0].total).toBe(2);

@@ -3,7 +3,7 @@ import type {
   ReportStatus,
 } from "@/features/reports/api/reports";
 
-export type AssignmentPriority = "urgent" | "high" | "medium" | "low";
+export type AssignmentPriority = "high" | "medium" | "low";
 export type AssignmentStatus = "assigned" | "in_progress" | "completed";
 
 export type OperationalAssignment = {
@@ -30,7 +30,6 @@ export type AssignmentSummary = {
   assigned: number;
   inProgress: number;
   completed: number;
-  urgent: number;
 };
 
 function normalizeStatus(status: FloodReport["status"]): ReportStatus {
@@ -73,10 +72,6 @@ function getAssignmentStatus(status: ReportStatus): AssignmentStatus {
 }
 
 function getAssignmentPriority(report: FloodReport): AssignmentPriority {
-  if (report.isUrgent || report.is_urgent) {
-    return "urgent";
-  }
-
   const severity = normalizeSeverity(report.severity);
   if (severity >= 4) {
     return "high";
@@ -90,10 +85,6 @@ function getAssignmentPriority(report: FloodReport): AssignmentPriority {
 }
 
 function getPriorityLabel(priority: AssignmentPriority): string {
-  if (priority === "urgent") {
-    return "Khẩn cấp";
-  }
-
   if (priority === "high") {
     return "Cao";
   }
@@ -130,10 +121,6 @@ function getProgress(status: AssignmentStatus): number {
 }
 
 function getDeadlineOffsetDays(priority: AssignmentPriority): number {
-  if (priority === "urgent") {
-    return 0;
-  }
-
   if (priority === "high") {
     return 1;
   }
@@ -274,8 +261,6 @@ export function summarizeAssignments(
     completed: assignments.filter(
       (assignment) => assignment.status === "completed",
     ).length,
-    urgent: assignments.filter((assignment) => assignment.priority === "urgent")
-      .length,
   };
 }
 

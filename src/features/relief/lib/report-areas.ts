@@ -8,7 +8,6 @@ export type ReportArea = {
   province: string;
   ward?: string;
   total: number;
-  urgent: number;
   open: number;
   reports: FloodReport[];
 };
@@ -38,9 +37,8 @@ export function groupReportAreas(input: FloodReport[]): ReportAreas {
       `${report.ward!.trim()}, ${report.province!.trim()}`, report.ward!.trim()]);
     for (const [map, key, label, storedWard] of groups) {
       const group = map.get(key) ?? { key, label, province: report.province!.trim(), ward: storedWard,
-        total: 0, urgent: 0, open: 0, reports: [] };
+        total: 0, open: 0, reports: [] };
       group.total++;
-      group.urgent += Number((report.isUrgent ?? report.is_urgent) === true);
       const status = reportStatus(report);
       group.open += Number(status === "pending" || status === "verified");
       group.reports.push(report);
@@ -48,6 +46,6 @@ export function groupReportAreas(input: FloodReport[]): ReportAreas {
     }
   }
   const ranked = (map: Map<string, ReportArea>) => [...map.values()].sort((a, b) =>
-    b.total - a.total || b.urgent - a.urgent || b.open - a.open || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+    b.total - a.total || b.open - a.open || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
   return { provinces: ranked(provinces), wards: ranked(wards), unknownProvince, unknownWard };
 }

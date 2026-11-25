@@ -9,7 +9,6 @@ import {
   ArrowTopRightOnSquareIcon as ExternalLink,
   CheckCircleIcon as CheckCircle2,
   ClockIcon as Clock,
-  ExclamationTriangleIcon as AlertTriangle,
   MapPinIcon as MapPin,
   PaperAirplaneIcon as Route,
   PhotoIcon as ImageIcon,
@@ -308,12 +307,6 @@ export function ReportDetail({ reportId }: { reportId: string }) {
               </CardTitle>
             </div>
             <div className="flex flex-wrap gap-2">
-              {report.isUrgent ? (
-                <Badge variant="critical" className="gap-1.5">
-                  <AlertTriangle className="size-3.5" aria-hidden="true" />
-                  Khẩn cấp
-                </Badge>
-              ) : null}
               <Badge variant={statusBadgeVariant(status)}>
                 {getReportStatusLabel(status)}
               </Badge>

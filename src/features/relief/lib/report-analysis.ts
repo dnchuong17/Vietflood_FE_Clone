@@ -7,7 +7,6 @@ export type LocationGroup = {
   label: string;
   precision: "address" | "gps";
   reports: FloodReport[];
-  urgent: number;
   open: number;
 };
 export type DuplicateCandidate = {
@@ -18,13 +17,12 @@ export type DuplicateCandidate = {
 };
 export type ReportAnalysis = {
   total: number;
-  urgent: number;
   open: number;
   statuses: Record<ReportStatus | "unknown", number>;
   locations: LocationGroup[];
   unknownLocationReports: number;
-  provinces: { key: string; label: string; total: number; urgent: number }[];
-  days: { date: string; total: number; urgent: number }[];
+  provinces: { key: string; label: string; total: number }[];
+  days: { date: string; total: number }[];
   undated: number;
   duplicateCandidates: DuplicateCandidate[];
 };
@@ -84,9 +82,6 @@ export function reportStatus(report: FloodReport): ReportStatus | "unknown" {
   const status = fold(report.status ?? "pending");
   return status === "pending" || status === "verified" || status === "resolved" || status === "rejected"
     ? status : "unknown";
-}
-function urgent(report: FloodReport): boolean {
-  return (report.isUrgent ?? report.is_urgent) === true;
 }
 function open(report: FloodReport): boolean {
   const status = reportStatus(report);
@@ -175,7 +170,7 @@ function candidates(locations: LocationGroup[]): DuplicateCandidate[] {
  */
 export function analyzeReports(reports: FloodReport[]): ReportAnalysis {
   const analysis: ReportAnalysis = {
-    total: reports.length, urgent: 0, open: 0,
+    total: reports.length, open: 0,
     statuses: { pending: 0, verified: 0, resolved: 0, rejected: 0, unknown: 0 },
     locations: [], unknownLocationReports: 0, provinces: [], days: [], undated: 0,
     duplicateCandidates: [],
@@ -184,34 +179,29 @@ export function analyzeReports(reports: FloodReport[]): ReportAnalysis {
   const provinces = new Map<string, ReportAnalysis["provinces"][number]>();
   const days = new Map<string, ReportAnalysis["days"][number]>();
   for (const report of reports) {
-    const isUrgent = Number(urgent(report));
     const isOpen = Number(open(report));
-    analysis.urgent += isUrgent;
     analysis.open += isOpen;
     analysis.statuses[reportStatus(report)]++;
     const place = location(report);
     if (place) {
-      const group = locations.get(place.key) ?? { ...place, reports: [], urgent: 0, open: 0 };
+      const group = locations.get(place.key) ?? { ...place, reports: [], open: 0 };
       group.reports.push(report);
-      group.urgent += isUrgent;
       group.open += isOpen;
       locations.set(place.key, group);
     } else analysis.unknownLocationReports++;
     const provinceKey = normalizeVietnamDivision(report.province ?? "");
     const province = provinces.get(provinceKey) ?? {
-      key: provinceKey, label: provinceKey ? report.province! : "Chưa rõ tỉnh/thành", total: 0, urgent: 0,
+      key: provinceKey, label: provinceKey ? report.province! : "Chưa rõ tỉnh/thành", total: 0,
     };
     province.total++;
-    province.urgent += isUrgent;
     provinces.set(provinceKey, province);
     const time = reportCreatedTime(report);
     const vietnamTime = time === null ? NaN : time + 7 * 60 * 60 * 1000;
     const dateValue = new Date(vietnamTime);
     if (Number.isFinite(dateValue.getTime())) {
       const date = dateValue.toISOString().slice(0, 10);
-      const day = days.get(date) ?? { date, total: 0, urgent: 0 };
+      const day = days.get(date) ?? { date, total: 0 };
       day.total++;
-      day.urgent += isUrgent;
       days.set(date, day);
     } else analysis.undated++;
   }

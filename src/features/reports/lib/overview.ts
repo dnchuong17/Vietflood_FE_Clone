@@ -8,7 +8,6 @@ export type ReportsOverviewSummary = {
   verified: number;
   resolved: number;
   rejected: number;
-  urgent: number;
 };
 
 function toReportStatus(status: FloodReport["status"]): ReportStatus {
@@ -16,10 +15,6 @@ function toReportStatus(status: FloodReport["status"]): ReportStatus {
   return REPORT_STATUS_OPTIONS.includes(normalized as ReportStatus)
     ? (normalized as ReportStatus)
     : "pending";
-}
-
-function isUrgentReport(report: FloodReport): boolean {
-  return Boolean(report.isUrgent ?? report.is_urgent);
 }
 
 export function buildReportsOverviewSummary(
@@ -30,9 +25,6 @@ export function buildReportsOverviewSummary(
     (summary, report) => {
       const status = toReportStatus(report.status);
       summary[status] += 1;
-      if (isUrgentReport(report)) {
-        summary.urgent += 1;
-      }
       return summary;
     },
     {
@@ -42,7 +34,6 @@ export function buildReportsOverviewSummary(
       verified: 0,
       resolved: 0,
       rejected: 0,
-      urgent: 0,
     },
   );
 }

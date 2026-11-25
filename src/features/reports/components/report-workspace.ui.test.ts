@@ -10,7 +10,7 @@ describe("report workspace UI", () => {
     expect(cards.indexOf("addressText(report)")).toBeLessThan(cards.indexOf('report.description || "Chưa có mô tả."'));
     expect(cards).toContain("min-w-0 break-words");
     expect(cards).toContain("formatReportDateTime(report.createdAt ?? report.created_at)");
-    expect(cards).toContain('report.isUrgent ? <Badge variant="critical">Khẩn cấp</Badge>');
+    expect(cards).not.toMatch(/isUrgent|is_urgent|Khẩn cấp/);
     expect(source).toContain('<fieldset className="min-w-0">');
     expect(source).toMatch(/<legend[^>]*>[\s\S]*?Loại báo cáo[\s\S]*?<\/legend>/);
     expect(source).not.toContain("bg-white");
@@ -87,7 +87,7 @@ describe("report workspace UI", () => {
     expect(source).toContain("setLastSyncedAt");
     expect(source).toContain("Tổng báo cáo");
     expect(source).toContain("Đang hiển thị");
-    expect(source).toContain("Khẩn cấp");
+    expect(source).not.toMatch(/isUrgent|is_urgent|reportsOverview\.urgent|Khẩn cấp/);
     expect(source).toContain("Đồng bộ");
   });
 });

@@ -47,7 +47,6 @@ export function ReportReliefDashboard() {
   const [filterError, setFilterError] = useState<string | null>(null);
   const [locationKey, setLocationKey] = useState<string | null>(null);
   const [areaKey, setAreaKey] = useState<string | null>(null);
-  const [urgentOnly, setUrgentOnly] = useState(false);
   const [page, setPage] = useState(1);
   const isAdmin = role === "admin";
 
@@ -84,8 +83,7 @@ export function ReportReliefDashboard() {
   const selectedLocation = isAdmin ? analysis.locations.find(location => location.key === locationKey) : undefined;
   const selectedReports = selectedLocation ? new Set(selectedLocation.reports) : null;
   const scoped = visible.filter(report => (!selectedReports || selectedReports.has(report)) &&
-    (!areaReports || areaReports.has(report)) &&
-    (!isAdmin || !urgentOnly || (report.isUrgent ?? report.is_urgent) === true));
+    (!areaReports || areaReports.has(report)));
   const pages = Math.max(1, Math.ceil(scoped.length / REPORTS_PER_PAGE));
   const currentPage = Math.min(page, pages);
   const paginated = scoped.slice((currentPage - 1) * REPORTS_PER_PAGE, currentPage * REPORTS_PER_PAGE);
@@ -99,7 +97,6 @@ export function ReportReliefDashboard() {
       setApplied({ ...draft });
       setLocationKey(null);
       setAreaKey(null);
-      setUrgentOnly(false);
       setPage(1);
       setFilterError(null);
     } catch (cause) {
@@ -113,7 +110,6 @@ export function ReportReliefDashboard() {
     setFilterError(null);
     setLocationKey(null);
     setAreaKey(null);
-    setUrgentOnly(false);
     setPage(1);
   }
 
@@ -124,7 +120,6 @@ export function ReportReliefDashboard() {
     setFilterError(null);
     setLocationKey(null);
     setAreaKey(null);
-    setUrgentOnly(false);
     setPage(1);
   }
 
@@ -191,8 +186,8 @@ export function ReportReliefDashboard() {
       {hasData && isAdmin ? <div aria-busy={isLoading}><ReportAnalysisPanel analysis={analysis} areas={areas} selectedArea={selectedArea?.key ?? null}
         onSelectArea={key => { setAreaKey(key); setLocationKey(null); setPage(1); if (key) requestAnimationFrame(() => document.getElementById("relief-report-results")?.focus()); }}
         totalLoaded={reports.length} isFiltered={isFiltered}
-        selectedLocation={selectedLocation?.key ?? null} selectedStatus={applied.status} urgentOnly={urgentOnly}
-        onToggleUrgent={() => { setUrgentOnly(value => !value); setPage(1); requestAnimationFrame(() => document.getElementById("relief-report-results")?.focus()); }}
+        selectedLocation={selectedLocation?.key ?? null} selectedStatus={applied.status}
+
         onSelectLocation={selectLocation} onSelectStatus={quickStatus} /></div> : null}
       {hasData ? <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-5">
         <div><h3 id="relief-report-results" tabIndex={-1} className="text-base font-semibold">Danh sách báo cáo gốc</h3>
@@ -207,13 +202,9 @@ export function ReportReliefDashboard() {
         <p className="min-w-0 text-sm [overflow-wrap:anywhere]">Đang xem địa điểm: <strong>{selectedLocation.label}</strong></p>
         <Button type="button" variant="outline" onClick={() => { setLocationKey(null); setPage(1); }}>Bỏ chọn địa điểm</Button>
       </div> : null}
-      {hasData && isAdmin && urgentOnly ? <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4">
-        <p className="text-sm">Danh sách chỉ hiển thị báo cáo có cờ khẩn cấp. Biểu đồ vẫn phản ánh toàn bộ bộ lọc đã áp dụng.</p>
-        <Button type="button" variant="outline" onClick={() => { setUrgentOnly(false); setPage(1); }}>Bỏ lọc khẩn cấp</Button>
-      </div> : null}
       {!isLoading && hasData && visible.length > 0 && scoped.length === 0 ? <Card><CardContent className="space-y-3 p-6 text-sm">
-        <p>Không có báo cáo trong phạm vi địa điểm và khẩn cấp đang chọn.</p>
-        <Button type="button" variant="outline" onClick={() => { setLocationKey(null); setAreaKey(null); setUrgentOnly(false); setPage(1); }}>Bỏ chọn phạm vi nhanh</Button>
+        <p>Không có báo cáo trong phạm vi khu vực hoặc địa điểm đang chọn.</p>
+        <Button type="button" variant="outline" onClick={() => { setLocationKey(null); setAreaKey(null); setPage(1); }}>Bỏ chọn phạm vi nhanh</Button>
       </CardContent></Card> : null}
       {!isLoading && !error && hasData && reports.length === 0 ? <Card><CardContent className="p-6 text-sm">Chưa có báo cáo người dân.</CardContent></Card> : null}
       {!isLoading && !error && reports.length > 0 && visible.length === 0 ? <Card><CardContent className="space-y-3 p-6 text-sm"><p>Không có báo cáo phù hợp với bộ lọc.</p><Button type="button" variant="outline" onClick={reset}>Xóa bộ lọc</Button></CardContent></Card> : null}
@@ -223,7 +214,6 @@ export function ReportReliefDashboard() {
             <div className="flex flex-wrap gap-2">
               <Badge variant="outline">#{report.id ?? "—"}</Badge>
               <Badge variant={report.status === "resolved" ? "success" : "secondary"}>{statusLabel(report)}</Badge>
-              {report.isUrgent ? <Badge variant="critical">Khẩn cấp</Badge> : null}
             </div>
             <p className="text-xs text-muted-foreground">{createdLabel(report)}</p>
           </div>

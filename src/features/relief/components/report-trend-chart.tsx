@@ -13,11 +13,10 @@ export function ReportTrendChart({ days }: { days: ReportAnalysis["days"] }) {
           <YAxis allowDecimals={false} tick={{ fill: "var(--muted-foreground)", fontSize: 12 }} tickLine={false} axisLine={false} />
           <Tooltip contentStyle={{ borderRadius: 12, background: "var(--popover)", borderColor: "var(--border)", color: "var(--foreground)" }} labelFormatter={value => `Ngày ${String(value)} · UTC+7`} />
           <Area type="linear" dataKey="total" name="Tổng báo cáo" stroke="var(--primary)" fill="var(--primary)" fillOpacity={0.12} strokeWidth={2.5} isAnimationActive={false} dot={{ r: 3 }} />
-          <Area type="linear" dataKey="urgent" name="Khẩn cấp (trong tổng)" stroke="var(--destructive)" fill="transparent" strokeWidth={2} isAnimationActive={false} dot={{ r: 2 }} />
         </AreaChart>
       </ResponsiveContainer>
     </div>
-    <div className="mt-3 flex flex-wrap gap-4 text-xs text-muted-foreground"><span><span aria-hidden="true" className="mr-1.5 inline-block size-2 rounded-full bg-primary" />Tổng báo cáo</span><span><span aria-hidden="true" className="mr-1.5 inline-block size-2 rounded-full bg-destructive" />Khẩn cấp (trong tổng)</span></div>
-    <ol aria-label="Số báo cáo theo ngày Việt Nam" className="sr-only">{days.map(day => <li key={day.date}>{day.date}: {day.total} báo cáo, {day.urgent} khẩn cấp</li>)}</ol>
+    <div className="mt-3 flex flex-wrap gap-4 text-xs text-muted-foreground"><span><span aria-hidden="true" className="mr-1.5 inline-block size-2 rounded-full bg-primary" />Tổng báo cáo</span></div>
+    <ol aria-label="Số báo cáo theo ngày Việt Nam" className="sr-only">{days.map(day => <li key={day.date}>{day.date}: {day.total} báo cáo</li>)}</ol>
   </>;
 }

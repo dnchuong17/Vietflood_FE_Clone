@@ -6,7 +6,7 @@ import { IncidentSummaryEditor } from "./incident-summary-editor";
 import { reportQuery } from "../lib/report-period";
 import type { IncidentReport, IncidentDetail } from "../api/incidents";
 const edit={id:1,title:"Admin đã kiểm tra",body:"Nội dung <script>không chạy</script>",actorId:12,createdAt:"2026-11-05T18:00:00Z",evidenceVersion:1,pipeline:"incidents-v1",stale:true};
-const incident={id:"fixture",title:"Ngập ghi nhận",severity:"UNKNOWN",status:"DETECTED",assignee_id:null,needsVerification:true,evidence_version:2,version:3,priority:{value:"HIGH",provenance:"estimate",requiresHumanDecision:true,reasonCodes:[],factIds:[],sourceReportIds:[7],evidenceVersion:2},sourceReportIds:[7],summary:null,summaryStale:true,editorialSummary:edit} as unknown as IncidentReport["incidents"][number];
+const incident={id:"fixture",title:"Ngập ghi nhận",isUrgent:false,severity:"UNKNOWN",status:"DETECTED",assignee_id:null,needsVerification:true,evidence_version:2,version:3,priority:{value:"HIGH",provenance:"estimate",requiresHumanDecision:true,reasonCodes:[],factIds:[],sourceReportIds:[7],evidenceVersion:2},sourceReportIds:[7],summary:null,summaryStale:true,editorialSummary:edit} as unknown as IncidentReport["incidents"][number];
 const report={generatedAt:"2026-11-05T18:00:00Z",filters:{},analytics:{totalReports:8},incidents:[incident],coverage:{complete:true,incidentCount:1,maximumIncidents:1000}} as IncidentReport;
 describe("on-demand incident reports",()=>{
  it("replaces dates without leaking list pagination, keeps geography/severity/status/assignment",()=>{
@@ -15,8 +15,14 @@ describe("on-demand incident reports",()=>{
  });
  it("shows snapshot coverage, source and distinct AI/Admin/unverified/stale labels",()=>{
   const html=renderToStaticMarkup(h(ReportSnapshot,{report}));
-  for(const text of ["Phạm vi đầy đủ","8 báo cáo","Nguồn: #7","Chưa có tóm tắt","Cũ / chờ phân tích lại","Admin #12","incidents-v1","Bằng chứng v1","Chưa xác minh","Chính thức: Chưa đánh giá","Ước tính ưu tiên: Cao"]) expect(html).toContain(text);
+  for(const text of ["Phạm vi đầy đủ","8 báo cáo","Nguồn: #7","Chưa có tóm tắt","Cũ / chờ phân tích lại","Admin #12","incidents-v1","Bằng chứng v1","Chưa xác minh","Chính thức: Chưa đánh giá","Mới phát hiện","Cứu trợ chưa phân công"]) expect(html).toContain(text);
+  expect(html).not.toMatch(/Ước tính ưu tiên|khẩn cấp/);
   expect(html).toContain("&lt;script&gt;"); expect(html).not.toContain("<script>");
+ });
+ it("ignores urgency and estimated priority changes in the web snapshot",()=>{
+  const html=renderToStaticMarkup(h(ReportSnapshot,{report}));
+  const changed={...incident,isUrgent:true,priority:{...incident.priority,value:"CRITICAL" as const}};
+  expect(renderToStaticMarkup(h(ReportSnapshot,{report:{...report,incidents:[changed]}}))).toBe(html);
  });
  it("does not invent missing AI summaries and handles empty reports",()=>{
   const html=renderToStaticMarkup(h(ReportSnapshot,{report:{...report,incidents:[]}}));

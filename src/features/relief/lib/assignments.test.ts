@@ -7,7 +7,30 @@ import {
 } from "./assignments";
 
 describe("operational assignment helpers", () => {
-  it("maps pending urgent reports into assigned urgent work", () => {
+  it.each([
+    [undefined, "low", "Thấp", "Hạn: 21/04/2026"],
+    [1, "low", "Thấp", "Hạn: 21/04/2026"],
+    [2, "medium", "Trung bình", "Hạn: 20/04/2026"],
+    ["3", "medium", "Trung bình", "Hạn: 20/04/2026"],
+    [4, "high", "Cao", "Hạn: 19/04/2026"],
+    [5, "high", "Cao", "Hạn: 19/04/2026"],
+  ] as const)("keeps severity %s priority and deadline regardless of legacy flags", (severity, priority, priorityLabel, deadlineLabel) => {
+    const report = {
+      id: 7,
+      severity,
+      createdAt: "2026-04-18T00:00:00.000Z",
+      description: "Cần hỗ trợ khẩn cấp tại địa chỉ đã báo.",
+    };
+    const baseline = mapReportToAssignment(report);
+    expect(baseline).toMatchObject({ priority, priorityLabel, deadlineLabel });
+    for (const flags of [{ isUrgent: true }, { is_urgent: true }, { isUrgent: false, is_urgent: true }]) {
+      const assignment = mapReportToAssignment({ ...report, ...flags });
+      expect({ ...assignment, report }).toEqual(baseline);
+      expect(assignment.title).toBe(report.description);
+    }
+  });
+
+  it("maps pending reports into assigned work using severity, not legacy urgency", () => {
     const assignment = mapReportToAssignment({
       id: 42,
       status: "pending",
@@ -20,7 +43,7 @@ describe("operational assignment helpers", () => {
 
     expect(assignment).toMatchObject({
       id: "42",
-      priority: "urgent",
+      priority: "low",
       status: "assigned",
       progress: 10,
       title: "Need clean water",
@@ -75,7 +98,6 @@ describe("operational assignment helpers", () => {
       assigned: 1,
       inProgress: 1,
       completed: 1,
-      urgent: 1,
     });
     expect(filterOperationalAssignments(assignments).map((item) => item.id)).toEqual([
       "1",

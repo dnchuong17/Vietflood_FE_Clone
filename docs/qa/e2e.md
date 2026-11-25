@@ -79,11 +79,11 @@ Each invocation has a fresh directory; failed/interrupted runs are not overwritt
 | --- | --- | ---: | --- |
 | `report-relief` | `QA_RELIEF_OUTPUT` | 100 | `results[]` statuses; 96 scenario cases plus coverage/safety |
 | `vietnam-address-picker` | `QA_ADDRESS_OUTPUT` | 35 | `checks[]` strings and `passed`; `failure.json` retained on early failure |
-| `ui-enhancement` | `QA_UI_OUTPUT` | 108 | `results[]` statuses, including all 64 route cases |
+| `ui-enhancement` | `QA_UI_OUTPUT` | 109 | `results[]` statuses, including all 64 route cases and zero emergency-feed requests |
 | `chat-ui` | `QA_CHAT_OUTPUT` | 29 | `results[]` statuses, `passed`/`failed`, page exceptions |
 | `chat-attachment-confirm` | `QA_ATTACHMENT_OUTPUT` | 18 | Two `cases[]`, each `status: passed`, nine `checks[]`, zero page exceptions |
 
-The expected total is **290 individual fixture UI checks across five suites**. These are **not 290 Playwright Test cases**, nor proof of backend persistence or a new run result. Counts must come from the new result files; every declared count/status is checked against its schema. Relief must complete 96/96 scenarios and broad UI 64/64 route cases. Unexpected API/write arrays, page exceptions, failures and relevant console diagnostics are asserted separately. Raw expected blocked-resource/synthetic-outage console messages remain in original reports.
+The expected total is **291 individual fixture UI checks across five suites**. These are **not 291 Playwright Test cases**, nor proof of backend persistence or a new run result. Counts must come from the new result files; every declared count/status is checked against its schema. Relief must complete 96/96 scenarios and broad UI 64/64 route cases. Unexpected API/write arrays, page exceptions, failures and relevant console diagnostics are asserted separately. Raw expected blocked-resource/synthetic-outage console messages remain in original reports.
 
 `summary.json` records:
 

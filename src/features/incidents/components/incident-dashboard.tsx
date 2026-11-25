@@ -42,7 +42,6 @@ import { Choice, Empty, IncidentBadges, IncidentLink } from "./incident-common";
 import { IncidentAnalytics } from "./incident-analytics";
 import { NormalizedSource } from "./incident-common";
 import { calendarRange } from "../lib/report-period";
-import { EmergencyStrip } from "./emergency-strip";
 
 const REASONS: Record<string, string> = {
   suggested_match: "Có sự cố tương tự, chờ xác nhận",
@@ -146,7 +145,6 @@ export function IncidentDashboard({
     [severity, setSeverity] = useState("all");
   return (
     <div className="workspace-stack">
-      <EmergencyStrip />
       <div className="workspace-header flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-widest text-primary">
@@ -168,11 +166,10 @@ export function IncidentDashboard({
         </Button>
       </div>
       {overview ? (
-        <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
           {[
             ["Báo cáo người dân", overview.totalReports],
             ["Sự cố tổng hợp", overview.totalIncidents],
-            ["Ưu tiên cao", overview.highPriority],
             ["Chờ xác minh", overview.awaitingVerification],
             ["Cập nhật trong 24 giờ", overview.recentlyUpdated],
           ].map(([label, count]) => (

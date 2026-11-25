@@ -9,7 +9,6 @@ import {
   ClockIcon as Clock3,
   CursorArrowRaysIcon as LocateFixed,
   EyeIcon as Eye,
-  ExclamationTriangleIcon as AlertTriangle,
   MagnifyingGlassIcon as Search,
   MapPinIcon as MapPin,
   PaperAirplaneIcon as Send,
@@ -720,7 +719,7 @@ export function ReportWorkspace() {
 
   return (
     <div className="workspace-stack" data-testid="report-workspace">
-      <OperationsBanner eyebrow="Báo cáo hiện trường" title={canManage ? "Xác minh thông tin. Ưu tiên hỗ trợ." : "Mỗi ghi nhận giúp ứng cứu chính xác hơn."} description={canManage ? "Kiểm tra vị trí và minh chứng trước khi cập nhật trạng thái. Các ca khẩn cấp cần được ưu tiên xác minh." : "Cung cấp vị trí, mô tả rõ tình hình và thêm minh chứng nếu an toàn. Theo dõi phản hồi ngay trong danh sách của bạn."}>
+      <OperationsBanner eyebrow="Báo cáo hiện trường" title={canManage ? "Xác minh thông tin. Ưu tiên hỗ trợ." : "Mỗi ghi nhận giúp ứng cứu chính xác hơn."} description={canManage ? "Kiểm tra vị trí và minh chứng trước khi cập nhật trạng thái báo cáo." : "Cung cấp vị trí, mô tả rõ tình hình và thêm minh chứng nếu an toàn. Theo dõi phản hồi ngay trong danh sách của bạn."}>
         {!canManage ? <Button type="button" onClick={() => { setEditingReport(null); setCreating(true); }}><Plus aria-hidden="true" />Báo cáo sự cố</Button> : <Button asChild variant="outline"><Link href="/cuu-tro">Hàng chờ cứu trợ</Link></Button>}
       </OperationsBanner>
       {loadError ? <section role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-critical/30 bg-critical/5 p-4" data-testid="reports-load-error"><div><h2 className="text-sm font-bold text-critical">Không thể tải báo cáo</h2><p className="mt-1 text-sm">{loadError}</p><p className="mt-1 text-xs text-muted-foreground">Chưa xác nhận dữ liệu mới nhất. Dữ liệu đang hiển thị, nếu có, là từ lần tải trước.</p></div><Button type="button" variant="outline" onClick={() => void loadReports()} disabled={isLoading}>{isLoading ? "Đang thử lại..." : "Thử lại"}</Button></section> : null}
@@ -741,7 +740,7 @@ export function ReportWorkspace() {
             </Badge>
           </div>
 
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-2 sm:grid-cols-3">
             <div className="rounded-md border border-border bg-muted/30 p-3">
               <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
                 <ClipboardList className="h-4 w-4" aria-hidden="true" />
@@ -767,15 +766,6 @@ export function ReportWorkspace() {
               </div>
               <p className="mt-2 text-2xl font-bold text-card-foreground">
                 {reportsOverview.pending}
-              </p>
-            </div>
-            <div className="rounded-md border border-border bg-muted/30 p-3">
-              <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-                <AlertTriangle className="h-4 w-4" aria-hidden="true" />
-                Khẩn cấp
-              </div>
-              <p className="mt-2 text-2xl font-bold text-card-foreground">
-                {reportsOverview.urgent}
               </p>
             </div>
           </div>
@@ -911,7 +901,6 @@ export function ReportWorkspace() {
                 </h2>
               </div>
               <div className="flex flex-wrap gap-2">
-                {report.isUrgent ? <Badge variant="critical">Khẩn cấp</Badge> : null}
                 <Badge variant={statusBadgeVariant(statusOf(report))}>
                   {getReportStatusLabel(statusOf(report))}
                 </Badge>

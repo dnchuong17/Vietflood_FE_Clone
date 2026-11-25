@@ -52,7 +52,7 @@ export function ReportAreaChart({ areas, total, selectedArea, onSelectArea }: Pr
                 const area = payload?.[0]?.payload as ReportArea | undefined;
                 return active && area ? <div className="max-w-64 rounded-xl border bg-popover p-3 text-sm text-popover-foreground shadow-xl [overflow-wrap:anywhere]">
                   <p className="font-semibold">{area.label}</p><p className="mt-2">{number.format(area.total)} báo cáo</p>
-                  <p className="text-muted-foreground">{number.format(area.urgent)} khẩn cấp · {number.format(area.open)} chưa hoàn tất</p>
+                  <p className="text-muted-foreground">{number.format(area.open)} chưa hoàn tất</p>
                 </div> : null;
               }} />
               <Bar dataKey="total" name="Báo cáo" barSize={24} radius={[0, 6, 6, 0]} fill="var(--primary)" isAnimationActive={false}
@@ -73,7 +73,7 @@ export function ReportAreaChart({ areas, total, selectedArea, onSelectArea }: Pr
               className="flex min-h-16 w-full items-start gap-3 rounded-xl border border-transparent bg-muted/30 p-3 text-left transition-colors hover:border-primary/30 hover:bg-accent aria-pressed:border-primary aria-pressed:bg-primary/10">
               <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-background text-xs font-bold tabular-nums text-muted-foreground">{index + 1}</span>
               <span className="min-w-0 flex-1"><span className="block text-sm font-semibold [overflow-wrap:anywhere]">{area.label}</span>
-                <span className="mt-1 block text-xs leading-5 text-muted-foreground">{number.format(area.urgent)} khẩn cấp · {number.format(area.open)} chưa hoàn tất</span></span>
+                <span className="mt-1 block text-xs leading-5 text-muted-foreground">{number.format(area.open)} chưa hoàn tất</span></span>
               <span className="shrink-0 text-right"><span className="block text-lg font-bold tabular-nums">{number.format(area.total)}</span>
                 <span className="text-xs tabular-nums text-muted-foreground">{total ? number.format(Math.round(area.total / total * 100)) : 0}%</span></span>
             </button>

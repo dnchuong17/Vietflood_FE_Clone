@@ -26,7 +26,7 @@ describe("direct report relief page wiring", () => {
   it("shows original report details without fabricating assignments or AI scoring", () => {
     expect(source).toContain('data-report-id={report.id}');
     expect(source).toContain("/bao-cao/${report.id}");
-    expect(source).toContain("report.isUrgent");
+    expect(source).not.toMatch(/isUrgent|is_urgent|urgentOnly|Khẩn cấp/);
     expect(source).not.toMatch(/mapReportToAssignment|priorityWeight|processingEnabled|suggestedSeverity/);
   });
   it("deduplicates before filtering and analysis, but paginates only the report list", () => {

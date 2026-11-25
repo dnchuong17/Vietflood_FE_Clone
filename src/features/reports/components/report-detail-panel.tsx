@@ -234,7 +234,6 @@ export function ReportDetailPanel({ reportId }: { reportId: number }) {
               <p className="mt-1 flex items-center gap-2 text-muted-foreground">
                 <AlertTriangle className="size-4" aria-hidden="true" />
                 {report.severity ?? "-"}
-                {report.isUrgent ? " · khẩn cấp" : ""}
               </p>
             </div>
           </CardContent>

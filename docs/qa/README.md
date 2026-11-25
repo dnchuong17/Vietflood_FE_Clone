@@ -249,6 +249,27 @@ npm run test:qa
 
 The local pinned Playwright dependency and bundled Chromium replace global module/cache-path assumptions. `test:qa` owns its production build/server on localhost:3105 with API override localhost:4310, refuses an occupied port, preloads the committed network guard into **all five** legacy runners and stops owned children on completion/failure/handled signals. It does not require a running API server. Artifacts, including failed/interrupted summaries, are stored under ignored `test-results/qa-regressions/<run-id>/`.
 
-The current regression set is report-relief, Vietnam address picker, broad UI, chat UI and explicit chat attachment confirmation: **five fixture UI suites, 290 expected individual checks** (100 + 35 + 108 + 29 + 18), not 290 Playwright Test cases and not a new passing result. The orchestrator validates each runner's actual schema, matrix/expected counts, subprocess exit and error/network evidence. Unstarted/interrupted suites are explicit, never silently counted as passes. The already-fixed address-edit fixture clock retains the product's 24-hour permission rule. Legacy incident/intelligence suites are excluded because the default relief page changed; their historic results remain above.
+The current regression set is report-relief, Vietnam address picker, broad UI, chat UI and explicit chat attachment confirmation: **five fixture UI suites, 291 expected individual checks** (100 + 35 + 109 + 29 + 18), not 291 Playwright Test cases and not a new passing result. The orchestrator validates each runner's actual schema, matrix/expected counts, subprocess exit and error/network evidence. Unstarted/interrupted suites are explicit, never silently counted as passes. The already-fixed address-edit fixture clock retains the product's 24-hour permission rule. Legacy incident/intelligence suites are excluded because the default relief page changed; their historic results remain above.
 
 These browser fixtures do not prove live backend persistence/RBAC, production/native acceptance, real upload storage or socket delivery. Static checks and harness installation do not replace a full run or human screenshot inspection. Existing application dependency advisories remain a separate issue; this test-tooling change does not authorize force-upgrading them.
+
+## Web urgency removal — verified November 25, 2026
+
+The approved web-only change removes urgency badges/counts/filters/series, urgency-based ordering and assignment deadline overrides. Dashboard cards now show unique reports, unfinished reports, resolved reports and identified locations. Regional Recharts, exact-location drilldown, duplicate protection, original source descriptions, attachments/GPS/contact, guards and operational actions remain. Severity-derived high/medium/low assignment behavior and official incident severity are retained; API DTO fields and backend storage are unchanged.
+
+Incident/assignment views no longer mount or poll the emergency feed or show estimated-priority evidence in detail/web export. The incident overview's `highPriority` card is also removed: the backend aggregate includes emergency source flags, so retaining it would indirectly preserve urgency classification. Its API contract remains intact.
+
+Fresh final verification after the aggregate-card fix:
+
+- Unit: **67 files / 409 tests passed**.
+- TypeScript, scoped ESLint, diff whitespace checks and production builds: passed.
+- Playwright: **140/140 passed**, no skipped, unexpected or flaky cases; 1440/390px × light/dark. Includes true/false legacy-flag invariance of IDs, rankings and metrics, region/bar/keyboard drilldown, filtering, retry/stale data, pagination and guards.
+- Five fixture UI regression suites: **291/291 passed** (100 relief + 35 address + 109 broad UI + 29 chat + 18 attachment confirmation). Broad UI includes **64/64 route cases**, zero emergency-feed calls, unknown API requests and uncaught page exceptions. Relief records zero incident requests, operational writes, unknown API requests and page exceptions.
+- Desktop-light summary and narrow-dark region charts, report list/detail, incident detail and final four-card assignment overview screenshots were visually inspected. Original prose containing “khẩn cấp” remains visible; product badges/filters are absent. This is sampled visual inspection, not a full accessibility audit.
+
+Preserved final evidence:
+
+- E2E: `/Users/macbook/.hermes/cache/scratch/remove-web-urgency/e2e-final/results.json`, run started `2026-11-25T16:51:37.368Z`.
+- QA: `test-results/qa-regressions/2026-11-25T16-53-26-251Z-52491/summary.json`, preserved with screenshots/network audits at `/Users/macbook/.hermes/cache/scratch/remove-web-urgency/qa-final-verified/`.
+
+The first QA attempt failed only its aggregate count contract: adding the explicit emergency-feed safety check raised broad UI from 108 to 109. The runner manifest was corrected and all suites rerun. Historical passing totals above remain unchanged and are not counted as current evidence. All results use synthetic localhost fixtures, not live backend/production/native acceptance. No backend/mobile changes, data migrations, commits, pushes or deployments were performed.

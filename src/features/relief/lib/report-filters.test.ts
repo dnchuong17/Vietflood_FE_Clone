@@ -16,6 +16,16 @@ describe("direct user report filters", () => {
   it("includes pending, verified, resolved, rejected and missing-date reports by default", () => {
     expect(new Set(ids(filterUserReports(reports, emptyReportFilters())))).toEqual(new Set([1, 2, 3, 4, 5, 6]));
   });
+  it("ignores both legacy urgency flags in list scope and date ordering while retaining raw citizen text", () => {
+    const rows = reports.map(report => ({ ...report, description: "Cần hỗ trợ khẩn cấp — giữ nguyên lời người dân." }));
+    const filters = [emptyReportFilters(), { ...emptyReportFilters(), province: "HCM", status: "pending" as const }, { ...emptyReportFilters(), query: "khan cap" }];
+    for (const filter of filters) {
+      const clear = rows.map(report => ({ ...report, isUrgent: false, is_urgent: false }));
+      const flagged = rows.map(report => ({ ...report, isUrgent: true, is_urgent: true }));
+      expect(ids(filterUserReports(flagged, filter))).toEqual(ids(filterUserReports(clear, filter)));
+      for (const report of filterUserReports(flagged, filter)) expect(report.description).toBe(rows[0].description);
+    }
+  });
   it("matches canonical and legacy HCM/ward names without changing original records", () => {
     const before = JSON.stringify(reports);
     expect(ids(filterUserReports(reports, { ...emptyReportFilters(), province: "Thành phố Hồ Chí Minh", ward: "Phường Tăng Nhơn Phú" }))).toEqual([3, 2, 1]);

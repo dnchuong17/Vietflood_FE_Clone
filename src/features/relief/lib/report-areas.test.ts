@@ -11,7 +11,7 @@ describe("report area rankings", () => {
     const first = report(1);
     const rows = [first, report(2), { ...first }, report(3, { province: "Đà Nẵng", isUrgent: true })];
     const result = groupReportAreas(rows);
-    expect(result.provinces.map(area => [area.total, area.urgent, area.open])).toEqual([[2, 0, 2], [1, 1, 1]]);
+    expect(result.provinces.map(area => [area.total, area.open])).toEqual([[2, 2], [1, 1]]);
     expect(result.provinces[0].reports[0]).toBe(first);
     expect(result.provinces[0].total + result.provinces[1].total).toBe(3);
     expect(rows).toHaveLength(4);
@@ -34,11 +34,14 @@ describe("report area rankings", () => {
     expect(result.unknownWard).toBe(3);
     expect(result.wards).toHaveLength(1);
   });
-  it("uses urgency and open work as stable volume tie-breaks", () => {
+  it("uses open work and stable keys as volume tie-breaks, ignoring legacy urgency", () => {
     const rows = [report(1, { province: "Quảng Trị", is_urgent: true }), report(2, { province: "Hà Nội", status: "resolved" }),
       report(3, { province: "Đà Nẵng", status: "verified" })];
-    expect(groupReportAreas(rows).provinces.map(area => area.label)).toEqual(["Quảng Trị", "Đà Nẵng", "Hà Nội"]);
+    expect(groupReportAreas(rows).provinces.map(area => area.label)).toEqual(["Đà Nẵng", "Quảng Trị", "Hà Nội"]);
     expect(groupReportAreas([...rows].reverse()).provinces.map(area => area.key)).toEqual(groupReportAreas(rows).provinces.map(area => area.key));
+    const project = (records: FloodReport[]) => groupReportAreas(records).provinces.map(({ reports, ...area }) => ({ ...area, ids: reports.map(report => report.id) }));
+    expect(project(rows.map(row => ({ ...row, isUrgent: true, is_urgent: true })))).toEqual(project(rows.map(row => ({ ...row, isUrgent: false, is_urgent: false }))));
+    expect(groupReportAreas(rows).provinces[0]).not.toHaveProperty("urgent");
   });
   it("preserves different IDs at the same address and records without valid IDs", () => {
     expect(groupReportAreas([report(1), report(2), report(0), { province: "Hồ Chí Minh" }]).provinces[0].total).toBe(4);

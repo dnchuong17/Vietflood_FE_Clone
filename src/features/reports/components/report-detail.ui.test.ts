@@ -9,6 +9,13 @@ const panelSource = readFileSync(
 );
 
 describe("report detail UI", () => {
+  it("keeps severity and detail data without urgency indicators", () => {
+    for (const detailSource of [source, panelSource]) {
+      expect(detailSource).not.toMatch(/isUrgent|is_urgent|khẩn cấp|Khẩn cấp/);
+      expect(detailSource).toContain("report.severity");
+    }
+  });
+
   it("uses the report detail timeout on the active detail route component", () => {
     expect(source).toContain("withReportDetailTimeout");
     expect(source).toContain("withReportDetailTimeout(getReportDetail(role, numericReportId))");

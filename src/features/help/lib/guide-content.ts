@@ -32,7 +32,7 @@ export const GUIDE_SECTIONS: GuideSection[] = [
     points: [
       "Người dân tạo báo cáo với mô tả, loại báo cáo, vị trí và hình ảnh tuỳ chọn.",
       "Người dân có thể xem lại và cập nhật các báo cáo mình đã gửi.",
-      "Đội cứu trợ có thể rà soát toàn bộ báo cáo và phân loại các trường hợp khẩn cấp.",
+      "Đội cứu trợ có thể rà soát toàn bộ báo cáo và cập nhật trạng thái xử lý.",
       "Quản trị viên có thể quản lý báo cáo toàn hệ thống và kiểm tra tiến độ vận hành.",
     ],
   },

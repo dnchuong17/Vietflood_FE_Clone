@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChartBarIcon, DocumentDuplicateIcon, DocumentTextIcon, ExclamationTriangleIcon, MapPinIcon } from "@heroicons/react/24/outline";
+import { ChartBarIcon, DocumentDuplicateIcon, DocumentTextIcon, CheckCircleIcon, MapPinIcon } from "@heroicons/react/24/outline";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { ReportStatus } from "@/features/reports/api/reports";
@@ -23,21 +23,18 @@ type Props = {
   isFiltered: boolean;
   selectedLocation: string | null;
   selectedStatus: ReportStatus | "all";
-  urgentOnly: boolean;
-  onToggleUrgent: () => void;
   onSelectLocation: (key: string) => void;
   onSelectStatus: (status: ReportStatus) => void;
 };
 
 /** Read-only projections of the same report collection as the original list. */
-export function ReportAnalysisPanel({ analysis, areas, selectedArea, onSelectArea, totalLoaded, isFiltered, selectedLocation, selectedStatus, urgentOnly, onToggleUrgent, onSelectLocation, onSelectStatus }: Props) {
+export function ReportAnalysisPanel({ analysis, areas, selectedArea, onSelectArea, totalLoaded, isFiltered, selectedLocation, selectedStatus, onSelectLocation, onSelectStatus }: Props) {
   const days = analysis.days.slice(-7);
-  const priorityLocations = [...analysis.locations].sort((a, b) => b.urgent - a.urgent || b.open - a.open ||
-    b.reports.length - a.reports.length || a.key.localeCompare(b.key, "vi"));
+  const priorityLocations = [...analysis.locations].sort((a, b) => b.reports.length - a.reports.length || b.open - a.open || a.key.localeCompare(b.key, "vi"));
   const metrics = [
     { id: "total", label: "Báo cáo không lặp ID", value: analysis.total, hint: isFiltered ? `Trong ${number.format(totalLoaded)} báo cáo đã tải` : "Toàn bộ dữ liệu đã tải", icon: DocumentTextIcon, tone: "text-primary" },
     { id: "open", label: "Chưa hoàn tất", value: analysis.open, hint: "Chờ xử lý + đã xác minh", icon: ChartBarIcon, tone: "text-primary" },
-    { id: "urgent", label: "Có cờ khẩn cấp", value: analysis.urgent, hint: "Theo báo cáo, gồm mọi trạng thái", icon: ExclamationTriangleIcon, tone: "text-destructive" },
+    { id: "resolved", label: "Đã xử lý", value: analysis.statuses.resolved, hint: "Báo cáo có trạng thái đã xử lý", icon: CheckCircleIcon, tone: "text-success" },
     { id: "locations", label: "Điểm được định danh", value: analysis.locations.length, hint: `${number.format(analysis.unknownLocationReports)} báo cáo thiếu vị trí cụ thể`, icon: MapPinIcon, tone: "text-primary" },
   ];
 
@@ -58,13 +55,6 @@ export function ReportAnalysisPanel({ analysis, areas, selectedArea, onSelectAre
         <p data-testid={`analysis-${id}`} className="mt-3 text-3xl font-bold tabular-nums tracking-tight text-card-foreground">{number.format(value)}</p>
         <p className="mt-2 text-xs leading-5 text-muted-foreground">{hint}</p>
       </div>)}
-    </div>
-
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4">
-      <p className="min-w-0 text-sm text-muted-foreground">Đi thẳng đến các báo cáo cần chú ý; không thay đổi dữ liệu gốc.</p>
-      <Button type="button" variant={urgentOnly ? "default" : "outline"} aria-pressed={urgentOnly} onClick={onToggleUrgent}>
-        <ExclamationTriangleIcon className="size-4" aria-hidden="true" />Chỉ xem báo cáo khẩn cấp
-      </Button>
     </div>
 
     <ReportAreaChart areas={areas} total={analysis.total} selectedArea={selectedArea} onSelectArea={onSelectArea} />
@@ -94,7 +84,7 @@ export function ReportAnalysisPanel({ analysis, areas, selectedArea, onSelectAre
       <section aria-labelledby="report-location-heading" className="min-w-0 overflow-hidden rounded-xl border bg-card">
         <div className="border-b p-4 sm:p-5">
           <h4 id="report-location-heading" className="font-semibold">Địa điểm cần đối chiếu</h4>
-          <p className="mt-1 text-xs leading-5 text-muted-foreground">Ưu tiên số báo cáo khẩn cấp, chưa hoàn tất, rồi tổng báo cáo. Mỗi địa điểm một dòng; các mã báo cáo khác nhau vẫn được giữ riêng.</p>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">Xếp theo tổng báo cáo, rồi số chưa hoàn tất. Mỗi địa điểm một dòng; các mã báo cáo khác nhau vẫn được giữ riêng.</p>
         </div>
         {analysis.locations.length ? <ul className="max-h-96 divide-y overflow-y-auto overscroll-contain p-2" aria-label="Các địa điểm không lặp">
           {priorityLocations.map(location => <li key={location.key}>
@@ -103,7 +93,7 @@ export function ReportAnalysisPanel({ analysis, areas, selectedArea, onSelectAre
               <MapPinIcon className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden="true" />
               <span className="min-w-0 flex-1 space-y-1.5">
                 <span className="block text-sm font-semibold [overflow-wrap:anywhere]">{location.label}</span>
-                <span className="block text-xs leading-5 text-muted-foreground">{location.precision === "address" ? "Địa chỉ đầy đủ" : "Tọa độ GPS chính xác"} · {location.open} chưa hoàn tất{location.urgent ? ` · ${location.urgent} khẩn cấp` : ""}</span>
+                <span className="block text-xs leading-5 text-muted-foreground">{location.precision === "address" ? "Địa chỉ đầy đủ" : "Tọa độ GPS chính xác"} · {location.open} chưa hoàn tất</span>
               </span>
               <span className="shrink-0 rounded-lg border bg-background px-2.5 py-1 text-sm font-bold tabular-nums" aria-label={`${location.reports.length} báo cáo`}>{number.format(location.reports.length)}</span>
             </button>

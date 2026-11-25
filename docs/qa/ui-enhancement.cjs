@@ -42,12 +42,12 @@ const routes = [
   { path: '/huong-dan', role: 'citizen', text: 'Hướng dẫn đồng bộ với ứng dụng di động' },
   { path: '/tro-ly/nguon/ui-doc/1', role: 'citizen', text: sourceText },
 ];
-const results = [], requests = [], blocked = [], unexpected = [], pageErrors = [], consoleErrors = [], expectedOutages = [];
+const results = [], requests = [], blocked = [], unexpected = [], emergencyRequests = [], pageErrors = [], consoleErrors = [], expectedOutages = [];
 let active;
 function save() {
   const passed = results.filter(r => r.status === 'passed').length;
   const routeChecks = results.filter(r => r.kind === 'route');
-  const data = { evidenceKind: 'Synthetic fixture-backed local browser UI; not live integration', base, api, generatedAt: new Date().toISOString(), routeManifest: routes, expectedRouteCases: routes.length * 4, routeCasesAttempted: routeChecks.length, routeCasesPassed: routeChecks.filter(r => r.status === 'passed').length, passed, failed: results.length - passed, results, requests, blocked, unexpected, pageErrors, consoleErrors, expectedOutages, limitations: 'External maps/media/socket intentionally blocked. No live permissions, production availability, backend persistence or native runtime claims. Contrast checks are sampled rendered UI controls, not a full WCAG audit.' };
+  const data = { evidenceKind: 'Synthetic fixture-backed local browser UI; not live integration', base, api, generatedAt: new Date().toISOString(), routeManifest: routes, expectedRouteCases: routes.length * 4, routeCasesAttempted: routeChecks.length, routeCasesPassed: routeChecks.filter(r => r.status === 'passed').length, passed, failed: results.length - passed, results, requests, blocked, unexpected, emergencyRequests, pageErrors, consoleErrors, expectedOutages, limitations: 'External maps/media/socket intentionally blocked. No live permissions, production availability, backend persistence or native runtime claims. Contrast checks are sampled rendered UI controls, not a full WCAG audit.' };
   fs.writeFileSync(path.join(output, 'results.json'), JSON.stringify(data, null, 2));
   return data;
 }
@@ -116,7 +116,7 @@ async function main() {
   const browser = await chromium.launch({ headless: true, executablePath: process.env.QA_CHROME || (fs.existsSync(chromium.executablePath()) ? chromium.executablePath() : '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome') });
   async function session(role, width, theme) {
     const label = `${width}-${theme}`;
-    const state = { mode: 'data', held: [], reports: [{...report}], user: profile(role), revision: 1 };
+    const state = { mode: 'data', held: [], reports: [{...report}], user: profile(role), revision: 1, emergencyRequests: [] };
     const context = await browser.newContext({ viewport: { width, height: 1000 }, colorScheme: theme, reducedMotion: 'reduce', serviceWorkers: 'block' });
     await context.routeWebSocket('**/*', ws => { blocked.push({ label, type: 'websocket', url: ws.url() }); ws.close(); });
     await context.addInitScript(({ value, theme, origin }) => { if (location.origin === origin) { localStorage.setItem('theme', theme); if (value) localStorage.setItem('vietflood_access_token', value); } }, { value: role ? jwt(role) : null, theme, origin });
@@ -139,7 +139,9 @@ async function main() {
         if (method === 'GET' && ['/auth/all', '/auth/relief/users'].includes(p)) return fulfill([{...profile('citizen'), id: 2, username: 'managed-fixture'}]);
         if (method === 'GET' && p === '/incidents/overview') return fulfill({ totalReports: 1, totalIncidents: 1, highPriority: 0, awaitingVerification: 1, recentlyUpdated: 1, pendingReviews: 0, failedJobs: 0, queuedJobs: 0, processingEnabled: false, mode: 'review' });
         if (method === 'GET' && p === '/incidents') return fulfill(list([incident]));
-        if (method === 'GET' && ['/incidents/emergencies','/incidents/assignees','/incidents/review'].includes(p)) return fulfill(list([]));
+        // Keep a fail-closed catch so even failed/unexpected emergency calls are audited.
+        if (p === '/incidents/emergencies') { emergencyRequests.push(record); state.emergencyRequests.push(record); return fulfill({message:'SYNTHETIC emergency API must not be requested'}, 501); }
+        if (method === 'GET' && ['/incidents/assignees','/incidents/review'].includes(p)) return fulfill(list([]));
         if (method === 'GET' && p === `/incidents/${A}`) return fulfill({...incident, summaryStale: false, summaryJob: {status:'succeeded',failure_code:null}, summary: {title,conditions:[fact],updates:[],depths:[],suggestedSeverity:{value:'MODERATE',provenance:'estimate'},recommendations:[],generatedAt:now}, facts:[fact], blockedRoadReports:0,strandedPeopleReports:0,strandedVehicleReports:0});
         if (method === 'GET' && p === `/incidents/${A}/reports`) return fulfill(list([{id:101,manual:false,archived_at:now,snapshot:report,originalSnapshot:{...report,description:'SYNTHETIC bản gốc chưa bị ghi đè'},revisionCount:2}]));
         if (method === 'GET' && p === `/incidents/${A}/reports/101/revisions`) return fulfill(list([{revision:1,snapshot:{...report,description:'SYNTHETIC bản gốc chưa bị ghi đè'},createdAt:now},{revision:2,snapshot:report,createdAt:now}]));
@@ -176,13 +178,20 @@ async function main() {
           if (route.selector) await page.locator(route.selector).first().waitFor();
           else await page.getByText(route.text,{exact:false}).first().waitFor();
           assert.equal(new URL(page.url()).pathname,route.path,'Unexpected redirect is not route coverage');
+          if(route.path==='/phan-cong') assert.equal(await page.getByText('Ưu tiên cao',{exact:true}).count(),0,'Urgency-inclusive aggregate must not render');
           assert.equal(await page.evaluate(() => document.documentElement.classList.contains('dark')),theme==='dark');
           assert(!(await page.locator('body').innerText()).includes('Application error'));
           if(route.path.startsWith('/bao-cao/')) assert((await page.locator('body').innerText()).includes('101'),'Wrong report identity');
           if(route.path.startsWith('/su-co/')) { await page.getByText('Các phiên bản đã lưu (2)').click(); await page.getByText('SYNTHETIC bản gốc chưa bị ghi đè',{exact:true}).waitFor(); }
           if(route.path.startsWith('/tro-ly/')) { assert.equal(await page.locator('a[href^="javascript:"]').count(),0); await page.getByText('Phiên bản lưu trữ này đã được thay thế',{exact:false}).waitFor(); }
+          if (['/bao-cao', '/bao-cao/101', '/cuu-tro', '/phan-cong', '/su-co/' + A].includes(route.path)) {
+            // Original citizen prose intentionally contains “khẩn cấp”; check exact UI labels only.
+            for (const badge of ['Khẩn cấp', 'khẩn cấp']) assert.equal(await page.getByText(badge,{exact:true}).count(),0,'Unexpected urgency badge');
+          }
           const focus = await focusCheck(page);
-          return {...await picture(page,`${s.label}${route.path==='/'?'-landing':route.path}`),focus};
+          const evidence = await picture(page,`${s.label}${route.path==='/'?'-landing':route.path}`);
+          if (route.path === '/phan-cong' || route.path.startsWith('/su-co/')) assert.deepEqual(s.state.emergencyRequests,[],'Emergency API invoked on '+route.path);
+          return {...evidence,focus};
         });
         await s.context.close();
       }
@@ -246,14 +255,14 @@ async function main() {
         assert.equal(requests.filter(r=>!['GET','OPTIONS'].includes(r.method)).length,before,'Draft transmitted');
         return {contrast,...await picture(page,s.label+'-report-draft')};
       });
-      await check(`${s.label} rendered pending/urgent report status text contrast`, 'readability', async()=>{
+      await check(`${s.label} rendered pending status text contrast without urgency badge`, 'readability', async()=>{
         await page.goto(base+'/bao-cao',{waitUntil:'domcontentloaded'});
         await page.getByText(long,{exact:false}).first().waitFor();
         const card=page.locator('article').first();
         const evidence=await picture(page,s.label+'-status-readability');
         const pending=await readable(card.getByText('Chờ xử lý',{exact:true}));
-        const urgent=await readable(card.getByText('Khẩn cấp',{exact:true}));
-        return {...evidence,pending,urgent};
+        assert.equal(await card.getByText('Khẩn cấp',{exact:true}).count(),0,'Legacy true flag must not render an urgency badge');
+        return {...evidence,pending};
       });
       await s.context.close();
       const ops=await session('admin',width,theme);
@@ -297,6 +306,7 @@ async function main() {
     await check('64 route cases were attempted without substituting shell/redirect checks','coverage',async()=>assert.equal(results.filter(r=>r.kind==='route').length,routes.length*4));
     await check('no uncaught page exceptions','safety',async()=>assert.deepEqual(pageErrors,[]));
     await check('no React hydration or invalid nesting console errors','safety',async()=>assert.deepEqual(consoleErrors.filter(e=>/hydrat|cannot (?:be a descendant|contain a nested)/i.test(e.text)),[]));
+    await check('no emergency API calls, including failed calls','safety',async()=>assert.deepEqual(emergencyRequests,[]));
     await check('no unknown API routes or unexpected operational writes','safety',async()=>assert.deepEqual(unexpected,[]));
   } finally { await browser.close(); }
   const summary=save();

@@ -14,7 +14,6 @@ export function ReportSnapshot({ report }: { report: IncidentReport }) {
     <ul className="space-y-3">{report.incidents.map(i => <li className="min-w-0 rounded-xl border bg-background p-4 text-sm space-y-3" key={i.id}>
       <IncidentLink id={i.id}>{i.title}</IncidentLink>
       <p>Chính thức: {SEVERITY_LABELS[i.severity]} · {STATUS_LABELS[i.status]} · Cứu trợ {i.assignee_id ? `#${i.assignee_id}` : "chưa phân công"}</p>
-      <p>Ước tính ưu tiên: {SEVERITY_LABELS[i.priority.value]} — cần con người quyết định</p>
       <p>{i.needsVerification ? "Chưa xác minh / cần xác minh" : "Đã xác minh theo phiên bản bằng chứng"}</p>
       <p>Nguồn: {i.sourceReportIds.map(id => `#${id}`).join(", ") || "Chưa có"}</p>
       <p>AI: {i.summary ? i.summary.title : "Chưa có tóm tắt"}{i.summaryStale ? " · Cũ / chờ phân tích lại" : ""}</p>

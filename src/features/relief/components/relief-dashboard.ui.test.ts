@@ -8,6 +8,13 @@ const source = readFileSync(
 );
 
 describe("relief dashboard UI", () => {
+  it("uses the existing completed count and removes urgency rendering and sorting", () => {
+    expect(source).toContain('["Hoàn thành", assignmentStats.completed]');
+    expect(source).not.toMatch(/isUrgent|is_urgent|assignmentStats\.urgent|urgent:|khẩn cấp|Khẩn cấp/);
+    expect(source).toContain("secondTime - firstTime");
+    expect(source).toContain("priorityWeight[first.priority] - priorityWeight[second.priority]");
+  });
+
   it("wraps operational locations instead of truncating the destination", () => {
     expect(source).toContain('<span className="break-words">{assignment.location}</span>');
     expect(source).not.toContain('<span className="truncate">{assignment.location}</span>');

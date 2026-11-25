@@ -36,9 +36,8 @@ import {
 } from "../api/incidents";
 import { Choice, Empty, IncidentBadges, IncidentLink } from "./incident-common";
 import { IncidentSummaryEditor } from "./incident-summary-editor";
-import { PriorityEvidence, NormalizedSource } from "./incident-common";
+import { NormalizedSource } from "./incident-common";
 import { validGps } from "../lib/report-period";
-import { EmergencyStrip } from "./emergency-strip";
 
 const AUDIT_LABELS: Record<string, string> = {
   "incident.detected": "Phát hiện sự cố",
@@ -262,7 +261,6 @@ export function IncidentDetail({ incidentId }: { incidentId: string }) {
         <ArrowLeftIcon className="size-4" />
         Tất cả sự cố
       </Link>
-      <EmergencyStrip />
       {error ? (
         <Alert variant="destructive">
           <AlertDescription>
@@ -309,7 +307,6 @@ export function IncidentDetail({ incidentId }: { incidentId: string }) {
           <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
             <div className="workspace-stack min-w-0">
               {incident.analysisRequired && <p role="status" className="rounded border p-3 text-sm">Phân tích cũ / chờ phân tích lại với incidents-v2. Không coi bằng chứng cũ là đã xác minh hiện hành.</p>}
-              <PriorityEvidence priority={incident.priority} onSource={id=>void revealSource(id)} />
               <IncidentSummaryEditor key={incident.id} incident={incident} admin={admin} onSaved={refresh}/>
 
               <Card>

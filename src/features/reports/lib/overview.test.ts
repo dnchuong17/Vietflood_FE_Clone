@@ -7,7 +7,7 @@ import {
 } from "./overview";
 
 describe("reports overview summary", () => {
-  it("counts visible reports, backend statuses, and urgent reports", () => {
+  it("counts visible reports and backend statuses without an urgency summary", () => {
     const reports: FloodReport[] = [
       { id: 1, description: "A", status: "pending", isUrgent: true },
       { id: 2, description: "B", status: "verified" },
@@ -23,7 +23,6 @@ describe("reports overview summary", () => {
       verified: 1,
       resolved: 1,
       rejected: 1,
-      urgent: 2,
     });
   });
 

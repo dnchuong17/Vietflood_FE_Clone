@@ -21,7 +21,7 @@ export function IncidentMap({data}: {data: Analytics}) {
    for (const item of data.map.incidents) {
     if (!validGps(item.lat,item.lng)) continue;
     const text = document.createElement("p"); text.textContent = `${item.title} · Chính thức: ${SEVERITY_LABELS[item.severity]} · ${item.reportCount} báo cáo`;
-    const marker = L.circleMarker([item.lat,item.lng], {radius:9,color:item.isUrgent ? "#dc2626" : "#2563eb",fillOpacity:0.8}).addTo(current).bindPopup(text);
+    const marker = L.circleMarker([item.lat,item.lng], {radius:9,color:"#2563eb",fillOpacity:0.8}).addTo(current).bindPopup(text);
     markers.current.set(item.id, marker); bounds.push([item.lat,item.lng]);
    }
    if (density) for (const point of data.map.density) {
@@ -40,7 +40,7 @@ export function IncidentMap({data}: {data: Analytics}) {
   <label className="flex gap-2 text-sm"><input type="checkbox" checked={density} onChange={e=>setDensity(e.target.checked)}/>Hiện mật độ ghi nhận (màu cam)</label>
   {error && <p role="status" className="text-sm text-amber-700 dark:text-amber-300">{error}</p>}
   <div ref={container} aria-label="Bản đồ tương tác Leaflet" className="relative z-0 h-80 w-full rounded-lg bg-muted text-black"/>
-  <p className="text-xs">Điểm xanh/đỏ: sự cố; vùng tròn cam: mật độ ghi nhận, không phải mức nước. Danh sách bàn phím tương đương:</p>
+  <p className="text-xs">Điểm xanh: sự cố; vùng tròn cam: mật độ ghi nhận, không phải mức nước. Danh sách bàn phím tương đương:</p>
   <ul className="grid gap-2 sm:grid-cols-2 max-h-64 overflow-auto">
    {data.map.incidents.filter(i=>validGps(i.lat,i.lng)).map(item=><li key={item.id} className="rounded border p-2 text-sm break-words"><button type="button" className="underline text-primary text-left" onClick={()=>{map.current?.setView([item.lat,item.lng],14); markers.current.get(item.id)?.openPopup();}}>Định vị {item.title}</button><p>{item.lat}, {item.lng} · {item.reportCount} báo cáo</p><IncidentLink id={item.id}>Chi tiết sự cố</IncidentLink></li>)}
   </ul>

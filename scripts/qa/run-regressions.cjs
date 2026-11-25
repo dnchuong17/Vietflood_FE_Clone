@@ -13,7 +13,7 @@ const api = 'http://127.0.0.1:4310';
 const suites = [
   { id: 'report-relief', outputVariable: 'QA_RELIEF_OUTPUT', expectedChecks: 100 },
   { id: 'vietnam-address-picker', outputVariable: 'QA_ADDRESS_OUTPUT', expectedChecks: 35 },
-  { id: 'ui-enhancement', outputVariable: 'QA_UI_OUTPUT', expectedChecks: 108 },
+  { id: 'ui-enhancement', outputVariable: 'QA_UI_OUTPUT', expectedChecks: 109 },
   { id: 'chat-ui', outputVariable: 'QA_CHAT_OUTPUT', expectedChecks: 29 },
   { id: 'chat-attachment-confirm', outputVariable: 'QA_ATTACHMENT_OUTPUT', expectedChecks: 18 },
 ];
