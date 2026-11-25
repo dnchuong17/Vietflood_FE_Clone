@@ -48,6 +48,15 @@ describe("report analysis without urgency projections", () => {
     expect(render(flagged)).toBe(render(clear));
   });
 
+  it("hides duplicate suggestions and counting explanations without removing location analysis", () => {
+    const records = [1, 2].map(id => ({ ...rows[0], id, userId: 1, description: "Cùng nội dung", category: ["flood"] }));
+    expect(analyzeReports(records).duplicateCandidates).toHaveLength(1);
+    const html = render(records);
+    expect(html).not.toMatch(/duplicate-candidates|Báo cáo có thể trùng|Cách đếm và giới hạn chống trùng|Đối chiếu #/);
+    expect(html).toContain("Địa điểm cần đối chiếu");
+    expect(html).toContain("Báo cáo không lặp ID");
+  });
+
   it("keeps only total report trends and total/open/share area displays", () => {
     const trend = source("report-trend-chart.tsx");
     const areas = source("report-area-chart.tsx");

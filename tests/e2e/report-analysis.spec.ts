@@ -80,7 +80,7 @@ async function evidence(page: Page, testInfo: TestInfo, name: string) {
   await page.screenshot({ path, fullPage: true });
   await testInfo.attach(name, { path, contentType: 'image/png' });
   if (name === 'analysis-summary') {
-    for (const section of ['report-area-heading', 'report-status-heading', 'report-location-heading', 'report-duplicates-heading']) {
+    for (const section of ['report-area-heading', 'report-status-heading', 'report-location-heading']) {
       await page.locator(`#${section}`).scrollIntoViewIfNeeded();
       const sectionPath = testInfo.outputPath(`${name}-${section}.png`);
       await page.screenshot({ path: sectionPath });
@@ -93,7 +93,7 @@ const reportReads = (requests: { path: string; method: string }[]) => requests.f
 test.describe('admin report analytics', () => {
   test.use({ role: 'admin' });
 
-  test('unique-ID summary, canonical first row, shared/missing locations and advisory candidates', async ({ page, scenario, colorScheme }, testInfo) => {
+  test('unique-ID summary, canonical first row, shared/missing locations without duplicate suggestion panels', async ({ page, scenario, colorScheme }, testInfo) => {
     await page.goto('/cuu-tro');
     await expectIds(page, canonical.map(report => report.id!), 8);
     await expect(page.getByRole('heading', { name: 'Báo cáo người dân', exact: true })).toBeVisible();
@@ -110,15 +110,13 @@ test.describe('admin report analytics', () => {
     const panel = page.getByTestId('report-analysis-panel');
     await expect(panel.getByRole('button', { name: /^Xem báo cáo tại / })).toHaveCount(4);
     await expect(sharedLocation(page)).toBeVisible();
-    const candidates = page.getByTestId('duplicate-candidates');
-    await expect(candidates).toBeVisible();
+    await expect(page.getByTestId('duplicate-candidates')).toHaveCount(0);
+    await expect(page.getByText('Cách đếm và giới hạn chống trùng', { exact: true })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: /^Đối chiếu #/ })).toHaveCount(0);
     for (const id of [201, 202, 206, 207]) {
-      await expect(candidates.getByRole('link', { name: `Đối chiếu #${id}`, exact: true })).toHaveAttribute('href', `/bao-cao/${id}`);
       await expect(page.locator(`article[data-report-id="${id}"]`)).toHaveCount(1);
+      await expect(page.locator(`article[data-report-id="${id}"] a[href="/bao-cao/${id}"]`)).toBeVisible();
     }
-    // Assert individual links: section textContent can join '#202' with a GPS
-    // label beginning '10', which makes a word-boundary assertion misleading.
-    for (const id of [204, 205, 208]) await expect(candidates.getByRole('link', { name: `Đối chiếu #${id}`, exact: true })).toHaveCount(0);
     await expect(page.locator('html')).toHaveClass(colorScheme === 'dark' ? /dark/ : /light/);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);
     expect(reportReads(scenario.requests)).toBeGreaterThan(0);

@@ -1,9 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { ChartBarIcon, DocumentDuplicateIcon, DocumentTextIcon, CheckCircleIcon, MapPinIcon } from "@heroicons/react/24/outline";
+import { ChartBarIcon, DocumentTextIcon, CheckCircleIcon, MapPinIcon } from "@heroicons/react/24/outline";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import type { ReportStatus } from "@/features/reports/api/reports";
 import { getReportStatusLabel } from "@/features/reports/lib/status";
 import type { ReportAnalysis } from "../lib/report-analysis";
@@ -104,28 +102,5 @@ export function ReportAnalysisPanel({ analysis, areas, selectedArea, onSelectAre
 
     </div>
 
-    <section data-testid="duplicate-candidates" aria-labelledby="report-duplicates-heading" className="overflow-hidden rounded-xl border bg-card">
-      <div className="flex items-start gap-3 border-b p-4 sm:p-5">
-        <DocumentDuplicateIcon className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden="true" />
-        <div className="min-w-0"><h4 id="report-duplicates-heading" className="font-semibold">Báo cáo có thể trùng · {number.format(analysis.duplicateCandidates.length)} nhóm</h4>
-          <p className="mt-1 text-xs leading-5 text-muted-foreground">Chỉ là dấu hiệu đối chiếu, không phải kết luận. Các mã báo cáo khác nhau vẫn có trong tổng và danh sách gốc.</p></div>
-      </div>
-      {analysis.duplicateCandidates.length ? <ul className="max-h-72 divide-y overflow-y-auto" aria-label="Nhóm báo cáo cần đối chiếu">
-        {analysis.duplicateCandidates.map(candidate => <li key={candidate.key} className="space-y-2 p-4 sm:px-5">
-          <p className="text-sm font-medium [overflow-wrap:anywhere]">{candidate.locationLabel}</p>
-          <p className="text-xs leading-5 text-muted-foreground">{candidate.reason}</p>
-          <div className="flex flex-wrap gap-2">{candidate.reportIds.map(id => <Button key={id} asChild variant="outline"><Link href={`/bao-cao/${id}`}>Đối chiếu #{id}</Link></Button>)}</div>
-        </li>)}
-      </ul> : <p className="p-4 text-sm text-muted-foreground sm:p-5">Không phát hiện nhóm trùng theo tiêu chí hiện tại. Điều này không đảm bảo không có báo cáo trùng ngoài thực tế.</p>}
-    </section>
-    <details className="rounded-xl border bg-muted/20 p-4 text-sm">
-      <summary className="min-h-6 cursor-pointer font-medium">Cách đếm và giới hạn chống trùng</summary>
-      <ul className="mt-3 list-disc space-y-2 pl-5 text-xs leading-6 text-muted-foreground">
-        <li>Mỗi mã báo cáo hợp lệ chỉ được đếm một lần. Nếu API trả nhiều phiên bản cùng mã, giữ bản đầu tiên; không suy đoán bản mới nhất. Báo cáo thiếu mã được giữ riêng, không tự xóa.</li>
-        <li>Địa điểm trùng khi đủ tỉnh/thành, phường/xã và địa chỉ đường/nhà tương đương, hoặc có cặp GPS hợp lệ giống hệt khi thiếu địa chỉ đầy đủ. Không làm tròn tọa độ, không ghép theo khoảng cách.</li>
-        <li>Gợi ý trùng yêu cầu cùng người gửi, địa điểm, nội dung và loại báo cáo trong tối đa một giờ tính từ bản đầu nhóm. Không tự gộp hoặc xóa báo cáo, không ghi dữ liệu vào hệ thống.</li>
-        <li>Địa chỉ thiếu, khác cách viết hoặc GPS sai lệch có thể chưa được nhận diện. Số điểm là nhóm dữ liệu định danh, không phải số sự cố hay ranh giới ngập đã xác minh.</li>
-      </ul>
-    </details>
   </section>;
 }
